@@ -1,0 +1,22 @@
+{
+  "name": "@openagents/config",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared TypeScript, ESLint, and Prettier configuration",
+  "exports": {
+    "./tsconfig.base.json": "./tsconfig.base.json",
+    "./tsconfig.nextjs.json": "./tsconfig.nextjs.json",
+    "./tsconfig.react-library.json": "./tsconfig.react-library.json",
+    "./eslint-base": "./eslint-base.mjs",
+    "./eslint-next": "./eslint-next.mjs",
+    "./prettier": "./prettier.config.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9",
+    "@next/eslint-plugin-next": "latest",
+    "eslint": "^9",
+    "eslint-config-prettier": "^9",
+    "eslint-plugin-react-hooks": "^5",
+    "typescript-eslint": "^8"
+  }
+}

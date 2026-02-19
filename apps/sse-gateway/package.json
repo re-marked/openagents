@@ -1,0 +1,22 @@
+{
+  "name": "sse-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Fly.io SSE gateway — thin fly-replay router for OpenClaw agent machines",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc --project tsconfig.build.json",
+    "start": "node dist/index.js",
+    "lint": "eslint src/",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "hono": "latest"
+  },
+  "devDependencies": {
+    "@openagents/config": "workspace:*",
+    "@types/node": "^22",
+    "tsx": "latest",
+    "typescript": "^5"
+  }
+}

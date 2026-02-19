@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:docs.openclaw.ai)",
+      "WebFetch(domain:en.wikipedia.org)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:deepwiki.com)",
+      "WebFetch(domain:news.ycombinator.com)",
+      "WebFetch(domain:ppaolo.substack.com)",
+      "WebFetch(domain:snyk.io)",
+      "WebFetch(domain:opencode.ai)",
+      "WebFetch(domain:milvus.io)",
+      "WebFetch(domain:www.mmntm.net)",
+      "WebFetch(domain:gist.github.com)",
+      "WebFetch(domain:www.digitalapplied.com)",
+      "WebFetch(domain:techcrunch.com)",
+      "WebFetch(domain:www.penligent.ai)",
+      "WebFetch(domain:decrypt.co)",
+      "WebFetch(domain:claude-world.com)",
+      "WebFetch(domain:www.cnbc.com)",
+      "WebFetch(domain:www.digitalocean.com)",
+      "WebFetch(domain:lucumr.pocoo.org)",
+      "WebFetch(domain:www.npmjs.com)"
+    ]
+  }
+}

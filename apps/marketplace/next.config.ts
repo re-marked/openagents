@@ -1,10 +1,17 @@
-import type { NextConfig } from 'next';
+import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  reactStrictMode: true,
-  typescript: {
-    ignoreBuildErrors: false,
+  transpilePackages: ['@openagents/ui', '@openagents/db'],
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: '**.supabase.co' },
+      { protocol: 'https', hostname: 'avatars.githubusercontent.com' },
+      { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
+    ],
   },
-};
+  experimental: {
+    optimizePackageImports: ['lucide-react', 'framer-motion'],
+  },
+}
 
-export default nextConfig;
+export default nextConfig
