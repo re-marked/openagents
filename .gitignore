@@ -55,3 +55,9 @@ Thumbs.db
 
 # docs
 apps/docs/
+
+# turbopack
+.turbo/
+
+# bash.exe.stackdump
+bash.exe.stackdump
