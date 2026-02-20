@@ -1,0 +1,33 @@
+# Template fly.toml for agent machines.
+# Not deployed directly — used as a reference when provisioning via Machines API.
+# Each user-agent pair gets its own Fly App created programmatically.
+
+app = "openagents-agent-base"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  OPENCLAW_STATE_DIR = "/data"
+  NODE_ENV = "production"
+
+[http_service]
+  internal_port = 18789
+  force_https = true
+  auto_stop_machines = "suspend"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [http_service.concurrency]
+    type = "requests"
+    hard_limit = 50
+    soft_limit = 25
+
+[mounts]
+  source = "agent_data"
+  destination = "/data"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
