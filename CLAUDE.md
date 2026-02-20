@@ -182,9 +182,9 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 ## Key Conventions
 
-- **No jargon in UI**: say "assistant" not "agent", "start using" not "deploy"
+- **Use Agent with an A for OpenAgent's agents, and agent with an a for any other agent.**
 - **Server Components by default**: use `'use client'` only when needed (interactivity, hooks)
 - **Service client for admin ops**: use `createServiceClient()` from `@openagents/db/server` in Trigger.dev tasks — bypasses RLS
 - **Regular client for user ops**: use `createClient()` from `@openagents/db/server` in route handlers/Server Components
-- **Feature components**: go in `src/components/function/`, not `ui/`
 - **shadcn components**: go in `src/components/ui/` — don't edit these manually
+- **New functions**: create a branch named function/foo and push changes on that branch
