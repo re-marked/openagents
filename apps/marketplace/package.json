@@ -14,6 +14,7 @@
     "@hookform/resolvers": "^5.2.2",
     "@openagents/db": "workspace:*",
     "@openagents/ui": "workspace:*",
+    "@trigger.dev/sdk": "^3.3.17",
     "class-variance-authority": "^0.7.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",

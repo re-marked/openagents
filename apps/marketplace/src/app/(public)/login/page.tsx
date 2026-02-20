@@ -12,7 +12,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <form action={signInWithGoogle}>
+        <form action={signInWithGoogle.bind(null, '/workspace/home')}>
           <Button className="w-full" size="lg">
             Continue with Google
           </Button>
