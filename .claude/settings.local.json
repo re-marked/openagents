@@ -21,7 +21,15 @@
       "WebFetch(domain:www.cnbc.com)",
       "WebFetch(domain:www.digitalocean.com)",
       "WebFetch(domain:lucumr.pocoo.org)",
-      "WebFetch(domain:www.npmjs.com)"
+      "WebFetch(domain:www.npmjs.com)",
+      "Bash(ls:*)",
+      "WebFetch(domain:hub.docker.com)",
+      "WebFetch(domain:ghcr.io)",
+      "Bash(curl:*)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "supabase"
+  ],
+  "enableAllProjectMcpServers": true
 }
