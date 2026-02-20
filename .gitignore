@@ -49,6 +49,7 @@ next-env.d.ts
 *.swo
 *~
 .claude/*
+.claude/settings.local.json
 
 # OS
 Thumbs.db
@@ -63,5 +64,3 @@ apps/docs/
 bash.exe.stackdump
 .trigger
 
-.claude/*
-.claude/settings.local.json
