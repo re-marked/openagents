@@ -1,0 +1,16 @@
+{
+  "name": "@openagents/fly",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Typed Fly.io Machines API client for OpenAgents",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@openagents/config": "workspace:*",
+    "typescript": "^5"
+  }
+}
