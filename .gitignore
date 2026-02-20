@@ -62,3 +62,6 @@ apps/docs/
 # bash.exe.stackdump
 bash.exe.stackdump
 .trigger
+
+.claude/*
+.claude/settings.local.json

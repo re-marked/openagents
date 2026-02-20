@@ -25,11 +25,18 @@
       "Bash(ls:*)",
       "WebFetch(domain:hub.docker.com)",
       "WebFetch(domain:ghcr.io)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(pnpm add:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git merge:*)",
+      "Bash(git stash:*)",
+      "Bash(git push:*)"
     ]
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "supabase"
-  ],
-  "enableAllProjectMcpServers": true
+  ]
 }
