@@ -31,10 +31,13 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  // Protect /workspace/* and /platform/* routes
-  if (!user && (pathname.startsWith('/workspace') || pathname.startsWith('/platform'))) {
+  // Public auth pages — never redirect these
+  const isAuthPage = pathname === '/login' || pathname === '/platform/login'
+
+  // Protect /workspace/* and /platform/* routes (except login pages)
+  if (!user && !isAuthPage && (pathname.startsWith('/workspace') || pathname.startsWith('/platform'))) {
     const url = request.nextUrl.clone()
-    url.pathname = '/login'
+    url.pathname = pathname.startsWith('/platform') ? '/platform/login' : '/login'
     return NextResponse.redirect(url)
   }
 
