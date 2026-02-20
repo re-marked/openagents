@@ -48,7 +48,10 @@ next-env.d.ts
 *.swp
 *.swo
 *~
+.claude/*
 
 # OS
 Thumbs.db
-.claude/*
+
+# docs
+apps/docs/
