@@ -6,6 +6,7 @@ triggered by the OpenAI acqui-hire of Peter Steinberger (Feb 15, 2026).
 
 ## Key Research Files
 - `openclaw-research.md` — Full OpenClaw technical deep-dive (2026-02-18)
+- `openclaw-docker-gateway.md` — Docker images, gateway CLI flags, config, workspace files, skills (2026-02-20)
 - `skill-format.md` — Complete SKILL.md format spec, ClawHub details (2026-02-18)
 - `infrastructure-research.md` — Trigger.dev v3, Polar.sh, Supabase Realtime, Vercel, Fly.io
 - `agent-marketplace-landscape.md` — Marketplace landscape, protocols, infrastructure (2026-02-18)
@@ -48,3 +49,18 @@ See `monetization-research.md` for full details. Key findings:
 - Fly.io compute: shared-cpu-1x 256MB = ~$0.0027/hr; agent session ~$0.0025 total cost
 - Credit system: 100 credits = $1 recommended; free tier 7-day expiry; paid tiers monthly
 - Recommended split: 80% creator / 20% platform, AFTER deducting compute at cost
+
+## OpenClaw Docker Gateway (2026-02-20)
+See `openclaw-docker-gateway.md` for full details. Key facts:
+- Official image: `ghcr.io/openclaw/openclaw:2026.2.19` (GHCR only, no Docker Hub)
+- Multi-arch: amd64 + arm64; also `main` tag for bleeding edge
+- Default port: 18789 (WebSocket + HTTP multiplexed on same port)
+- CRITICAL: must use `--bind lan` in Docker (default loopback = proxy cannot reach it)
+- HTTP APIs: POST /v1/chat/completions and POST /v1/responses (both disabled by default, enable in config)
+- Start command: `node openclaw.mjs gateway --bind lan --port 18789 --allow-unconfigured`
+- State dir: OPENCLAW_STATE_DIR (default /home/node/.openclaw); workspace inside it
+- Auth: OPENCLAW_GATEWAY_TOKEN env var required for non-loopback; bearer token for HTTP
+- Workspace files: SOUL.md (personality), AGENTS.md (rules), MEMORY.md (facts) all in workspace/
+- Set `agents.defaults.skipBootstrap: true` to avoid interactive Q&A in Docker
+- 2GB RAM minimum for production (OOM at 512MB/1GB under load)
+- Runs as node user (uid 1000) — chown -R 1000:1000 host state directories
