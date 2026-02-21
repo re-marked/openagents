@@ -1,11 +1,28 @@
 {
   "agents": {
+    "list": [
+      {
+        "id": "main",
+        "default": true,
+        "workspace": "/data/workspace",
+        "tools": {
+          "profile": "coding",
+          "allow": ["exec", "web_search", "file_read", "file_write"],
+          "deny": ["browser", "gateway", "cron"]
+        }
+      }
+    ],
     "defaults": {
-      "workspace": "/data/workspace",
       "model": {
-        "primary": "anthropic/claude-sonnet-4-6"
+        "primary": "openai/gpt-4o"
+      },
+      "sandbox": {
+        "mode": "off"
       }
     }
+  },
+  "skills": {
+    "allowBundled": []
   },
   "gateway": {
     "mode": "local",
