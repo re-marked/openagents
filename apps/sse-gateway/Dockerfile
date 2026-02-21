@@ -1,19 +1,15 @@
 FROM node:22-alpine AS base
-RUN npm install -g pnpm@10
 
 # Build stage
 FROM base AS builder
 WORKDIR /app
-COPY package.json pnpm-workspace.yaml ./
-COPY apps/sse-gateway/package.json ./apps/sse-gateway/
-COPY packages/config/package.json ./packages/config/
-RUN pnpm install --frozen-lockfile
 
-COPY apps/sse-gateway/ ./apps/sse-gateway/
-COPY packages/config/ ./packages/config/
+# Install only the packages needed for build (skip workspace: deps)
+RUN npm install hono @hono/node-server typescript @types/node
 
-WORKDIR /app/apps/sse-gateway
-RUN pnpm build
+COPY tsconfig.build.json ./
+COPY src/ ./src/
+RUN npx tsc --project tsconfig.build.json
 
 # Runtime stage
 FROM node:22-alpine AS runner
@@ -22,10 +18,10 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 gateway
 
-COPY --from=builder --chown=gateway:nodejs /app/apps/sse-gateway/dist ./dist
-COPY --from=builder --chown=gateway:nodejs /app/apps/sse-gateway/package.json ./
+COPY --from=builder --chown=gateway:nodejs /app/dist ./dist
 
-RUN npm install --omit=dev --ignore-scripts
+# Install only production deps
+RUN npm install hono @hono/node-server
 
 USER gateway
 

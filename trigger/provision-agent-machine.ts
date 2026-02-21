@@ -35,17 +35,34 @@ export const provisionAgentMachine = task({
 
     if (agentErr || !agent) throw new Error(`Agent not found: ${agentId}`)
 
+    // ── 2. Load user's API keys (BYOK) ──────────────────────────────────
+    const { data: apiKeys } = await db
+      .from('user_api_keys')
+      .select('provider, api_key')
+      .eq('user_id', userId)
+
+    const keyEnv: Record<string, string> = {}
+    for (const row of apiKeys ?? []) {
+      if (row.provider === 'anthropic') keyEnv.ANTHROPIC_API_KEY = row.api_key
+      if (row.provider === 'openai') keyEnv.OPENAI_API_KEY = row.api_key
+      if (row.provider === 'google') keyEnv.GOOGLE_API_KEY = row.api_key
+    }
+
+    if (Object.keys(keyEnv).length === 0) {
+      throw new Error('No API keys configured. Add at least one key in Settings.')
+    }
+
     const image = agent.docker_image ?? BASE_IMAGE
     const appName = `oa-${agent.slug}-${userId.slice(0, 8)}`
     const gatewayToken = crypto.randomUUID()
 
     logger.info('Provisioning agent machine', { appName, userId, agentId })
 
-    // ── 2. Upsert Fly app ────────────────────────────────────────────────
+    // ── 3. Upsert Fly app ────────────────────────────────────────────────
     const app = await fly.upsertApp(appName, FLY_ORG)
     logger.info('Fly app ready', { appName: app.name })
 
-    // ── 3. Create volume ─────────────────────────────────────────────────
+    // ── 4. Create volume ─────────────────────────────────────────────────
     const volume = await fly.createVolume(appName, {
       name: 'agent_data',
       region: FLY_REGION,
@@ -54,16 +71,16 @@ export const provisionAgentMachine = task({
     })
     logger.info('Volume created', { volumeId: volume.id })
 
-    // ── 4. Create machine ─────────────────────────────────────────────────
+    // ── 5. Create machine ─────────────────────────────────────────────────
     const machine = await fly.createMachine(appName, {
       region: FLY_REGION,
       config: {
         image,
         env: {
           OPENCLAW_STATE_DIR: '/data',
-          GATEWAY_TOKEN: gatewayToken,
-          ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ?? '',
+          OPENCLAW_GATEWAY_TOKEN: gatewayToken,
           NODE_ENV: 'production',
+          ...keyEnv,
         },
         mounts: [{ volume: volume.id, path: '/data' }],
         services: [
@@ -97,17 +114,18 @@ export const provisionAgentMachine = task({
 
     logger.info('Machine created', { machineId: machine.id })
 
-    // ── 5. Wait for machine to start ─────────────────────────────────────
+    // ── 6. Wait for machine to start ─────────────────────────────────────
     await fly.waitForMachineState(appName, machine.id, 'started', 60)
     logger.info('Machine started', { machineId: machine.id })
 
-    // ── 6. Store gateway token in DB (service role, bypasses RLS) ────────
+    // ── 7. Store machine info + gateway token in DB ──────────────────────
     await db
       .from('agent_instances')
       .update({
         fly_app_name: appName,
         fly_machine_id: machine.id,
         fly_volume_id: volume.id,
+        gateway_token: gatewayToken,
         region: FLY_REGION,
         status: 'running',
       })
