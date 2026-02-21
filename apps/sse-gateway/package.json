@@ -12,11 +12,13 @@
   },
   "dependencies": {
     "@hono/node-server": "latest",
-    "hono": "latest"
+    "hono": "latest",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@openagents/config": "workspace:*",
     "@types/node": "^22",
+    "@types/ws": "^8",
     "tsx": "latest",
     "typescript": "^5"
   }

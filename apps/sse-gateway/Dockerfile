@@ -5,7 +5,7 @@ FROM base AS builder
 WORKDIR /app
 
 # Install only the packages needed for build (skip workspace: deps)
-RUN npm install hono @hono/node-server typescript @types/node
+RUN npm install hono @hono/node-server ws typescript @types/node @types/ws
 
 COPY tsconfig.build.json ./
 COPY src/ ./src/
@@ -21,7 +21,7 @@ RUN addgroup --system --gid 1001 nodejs && \
 COPY --from=builder --chown=gateway:nodejs /app/dist ./dist
 
 # Install only production deps
-RUN npm install hono @hono/node-server
+RUN npm install hono @hono/node-server ws
 
 USER gateway
 

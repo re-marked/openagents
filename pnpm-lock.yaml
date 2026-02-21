@@ -142,6 +142,9 @@ importers:
       hono:
         specifier: latest
         version: 4.12.1
+      ws:
+        specifier: ^8.18.0
+        version: 8.19.0
     devDependencies:
       '@openagents/config':
         specifier: workspace:*
@@ -149,6 +152,9 @@ importers:
       '@types/node':
         specifier: ^22
         version: 22.19.11
+      '@types/ws':
+        specifier: ^8
+        version: 8.18.1
       tsx:
         specifier: latest
         version: 4.21.0
@@ -1667,7 +1673,7 @@ packages:
   '@radix-ui/react-use-previous@1.1.1':
     resolution: {integrity: sha512-2dHfToCj/pzca2Ck724OZ5L0EVrr3eHRNsG/b3xQJLA2hZpVCS99bLAX+hm1IHXDEnzU6by5z/5MIY794/a8NQ==}
     peerDependencies:
-      '@types/react': 19.2.7
+      '@types/react': '*'
       react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
     peerDependenciesMeta:
       '@types/react':
