@@ -1,52 +1,31 @@
 {
-  "model": {
-    "primary": "anthropic/claude-sonnet-4-6",
-    "fallbacks": ["openai/gpt-4o"]
-  },
   "agents": {
-    "list": [
-      {
-        "id": "main",
-        "default": true,
-        "workspace": "/data/workspace",
-        "tools": {
-          "profile": "coding",
-          "allow": ["exec", "web_search", "file_read", "file_write"],
-          "deny": ["browser", "gateway", "cron"]
-        }
-      }
-    ],
     "defaults": {
-      "sandbox": {
-        "mode": "all",
-        "scope": "session",
-        "workspaceAccess": "rw",
-        "docker": {
-          "network": "none",
-          "readOnlyRoot": true,
-          "capDrop": ["ALL"],
-          "user": "1000:1000",
-          "pidsLimit": 256,
-          "memory": "1g",
-          "cpus": 1
-        }
+      "workspace": "/data/workspace",
+      "model": {
+        "primary": "anthropic/claude-sonnet-4-6"
       }
     }
   },
-  "skills": {
-    "allowBundled": []
-  },
   "gateway": {
-    "http": {
-      "port": 18789,
-      "bind": "lan",
-      "endpoints": {
-        "responses": true,
-        "completions": true
-      }
-    },
+    "mode": "local",
+    "port": 18789,
+    "bind": "lan",
     "auth": {
       "mode": "token"
+    },
+    "http": {
+      "endpoints": {
+        "chatCompletions": {
+          "enabled": true
+        },
+        "responses": {
+          "enabled": true
+        }
+      }
+    },
+    "controlUi": {
+      "dangerouslyDisableDeviceAuth": true
     }
   }
 }

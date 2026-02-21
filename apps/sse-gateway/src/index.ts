@@ -1,7 +1,7 @@
+import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { logger } from 'hono/logger'
-import { stream } from 'hono/streaming'
 
 const app = new Hono()
 
@@ -15,84 +15,48 @@ app.use(
       'https://*.vercel.app',
     ],
     allowMethods: ['GET', 'POST', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization', 'x-machine-id', 'x-gateway-token'],
+    allowHeaders: ['Content-Type', 'Authorization', 'x-machine-id', 'x-fly-app', 'x-gateway-token'],
   }),
 )
 
-/** Health check — used by Fly.io and monitoring */
+/** Health check */
 app.get('/health', (c) => c.json({ status: 'ok', machine: process.env.FLY_MACHINE_ID ?? 'local' }))
 
 /**
- * SSE proxy endpoint.
+ * SSE routing endpoint.
+ *
+ * Endpoint matches OpenClaw's /v1/responses so fly-replay forwards directly.
  *
  * Flow:
- * 1. Vercel Next.js route handler POSTs here with `x-machine-id` header
- * 2. If this machine IS the target → proxy to OpenClaw on port 18789
- * 3. If this machine IS NOT the target → reply with fly-replay header so
- *    Fly.io routes the request to the correct machine automatically
+ * 1. Vercel POSTs here with x-fly-app + x-machine-id + Authorization headers
+ * 2. Gateway validates x-gateway-token (our internal secret)
+ * 3. Gateway returns fly-replay header → Fly proxy routes to the agent machine
+ * 4. Agent machine receives the request at /v1/responses with Authorization header
+ * 5. OpenClaw processes it and streams SSE response back through Fly proxy
  */
-app.post('/v1/stream', async (c) => {
-  const targetMachineId = c.req.header('x-machine-id')
-  const currentMachineId = process.env.FLY_MACHINE_ID
+app.post('/v1/responses', async (c) => {
   const gatewayToken = c.req.header('x-gateway-token')
+  const targetApp = c.req.header('x-fly-app')
+  const targetMachineId = c.req.header('x-machine-id')
 
-  // Validate internal gateway token
+  // Validate internal gateway secret
   if (!gatewayToken || gatewayToken !== process.env.GATEWAY_SECRET) {
     return c.json({ error: 'Unauthorized' }, 401)
   }
 
-  // fly-replay: route to the correct machine if not already on it
-  if (targetMachineId && currentMachineId && targetMachineId !== currentMachineId) {
-    c.header('fly-replay', `instance=${targetMachineId}`)
-    return c.text('Replaying to target machine', 409)
+  if (!targetApp || !targetMachineId) {
+    return c.json({ error: 'Missing x-fly-app or x-machine-id header' }, 400)
   }
 
-  const body = await c.req.text()
-  const authHeader = c.req.header('Authorization') ?? ''
-
-  let upstream: Response
-  try {
-    upstream = await fetch('http://localhost:18789/v1/responses', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: authHeader,
-      },
-      body,
-    })
-  } catch {
-    return c.json({ error: 'Agent machine unreachable' }, 503)
-  }
-
-  if (!upstream.ok) {
-    return c.json({ error: 'Upstream error', status: upstream.status }, 502)
-  }
-
-  // Stream the SSE response back to the caller
-  c.header('Content-Type', 'text/event-stream')
-  c.header('Cache-Control', 'no-cache')
-  c.header('Connection', 'keep-alive')
-
-  return stream(c, async (outStream) => {
-    const reader = upstream.body?.getReader()
-    if (!reader) return
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        await outStream.write(value)
-      }
-    } finally {
-      reader.releaseLock()
-    }
-  })
+  // fly-replay routes the request to the correct agent machine in the correct app.
+  // Fly's proxy replays the full request (headers + body) to the target,
+  // and streams the response back to the caller.
+  c.header('fly-replay', `app=${targetApp},instance=${targetMachineId}`)
+  return c.text('Replaying to agent machine', 409)
 })
 
 const port = Number(process.env.PORT ?? 8080)
-console.log(`SSE Gateway listening on :${port}`)
 
-export default {
-  port,
-  fetch: app.fetch,
-}
+serve({ fetch: app.fetch, port }, (info) => {
+  console.log(`SSE Gateway listening on :${info.port}`)
+})

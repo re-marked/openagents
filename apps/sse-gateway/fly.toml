@@ -2,7 +2,7 @@ app = "openagents-sse-gateway"
 primary_region = "iad"
 
 [build]
-  dockerfile = "../../Dockerfile.sse-gateway"
+  dockerfile = "Dockerfile"
 
 [env]
   PORT = "8080"

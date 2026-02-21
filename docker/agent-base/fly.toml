@@ -1,12 +1,14 @@
 # Template fly.toml for agent machines.
 # Not deployed directly — used as a reference when provisioning via Machines API.
 # Each user-agent pair gets its own Fly App created programmatically.
+#
+# For manual testing, copy this file and run:
+#   fly apps create oa-test-agent --org personal
+#   fly secrets set ANTHROPIC_API_KEY=sk-ant-... GATEWAY_TOKEN=test-token-123 --app oa-test-agent
+#   fly deploy --app oa-test-agent --image registry.fly.io/openagents-agent-base:latest
 
-app = "openagents-agent-base"
+app = "oa-test-agent"
 primary_region = "iad"
-
-[build]
-  dockerfile = "Dockerfile"
 
 [env]
   OPENCLAW_STATE_DIR = "/data"
@@ -29,5 +31,5 @@ primary_region = "iad"
   destination = "/data"
 
 [[vm]]
-  size = "shared-cpu-1x"
-  memory = "512mb"
+  size = "shared-cpu-2x"
+  memory = "2048mb"
