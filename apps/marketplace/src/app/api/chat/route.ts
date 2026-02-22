@@ -142,18 +142,22 @@ export async function POST(request: Request) {
     transform(chunk, controller) {
       const text = decoder.decode(chunk, { stream: true })
 
-      // Parse SSE lines to accumulate assistant content
+      // Parse SSE lines to accumulate assistant content (only from delta events)
       const lines = text.split('\n')
+      let currentEvent = ''
       for (const line of lines) {
-        if (line.startsWith('data:')) {
+        if (line.startsWith('event:')) {
+          currentEvent = line.slice(6).trim()
+        } else if (line.startsWith('data:')) {
           try {
             const data = JSON.parse(line.slice(5).trim())
-            if (data.content) {
+            if (currentEvent === 'delta' && data.content) {
               assistantContent += data.content
             }
           } catch {
             // Not JSON, pass through
           }
+          currentEvent = ''
         }
       }
 

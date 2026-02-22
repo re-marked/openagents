@@ -59,10 +59,13 @@ app.post('/v1/responses', async (c) => {
  *
  * Flow:
  * 1. Vercel POSTs { sessionKey, message, idempotencyKey }
- * 2. Gateway opens WebSocket to agent machine on Fly.io 6PN
- * 3. Performs OpenClaw handshake (connect.challenge → connect → hello-ok)
+ * 2. Gateway opens WebSocket to agent machine via public URL
+ * 3. Performs OpenClaw protocol v3 handshake (connect.challenge -> connect -> hello-ok)
  * 4. Sends chat.send with sessionKey + message
  * 5. Translates streaming WS events into SSE events back to caller
+ *
+ * Auth: Connects as openclaw-control-ui client with dangerouslyDisableDeviceAuth
+ * enabled on the agent, which allows scoped access without device key pairs.
  */
 app.post('/v1/chat', async (c) => {
   const gatewayToken = c.req.header('x-gateway-token')
@@ -89,8 +92,9 @@ app.post('/v1/chat', async (c) => {
     return c.json({ error: 'Missing sessionKey or message' }, 400)
   }
 
-  // Use Fly.io 6PN internal networking to reach the agent machine
-  const wsUrl = `ws://${targetApp}.internal:18789/`
+  // Use public URL — OpenClaw only binds IPv4, but Fly 6PN uses IPv6.
+  // Public URL also triggers autostart for suspended machines.
+  const wsUrl = `wss://${targetApp}.fly.dev/`
   console.log(`[chat] Connecting to ${wsUrl} for session ${sessionKey}`)
 
   return streamSSE(c, async (stream) => {
@@ -116,7 +120,11 @@ app.post('/v1/chat', async (c) => {
     }, 5 * 60 * 1000)
 
     try {
-      ws = new WebSocket(wsUrl)
+      // Set Origin header to match the target host — required for the
+      // browser origin check when connecting as control-ui client.
+      ws = new WebSocket(wsUrl, {
+        origin: `https://${targetApp}.fly.dev`,
+      })
 
       await new Promise<void>((resolve, reject) => {
         const connectTimeout = setTimeout(() => {
@@ -135,8 +143,8 @@ app.post('/v1/chat', async (c) => {
         })
       })
 
-      // --- OpenClaw handshake ---
-      // Step 1: Wait for connect.challenge
+      // --- OpenClaw protocol v3 handshake ---
+      // Step 1: Wait for connect.challenge event
       const challengeMsg = await waitForMessage(ws, 10_000)
       const challenge = JSON.parse(challengeMsg)
 
@@ -146,22 +154,33 @@ app.post('/v1/chat', async (c) => {
 
       console.log('[chat] Received connect.challenge')
 
-      // Step 2: Send connect request with auth
-      const connectRequest: Record<string, unknown> = {
-        type: 'request',
-        id: generateId(),
-        method: 'connect',
-        params: {
-          protocol: 3,
-          role: 'operator',
+      // Step 2: Send connect request (protocol v3 frame format)
+      // We connect as openclaw-control-ui with dangerouslyDisableDeviceAuth
+      // enabled on the agent config. This preserves scopes for device-less
+      // connections (OpenClaw 2026.2.17+ clears scopes without a device
+      // unless allowControlUiBypass is true).
+      const connectParams: Record<string, unknown> = {
+        minProtocol: 3,
+        maxProtocol: 3,
+        client: {
+          id: 'openclaw-control-ui',
+          version: '1.0.0',
+          platform: 'node',
+          mode: 'backend',
         },
+        role: 'operator',
+        scopes: ['operator.admin'],
       }
 
       if (agentToken) {
-        ;(connectRequest.params as Record<string, unknown>).auth = {
-          type: 'token',
-          token: agentToken,
-        }
+        connectParams.auth = { token: agentToken }
+      }
+
+      const connectRequest = {
+        type: 'req',
+        id: generateId(),
+        method: 'connect',
+        params: connectParams,
       }
 
       ws.send(JSON.stringify(connectRequest))
@@ -171,56 +190,80 @@ app.post('/v1/chat', async (c) => {
       const helloMsg = await waitForMessage(ws, 10_000)
       const hello = JSON.parse(helloMsg)
 
-      if (hello.type === 'response' && hello.error) {
+      if (hello.type === 'res' && hello.ok === false) {
         throw new Error(`Connect failed: ${JSON.stringify(hello.error)}`)
       }
 
       console.log('[chat] Handshake complete')
 
       // --- Send chat.send ---
-      const chatRequest: Record<string, unknown> = {
-        type: 'request',
+      const chatRequest = {
+        type: 'req',
         id: generateId(),
         method: 'chat.send',
         params: {
           sessionKey,
-          message: { role: 'user', content: message },
+          message,
+          idempotencyKey: idempotencyKey ?? generateId(),
         },
-      }
-
-      if (idempotencyKey) {
-        ;(chatRequest.params as Record<string, unknown>).idempotencyKey = idempotencyKey
       }
 
       ws.send(JSON.stringify(chatRequest))
       console.log('[chat] Sent chat.send')
 
       // --- Stream events back as SSE ---
+      // Track whether we received the final chat event so the WS close
+      // handler knows not to emit a spurious error.
+      let doneSent = false
+
       await new Promise<void>((resolve, reject) => {
-        ws!.on('message', (data) => {
+        ws!.on('message', async (data) => {
           if (closed) return
 
           try {
-            const msg = JSON.parse(data.toString())
+            const raw = data.toString()
+            const msg = JSON.parse(raw)
 
-            // Chat events (streaming content)
-            if (msg.type === 'event' && msg.event === 'chat') {
-              const payload = msg.data
+            // Agent events — assistant stream has per-token deltas
+            if (msg.type === 'event' && msg.event === 'agent') {
+              const payload = msg.payload
 
-              if (payload.state === 'delta') {
-                stream.writeSSE({
-                  event: 'delta',
-                  data: JSON.stringify({ content: payload.content ?? '' }),
+              if (payload?.stream === 'assistant') {
+                const delta = payload.data?.delta ?? ''
+                if (delta) {
+                  await stream.writeSSE({
+                    event: 'delta',
+                    data: JSON.stringify({ content: delta }),
+                  })
+                }
+              } else if (payload?.stream === 'tool') {
+                await stream.writeSSE({
+                  event: 'tool',
+                  data: JSON.stringify(payload),
                 })
-              } else if (payload.state === 'final') {
-                stream.writeSSE({
+              }
+            }
+
+            // Chat events — "final" signals completion with full message
+            if (msg.type === 'event' && msg.event === 'chat') {
+              const payload = msg.payload
+              // Extract text from content array: [{type:"text",text:"..."}]
+              const parts = payload.message?.content ?? []
+              const text = parts
+                .filter((p: { type: string }) => p.type === 'text')
+                .map((p: { text: string }) => p.text)
+                .join('')
+
+              if (payload.state === 'final') {
+                doneSent = true
+                await stream.writeSSE({
                   event: 'done',
-                  data: JSON.stringify({ content: payload.content ?? '' }),
+                  data: JSON.stringify({ content: text }),
                 })
                 cleanup()
                 resolve()
               } else if (payload.state === 'error') {
-                stream.writeSSE({
+                await stream.writeSSE({
                   event: 'error',
                   data: JSON.stringify({ error: payload.error ?? 'Agent error' }),
                 })
@@ -229,22 +272,11 @@ app.post('/v1/chat', async (c) => {
               }
             }
 
-            // Agent events (tool calls)
-            if (msg.type === 'event' && msg.event === 'agent') {
-              const payload = msg.data
-              if (payload.stream === 'tool') {
-                stream.writeSSE({
-                  event: 'tool',
-                  data: JSON.stringify(payload),
-                })
-              }
-            }
-
             // Response to chat.send (may contain error)
-            if (msg.type === 'response' && msg.error) {
-              stream.writeSSE({
+            if (msg.type === 'res' && msg.ok === false) {
+              await stream.writeSSE({
                 event: 'error',
-                data: JSON.stringify({ error: msg.error.message ?? 'Request error' }),
+                data: JSON.stringify({ error: msg.error?.message ?? 'Request error' }),
               })
               cleanup()
               resolve()
@@ -254,12 +286,12 @@ app.post('/v1/chat', async (c) => {
           }
         })
 
-        ws!.on('close', () => {
-          if (!closed) {
-            console.log('[chat] WebSocket closed unexpectedly')
+        ws!.on('close', (code, reason) => {
+          console.log(`[chat] WebSocket closed code=${code} reason=${reason?.toString() ?? 'none'}`)
+          if (!doneSent && !closed) {
             stream.writeSSE({
               event: 'error',
-              data: JSON.stringify({ error: 'Connection closed' }),
+              data: JSON.stringify({ error: 'Connection closed unexpectedly' }),
             })
           }
           resolve()
