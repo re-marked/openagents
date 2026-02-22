@@ -400,10 +400,14 @@ app.post('/v1/chat', async (c) => {
       let lastText = await listenForTurn()
 
       while (lastText && !closed) {
-        // Only trigger on NEW @mentions — ignore agents already invoked in prior rounds
-        const mentions = extractMentions(lastText).filter(
-          (m) => !mentionedAgents.has(m.agent),
-        )
+        // Only trigger on NEW @mentions — deduplicate by agent name and ignore
+        // agents already invoked in prior rounds
+        const seen = new Set(mentionedAgents)
+        const mentions = extractMentions(lastText).filter((m) => {
+          if (seen.has(m.agent)) return false
+          seen.add(m.agent)
+          return true
+        })
 
         if (mentions.length === 0 || mentionDepth >= MAX_MENTION_DEPTH) {
           // No new mentions or depth exceeded — we're done
