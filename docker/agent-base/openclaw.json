@@ -18,7 +18,7 @@
   },
   "tools": {
     "profile": "coding",
-    "allow": ["exec", "web_search", "read", "write", "edit", "apply_patch"],
+    "allow": ["exec", "web_search", "read", "write", "edit", "apply_patch", "delegate_to_agent"],
     "deny": ["browser", "gateway", "cron"],
     "elevated": {
       "enabled": false
