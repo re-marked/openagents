@@ -8,7 +8,14 @@
         "tools": {
           "profile": "coding",
           "allow": ["exec", "web_search", "file_read", "file_write"],
-          "deny": ["browser", "gateway", "cron"]
+          "deny": ["browser", "gateway", "cron"],
+          "elevated": {
+            "enabled": true,
+            "allowFrom": {
+              "webchat": true,
+              "api": true
+            }
+          }
         }
       }
     ],
