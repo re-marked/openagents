@@ -17,8 +17,8 @@ RUN mkdir -p /opt/openclaw-defaults/workspace /data && \
 COPY openclaw.json /opt/openclaw-defaults/openclaw.json
 COPY workspace/ /opt/openclaw-defaults/workspace/
 
-# Entrypoint: always overwrite config from image, seed workspace once
-RUN printf '#!/bin/sh\ncp /opt/openclaw-defaults/openclaw.json /data/openclaw.json\nmkdir -p /data/workspace /data/memory /data/sessions\nif [ -z "$(ls -A /data/workspace 2>/dev/null)" ]; then\n  cp -r /opt/openclaw-defaults/workspace/. /data/workspace/ 2>/dev/null || true\nfi\nexec "$@"\n' > /opt/entrypoint.sh && \
+# Entrypoint: always overwrite config + system dirs, seed user files once
+RUN printf '#!/bin/sh\ncp /opt/openclaw-defaults/openclaw.json /data/openclaw.json\nmkdir -p /data/workspace /data/memory /data/sessions\nif [ -z "$(ls -A /data/workspace 2>/dev/null)" ]; then\n  cp -r /opt/openclaw-defaults/workspace/. /data/workspace/ 2>/dev/null || true\nfi\ncp -r /opt/openclaw-defaults/workspace/tools /data/workspace/ 2>/dev/null || true\ncp -r /opt/openclaw-defaults/workspace/skills /data/workspace/ 2>/dev/null || true\nexec "$@"\n' > /opt/entrypoint.sh && \
     chmod +x /opt/entrypoint.sh
 
 USER node
