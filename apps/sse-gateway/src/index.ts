@@ -250,10 +250,37 @@ app.post('/v1/chat', async (c) => {
                   })
                 }
               } else if (payload?.stream === 'tool') {
-                await stream.writeSSE({
-                  event: 'tool',
-                  data: JSON.stringify(payload),
-                })
+                // Check for delegate_to_agent tool call
+                const toolName =
+                  payload.data?.name ??
+                  payload.data?.tool_name ??
+                  payload.data?.toolName ??
+                  ''
+                const toolInput =
+                  payload.data?.input ??
+                  payload.data?.arguments ??
+                  payload.data?.params ??
+                  {}
+
+                if (toolName === 'delegate_to_agent') {
+                  console.log(
+                    `[chat] INTERCEPTED delegate_to_agent:`,
+                    JSON.stringify(toolInput),
+                  )
+                  await stream.writeSSE({
+                    event: 'delegation',
+                    data: JSON.stringify({
+                      status: 'task received',
+                      tool_call: { name: toolName, input: toolInput },
+                    }),
+                  })
+                  // Don't forward as a regular tool event
+                } else {
+                  await stream.writeSSE({
+                    event: 'tool',
+                    data: JSON.stringify(payload),
+                  })
+                }
               } else if (payload?.stream === 'lifecycle' && payload.data?.phase === 'end') {
                 // Run is ending. The last chat/final will follow shortly.
                 runEnding = true

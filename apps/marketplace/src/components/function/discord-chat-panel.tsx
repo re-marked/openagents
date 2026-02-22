@@ -115,6 +115,19 @@ export function DiscordChatPanel({ agentInstanceId }: { agentInstanceId: string 
                 }
                 contentBuffer = ''
                 turnCount++
+              } else if (currentEvent === 'delegation') {
+                // Master delegated a task to a sub-agent
+                const input = data.tool_call?.input ?? {}
+                console.log('[delegation]', data)
+                setMessages((prev) => [
+                  ...prev,
+                  {
+                    id: `delegation-${Date.now()}`,
+                    role: 'master',
+                    content: `Delegating to ${input.agent_type ?? 'agent'}: ${input.task ?? 'task'}\n→ ${data.status}`,
+                    timestamp: new Date(),
+                  },
+                ])
               } else if (currentEvent === 'end') {
                 // Entire run finished
                 break
