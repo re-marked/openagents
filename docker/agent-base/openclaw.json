@@ -4,19 +4,7 @@
       {
         "id": "main",
         "default": true,
-        "workspace": "/data/workspace",
-        "tools": {
-          "profile": "coding",
-          "allow": ["exec", "web_search", "file_read", "file_write"],
-          "deny": ["browser", "gateway", "cron"],
-          "elevated": {
-            "enabled": true,
-            "allowFrom": {
-              "webchat": true,
-              "api": true
-            }
-          }
-        }
+        "workspace": "/data/workspace"
       }
     ],
     "defaults": {
@@ -26,6 +14,15 @@
       "sandbox": {
         "mode": "off"
       }
+    }
+  },
+  "tools": {
+    "profile": "coding",
+    "allow": ["exec", "web_search", "file_read", "file_write"],
+    "deny": ["browser", "gateway", "cron"],
+    "elevated": {
+      "enabled": true,
+      "allowFrom": []
     }
   },
   "skills": {
