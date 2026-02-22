@@ -54,6 +54,55 @@ app.post('/v1/responses', async (c) => {
   return c.text('Replaying to agent machine', 409)
 })
 
+// ---------------------------------------------------------------------------
+// @mention detection helpers
+// ---------------------------------------------------------------------------
+
+const AGENT_NAMES = ['researcher', 'coder', 'analyst', 'writer'] as const
+type AgentName = (typeof AGENT_NAMES)[number]
+
+const MENTION_RE = new RegExp(`@(${AGENT_NAMES.join('|')})\\b`, 'g')
+
+/** Hardcoded Phase 1 responses per agent type. */
+const AGENT_RESPONSES: Record<AgentName, (msg: string) => string> = {
+  researcher: (msg) =>
+    `Hey! I looked into this. Here's what I found:\n\n1. Key finding relevant to "${msg.slice(0, 50)}${msg.length > 50 ? '...' : ''}"\n2. Supporting evidence from recent sources\n3. Some important context to consider\n\nLet me know if you want me to dig deeper into any of these.`,
+  coder: (msg) =>
+    `On it! I've analyzed the requirements. Here's my take:\n\n- Approach: Based on "${msg.slice(0, 40)}${msg.length > 40 ? '...' : ''}"\n- Key considerations: architecture, testing, maintainability\n- Ready to implement once you give the go-ahead.`,
+  analyst: (msg) =>
+    `Good question. Here's my analysis:\n\n- The data suggests several interesting patterns related to "${msg.slice(0, 40)}${msg.length > 40 ? '...' : ''}"\n- Key patterns: correlation, causation, outliers\n- My recommendation: proceed with a data-driven approach\n\nHappy to break this down further.`,
+  writer: (msg) =>
+    `Got it! Here's a draft based on what you described:\n\n[Draft for: "${msg.slice(0, 50)}${msg.length > 50 ? '...' : ''}"]\n\nWant me to adjust the tone or focus?`,
+}
+
+interface MentionMatch {
+  agent: AgentName
+  message: string
+}
+
+/** Extract all @mentions and the text directed at each agent. */
+function extractMentions(text: string): MentionMatch[] {
+  const mentions: MentionMatch[] = []
+  const matches = [...text.matchAll(MENTION_RE)]
+
+  for (let i = 0; i < matches.length; i++) {
+    const match = matches[i]
+    const agent = match[1] as AgentName
+    const start = match.index! + match[0].length
+    const end = i + 1 < matches.length ? matches[i + 1].index! : text.length
+    const message = text.slice(start, end).trim()
+    if (message) {
+      mentions.push({ agent, message })
+    }
+  }
+
+  return mentions
+}
+
+// ---------------------------------------------------------------------------
+// Main chat endpoint
+// ---------------------------------------------------------------------------
+
 /**
  * WebSocket-to-SSE bridge for OpenClaw native sessions.
  *
@@ -63,6 +112,10 @@ app.post('/v1/responses', async (c) => {
  * 3. Performs OpenClaw protocol v3 handshake (connect.challenge -> connect -> hello-ok)
  * 4. Sends chat.send with sessionKey + message
  * 5. Translates streaming WS events into SSE events back to caller
+ * 6. After a "done" event, checks for @mentions in the completed text.
+ *    If found, emits thread events with hardcoded responses and sends
+ *    a follow-up chat.send so the agent can synthesize.
+ * 7. Repeats until no more @mentions or depth limit (3) reached.
  *
  * Auth: Connects as openclaw-control-ui client with dangerouslyDisableDeviceAuth
  * enabled on the agent, which allows scoped access without device key pairs.
@@ -155,10 +208,6 @@ app.post('/v1/chat', async (c) => {
       console.log('[chat] Received connect.challenge')
 
       // Step 2: Send connect request (protocol v3 frame format)
-      // We connect as openclaw-control-ui with dangerouslyDisableDeviceAuth
-      // enabled on the agent config. This preserves scopes for device-less
-      // connections (OpenClaw 2026.2.17+ clears scopes without a device
-      // unless allowControlUiBypass is true).
       const connectParams: Record<string, unknown> = {
         minProtocol: 3,
         maxProtocol: 3,
@@ -196,7 +245,7 @@ app.post('/v1/chat', async (c) => {
 
       console.log('[chat] Handshake complete')
 
-      // --- Send chat.send ---
+      // --- Send initial chat.send ---
       const chatRequest = {
         type: 'req',
         id: generateId(),
@@ -211,158 +260,225 @@ app.post('/v1/chat', async (c) => {
       ws.send(JSON.stringify(chatRequest))
       console.log('[chat] Sent chat.send')
 
-      // --- Stream events back as SSE ---
-      // Protocol event ordering:
-      //   agent/lifecycle start → agent/assistant deltas → agent/lifecycle end → chat/final
-      // For multi-turn (text → tool → text):
-      //   deltas → chat/final (turn 1) → tool events → deltas → lifecycle end → chat/final (turn 2)
-      //
-      // lifecycle end fires BEFORE the last chat/final, so we use it as a
-      // flag ("run is ending") and close the stream on the chat/final that
-      // follows. For single-turn, lifecycle end also fires before chat/final.
-      let runEnding = false
-      let doneSent = false
+      // --- Multi-turn @mention loop ---
+      // We listen for the agent's response. When a "done" event arrives with
+      // @mentions, we emit thread events, then send a follow-up chat.send
+      // for the agent to synthesize. This repeats up to MAX_MENTION_DEPTH.
+      const MAX_MENTION_DEPTH = 3
+      let mentionDepth = 0
 
-      await new Promise<void>((resolve, reject) => {
-        ws!.on('message', async (data) => {
-          if (closed) return
+      /**
+       * Listen for one full agent turn (deltas → done, or lifecycle end + done).
+       * Returns the completed text from the "done" event, or null on error/close.
+       */
+      const listenForTurn = (): Promise<string | null> => {
+        return new Promise<string | null>((resolve) => {
+          let lifecycleEnded = false
+          let doneSent = false
 
-          try {
-            const raw = data.toString()
-            const msg = JSON.parse(raw)
+          const onMessage = async (data: WebSocket.Data) => {
+            if (closed) return
 
-            // Debug: log every WS message type/event
-            const summary = msg.type === 'event'
-              ? `event=${msg.event} stream=${msg.payload?.stream ?? ''} state=${msg.payload?.state ?? ''}`
-              : `type=${msg.type} ok=${msg.ok}`
-            console.log(`[chat] WS msg: ${summary}`)
+            try {
+              const raw = data.toString()
+              const msg = JSON.parse(raw)
 
-            // Agent events — assistant deltas, tool calls, and lifecycle
-            if (msg.type === 'event' && msg.event === 'agent') {
-              const payload = msg.payload
+              const summary =
+                msg.type === 'event'
+                  ? `event=${msg.event} stream=${msg.payload?.stream ?? ''} state=${msg.payload?.state ?? ''}`
+                  : `type=${msg.type} ok=${msg.ok}`
+              console.log(`[chat] WS msg: ${summary}`)
 
-              if (payload?.stream === 'assistant') {
-                const delta = payload.data?.delta ?? ''
-                if (delta) {
-                  await stream.writeSSE({
-                    event: 'delta',
-                    data: JSON.stringify({ content: delta }),
-                  })
-                }
-              } else if (payload?.stream === 'tool') {
-                // Check for delegate_to_agent tool call
-                const toolName =
-                  payload.data?.name ??
-                  payload.data?.tool_name ??
-                  payload.data?.toolName ??
-                  ''
-                const toolInput =
-                  payload.data?.input ??
-                  payload.data?.arguments ??
-                  payload.data?.params ??
-                  {}
+              // Agent events — assistant deltas, tool calls, lifecycle
+              if (msg.type === 'event' && msg.event === 'agent') {
+                const payload = msg.payload
 
-                if (toolName === 'delegate_to_agent') {
-                  console.log(
-                    `[chat] INTERCEPTED delegate_to_agent:`,
-                    JSON.stringify(toolInput),
-                  )
-                  await stream.writeSSE({
-                    event: 'delegation',
-                    data: JSON.stringify({
-                      status: 'task received',
-                      tool_call: { name: toolName, input: toolInput },
-                    }),
-                  })
-                  // Don't forward as a regular tool event
-                } else {
+                if (payload?.stream === 'assistant') {
+                  const delta = payload.data?.delta ?? ''
+                  if (delta) {
+                    await stream.writeSSE({
+                      event: 'delta',
+                      data: JSON.stringify({ content: delta }),
+                    })
+                  }
+                } else if (payload?.stream === 'tool') {
                   await stream.writeSSE({
                     event: 'tool',
                     data: JSON.stringify(payload),
                   })
+                } else if (payload?.stream === 'lifecycle' && payload.data?.phase === 'end') {
+                  lifecycleEnded = true
                 }
-              } else if (payload?.stream === 'lifecycle' && payload.data?.phase === 'end') {
-                // Run is ending. The last chat/final will follow shortly.
-                runEnding = true
               }
-            }
 
-            // Chat events — "final" signals one turn's completion.
-            // A single run can produce multiple turns (text → tool → text).
-            // We emit "done" per turn. If the run is ending (lifecycle end
-            // already seen), this is the last turn — emit "end" and close.
-            if (msg.type === 'event' && msg.event === 'chat') {
-              const payload = msg.payload
-              // Extract text from content array: [{type:"text",text:"..."}]
-              const parts = payload.message?.content ?? []
-              const text = parts
-                .filter((p: { type: string }) => p.type === 'text')
-                .map((p: { text: string }) => p.text)
-                .join('')
+              // Chat events — "final" signals one turn's completion.
+              if (msg.type === 'event' && msg.event === 'chat') {
+                const payload = msg.payload
+                const parts = payload.message?.content ?? []
+                const text = parts
+                  .filter((p: { type: string }) => p.type === 'text')
+                  .map((p: { text: string }) => p.text)
+                  .join('')
 
-              if (payload.state === 'final') {
-                doneSent = true
-                await stream.writeSSE({
-                  event: 'done',
-                  data: JSON.stringify({ content: text }),
-                })
-
-                if (runEnding) {
-                  // Last turn — close the SSE stream
+                if (payload.state === 'final') {
+                  doneSent = true
                   await stream.writeSSE({
-                    event: 'end',
-                    data: JSON.stringify({}),
+                    event: 'done',
+                    data: JSON.stringify({ content: text }),
                   })
-                  cleanup()
-                  resolve()
+
+                  if (lifecycleEnded) {
+                    // This is the last turn in this agent response cycle.
+                    ws!.removeListener('message', onMessage)
+                    resolve(text)
+                  }
+                  // If lifecycle hasn't ended, there may be more turns
+                  // (e.g. tool calls). Keep listening.
+                } else if (payload.state === 'error') {
+                  await stream.writeSSE({
+                    event: 'error',
+                    data: JSON.stringify({ error: payload.error ?? 'Agent error' }),
+                  })
+                  ws!.removeListener('message', onMessage)
+                  resolve(null)
                 }
-              } else if (payload.state === 'error') {
+              }
+
+              // Response error (e.g. chat.send failed)
+              if (msg.type === 'res' && msg.ok === false) {
                 await stream.writeSSE({
                   event: 'error',
-                  data: JSON.stringify({ error: payload.error ?? 'Agent error' }),
+                  data: JSON.stringify({ error: msg.error?.message ?? 'Request error' }),
                 })
-                cleanup()
-                resolve()
+                ws!.removeListener('message', onMessage)
+                resolve(null)
               }
+            } catch (err) {
+              console.error('[chat] Failed to parse WS message:', err)
             }
+          }
 
-            // Response to chat.send (may contain error)
-            if (msg.type === 'res' && msg.ok === false) {
-              await stream.writeSSE({
+          const onClose = (code: number, reason: Buffer) => {
+            console.log(
+              `[chat] WebSocket closed code=${code} reason=${reason?.toString() ?? 'none'}`,
+            )
+            if (!doneSent && !closed) {
+              stream.writeSSE({
                 event: 'error',
-                data: JSON.stringify({ error: msg.error?.message ?? 'Request error' }),
+                data: JSON.stringify({ error: 'Connection closed unexpectedly' }),
               })
-              cleanup()
-              resolve()
             }
-          } catch (err) {
-            console.error('[chat] Failed to parse WS message:', err)
+            ws!.removeListener('message', onMessage)
+            ws!.removeListener('close', onClose)
+            ws!.removeListener('error', onError)
+            resolve(null)
           }
-        })
 
-        ws!.on('close', (code, reason) => {
-          console.log(`[chat] WebSocket closed code=${code} reason=${reason?.toString() ?? 'none'}`)
-          if (!doneSent && !closed) {
-            stream.writeSSE({
-              event: 'error',
-              data: JSON.stringify({ error: 'Connection closed unexpectedly' }),
-            })
+          const onError = (err: Error) => {
+            console.error('[chat] WebSocket error:', err)
+            if (!closed) {
+              stream.writeSSE({
+                event: 'error',
+                data: JSON.stringify({ error: 'WebSocket error' }),
+              })
+            }
+            ws!.removeListener('message', onMessage)
+            ws!.removeListener('close', onClose)
+            ws!.removeListener('error', onError)
+            cleanup()
+            resolve(null)
           }
-          resolve()
-        })
 
-        ws!.on('error', (err) => {
-          console.error('[chat] WebSocket error:', err)
-          if (!closed) {
-            stream.writeSSE({
-              event: 'error',
-              data: JSON.stringify({ error: 'WebSocket error' }),
-            })
-          }
-          cleanup()
-          reject(err)
+          ws!.on('message', onMessage)
+          ws!.on('close', onClose)
+          ws!.on('error', onError)
         })
-      })
+      }
+
+      // Main loop: listen for turns, check for @mentions, send follow-ups
+      let lastText = await listenForTurn()
+
+      while (lastText && !closed) {
+        const mentions = extractMentions(lastText)
+
+        if (mentions.length === 0 || mentionDepth >= MAX_MENTION_DEPTH) {
+          // No mentions or depth exceeded — we're done
+          break
+        }
+
+        mentionDepth++
+        console.log(`[chat] Detected ${mentions.length} @mention(s), depth=${mentionDepth}`)
+
+        // Process each mention: emit thread events with hardcoded responses
+        const threadReplies: string[] = []
+
+        for (const mention of mentions) {
+          const threadId = generateId()
+          const response = AGENT_RESPONSES[mention.agent](mention.message)
+
+          // thread_start
+          await stream.writeSSE({
+            event: 'thread_start',
+            data: JSON.stringify({
+              threadId,
+              from: 'master',
+              to: mention.agent,
+              message: mention.message,
+            }),
+          })
+
+          // Simulate a brief delay for realism
+          await sleep(300)
+
+          // thread_message (the sub-agent's response)
+          await stream.writeSSE({
+            event: 'thread_message',
+            data: JSON.stringify({
+              threadId,
+              agent: mention.agent,
+              content: response,
+            }),
+          })
+
+          // thread_end
+          await stream.writeSSE({
+            event: 'thread_end',
+            data: JSON.stringify({ threadId }),
+          })
+
+          threadReplies.push(`@${mention.agent} replied: ${response}`)
+        }
+
+        // Send follow-up chat.send so the agent can synthesize
+        const followUpMessage = `[Thread] ${threadReplies.join('\n\n[Thread] ')}`
+
+        const followUpRequest = {
+          type: 'req',
+          id: generateId(),
+          method: 'chat.send',
+          params: {
+            sessionKey,
+            message: followUpMessage,
+            idempotencyKey: generateId(),
+          },
+        }
+
+        ws.send(JSON.stringify(followUpRequest))
+        console.log(`[chat] Sent follow-up chat.send for synthesis (depth=${mentionDepth})`)
+
+        // Listen for the agent's synthesis turn
+        lastText = await listenForTurn()
+      }
+
+      // All done — emit end
+      if (!closed) {
+        await stream.writeSSE({
+          event: 'end',
+          data: JSON.stringify({}),
+        })
+      }
+
+      cleanup()
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error'
       console.error('[chat] Error:', message)
@@ -399,6 +515,11 @@ function waitForMessage(ws: WebSocket, timeoutMs: number): Promise<string> {
 /** Generate a short random ID for request correlation. */
 function generateId(): string {
   return Math.random().toString(36).slice(2, 10)
+}
+
+/** Sleep for ms milliseconds. */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 const port = Number(process.env.PORT ?? 8080)
