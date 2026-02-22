@@ -231,6 +231,12 @@ app.post('/v1/chat', async (c) => {
             const raw = data.toString()
             const msg = JSON.parse(raw)
 
+            // Debug: log every WS message type/event
+            const summary = msg.type === 'event'
+              ? `event=${msg.event} stream=${msg.payload?.stream ?? ''} state=${msg.payload?.state ?? ''}`
+              : `type=${msg.type} ok=${msg.ok}`
+            console.log(`[chat] WS msg: ${summary}`)
+
             // Agent events — assistant deltas, tool calls, and lifecycle
             if (msg.type === 'event' && msg.event === 'agent') {
               const payload = msg.payload
