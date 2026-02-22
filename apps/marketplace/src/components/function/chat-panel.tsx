@@ -82,11 +82,17 @@ export function ChatPanel({ agentInstanceId }: { agentInstanceId: string }) {
           return
         }
 
-        // Parse SSE stream
+        // Parse SSE stream.
+        // A single run can produce multiple turns (text → tool → text).
+        // Each turn ends with a "done" event. Deltas after a "done"
+        // start a new assistant message bubble. The "end" event signals
+        // the entire run is finished.
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
         let buffer = ''
         let currentEvent = ''
+        let activeMsgId = assistantMsgId
+        let turnCount = 0
 
         while (true) {
           const { done, value } = await reader.read()
@@ -107,17 +113,38 @@ export function ChatPanel({ agentInstanceId }: { agentInstanceId: string }) {
                 const data = JSON.parse(line.slice(5).trim())
 
                 if (currentEvent === 'delta' && data.content !== undefined) {
+                  // If the previous turn finished, start a new bubble
+                  if (turnCount > 0) {
+                    turnCount = 0
+                    const newMsgId = `assistant-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+                    activeMsgId = newMsgId
+                    setMessages((prev) => [
+                      ...prev,
+                      { id: newMsgId, role: 'assistant', content: data.content, isStreaming: true },
+                    ])
+                  } else {
+                    setMessages((prev) =>
+                      prev.map((m) =>
+                        m.id === activeMsgId
+                          ? { ...m, content: m.content + data.content }
+                          : m,
+                      ),
+                    )
+                  }
+                } else if (currentEvent === 'done') {
+                  // Finalize this turn's message — but don't close the stream,
+                  // more turns may follow.
                   setMessages((prev) =>
                     prev.map((m) =>
-                      m.id === assistantMsgId
-                        ? { ...m, content: m.content + data.content }
-                        : m,
+                      m.id === activeMsgId ? { ...m, isStreaming: false } : m,
                     ),
                   )
-                } else if (currentEvent === 'done') {
+                  turnCount++
+                } else if (currentEvent === 'end') {
+                  // Entire run finished
                   setMessages((prev) =>
                     prev.map((m) =>
-                      m.id === assistantMsgId ? { ...m, isStreaming: false } : m,
+                      m.id === activeMsgId ? { ...m, isStreaming: false } : m,
                     ),
                   )
                   setIsStreaming(false)
@@ -125,7 +152,7 @@ export function ChatPanel({ agentInstanceId }: { agentInstanceId: string }) {
                 } else if (currentEvent === 'error' || data.error) {
                   setMessages((prev) =>
                     prev.map((m) =>
-                      m.id === assistantMsgId
+                      m.id === activeMsgId
                         ? {
                             ...m,
                             content: m.content || `Error: ${data.error}`,
@@ -145,9 +172,9 @@ export function ChatPanel({ agentInstanceId }: { agentInstanceId: string }) {
           }
         }
 
-        // Stream done — finalize assistant message
+        // Stream ended (connection closed) — finalize any in-flight message
         setMessages((prev) =>
-          prev.map((m) => (m.id === assistantMsgId ? { ...m, isStreaming: false } : m)),
+          prev.map((m) => (m.id === activeMsgId ? { ...m, isStreaming: false } : m)),
         )
       } catch (err) {
         console.error('Chat error:', err)

@@ -134,15 +134,17 @@ export async function POST(request: Request) {
     )
   }
 
-  // 8. Pipe SSE stream through, accumulating assistant content for DB storage
+  // 8. Pipe SSE stream through, accumulating assistant content for DB storage.
+  // A single run can produce multiple turns (text → tool → text), each ending
+  // with a "done" event. We save each turn as a separate assistant message.
   const decoder = new TextDecoder()
-  let assistantContent = ''
+  let currentTurnContent = ''
+  const assistantMessages: string[] = []
 
   const transformStream = new TransformStream({
     transform(chunk, controller) {
       const text = decoder.decode(chunk, { stream: true })
 
-      // Parse SSE lines to accumulate assistant content (only from delta events)
       const lines = text.split('\n')
       let currentEvent = ''
       for (const line of lines) {
@@ -152,7 +154,13 @@ export async function POST(request: Request) {
           try {
             const data = JSON.parse(line.slice(5).trim())
             if (currentEvent === 'delta' && data.content) {
-              assistantContent += data.content
+              currentTurnContent += data.content
+            } else if (currentEvent === 'done') {
+              // Turn complete — flush accumulated content
+              if (currentTurnContent) {
+                assistantMessages.push(currentTurnContent)
+                currentTurnContent = ''
+              }
             }
           } catch {
             // Not JSON, pass through
@@ -161,17 +169,21 @@ export async function POST(request: Request) {
         }
       }
 
-      // Forward the raw SSE bytes to the client
       controller.enqueue(chunk)
     },
     async flush() {
-      // 9. On stream end, insert assistant message into DB
-      if (assistantContent) {
-        await supabase.from('messages').insert({
-          session_id: sessionId,
-          role: 'assistant',
-          content: assistantContent,
-        })
+      // 9. On stream end, save any remaining content and insert all turns
+      if (currentTurnContent) {
+        assistantMessages.push(currentTurnContent)
+      }
+      if (assistantMessages.length > 0) {
+        await supabase.from('messages').insert(
+          assistantMessages.map((content) => ({
+            session_id: sessionId,
+            role: 'assistant' as const,
+            content,
+          })),
+        )
       }
     },
   })

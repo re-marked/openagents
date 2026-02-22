@@ -212,8 +212,15 @@ app.post('/v1/chat', async (c) => {
       console.log('[chat] Sent chat.send')
 
       // --- Stream events back as SSE ---
-      // Track whether we received the final chat event so the WS close
-      // handler knows not to emit a spurious error.
+      // Protocol event ordering:
+      //   agent/lifecycle start → agent/assistant deltas → agent/lifecycle end → chat/final
+      // For multi-turn (text → tool → text):
+      //   deltas → chat/final (turn 1) → tool events → deltas → lifecycle end → chat/final (turn 2)
+      //
+      // lifecycle end fires BEFORE the last chat/final, so we use it as a
+      // flag ("run is ending") and close the stream on the chat/final that
+      // follows. For single-turn, lifecycle end also fires before chat/final.
+      let runEnding = false
       let doneSent = false
 
       await new Promise<void>((resolve, reject) => {
@@ -224,7 +231,7 @@ app.post('/v1/chat', async (c) => {
             const raw = data.toString()
             const msg = JSON.parse(raw)
 
-            // Agent events — assistant stream has per-token deltas
+            // Agent events — assistant deltas, tool calls, and lifecycle
             if (msg.type === 'event' && msg.event === 'agent') {
               const payload = msg.payload
 
@@ -241,10 +248,16 @@ app.post('/v1/chat', async (c) => {
                   event: 'tool',
                   data: JSON.stringify(payload),
                 })
+              } else if (payload?.stream === 'lifecycle' && payload.data?.phase === 'end') {
+                // Run is ending. The last chat/final will follow shortly.
+                runEnding = true
               }
             }
 
-            // Chat events — "final" signals completion with full message
+            // Chat events — "final" signals one turn's completion.
+            // A single run can produce multiple turns (text → tool → text).
+            // We emit "done" per turn. If the run is ending (lifecycle end
+            // already seen), this is the last turn — emit "end" and close.
             if (msg.type === 'event' && msg.event === 'chat') {
               const payload = msg.payload
               // Extract text from content array: [{type:"text",text:"..."}]
@@ -260,8 +273,16 @@ app.post('/v1/chat', async (c) => {
                   event: 'done',
                   data: JSON.stringify({ content: text }),
                 })
-                cleanup()
-                resolve()
+
+                if (runEnding) {
+                  // Last turn — close the SSE stream
+                  await stream.writeSSE({
+                    event: 'end',
+                    data: JSON.stringify({}),
+                  })
+                  cleanup()
+                  resolve()
+                }
               } else if (payload.state === 'error') {
                 await stream.writeSSE({
                   event: 'error',
