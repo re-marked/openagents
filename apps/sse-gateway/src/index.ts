@@ -113,8 +113,8 @@ function extractMentions(text: string): MentionMatch[] {
  * 4. Sends chat.send with sessionKey + message
  * 5. Translates streaming WS events into SSE events back to caller
  * 6. After a "done" event, checks for @mentions in the completed text.
- *    If found, opens real WS connections to sub-agent machines (via
- *    subAgents map in body), or falls back to mock responses.
+ *    If found, queries sub-agent machines via HTTP /v1/chat/completions
+ *    (using subAgents map in body), or falls back to mock responses.
  *    Emits thread events and sends a follow-up chat.send for synthesis.
  * 7. Repeats until no more @mentions or depth limit (3) reached.
  *
@@ -560,7 +560,7 @@ function sleep(ms: number): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// Real sub-agent querying via WebSocket
+// Real sub-agent querying via HTTP /v1/chat/completions
 // ---------------------------------------------------------------------------
 
 interface SubAgentInfo {
@@ -569,9 +569,9 @@ interface SubAgentInfo {
 }
 
 /**
- * Open a WebSocket to a sub-agent's Fly machine, perform the OpenClaw
- * protocol v3 handshake, send a chat.send message, collect all assistant
- * deltas until the lifecycle ends, and return the full response text.
+ * Query a sub-agent via its OpenClaw HTTP chat completions endpoint.
+ * Simple POST → JSON response. No WebSocket handshake, no lifecycle
+ * tracking, no connection state to manage.
  *
  * Never throws — returns an error string on failure so the master agent
  * can see it in the synthesis message.
@@ -581,164 +581,39 @@ async function querySubAgent(
   token: string | undefined,
   message: string,
 ): Promise<string> {
-  const wsUrl = `wss://${flyApp}.fly.dev/`
-  console.log(`[sub-agent] Connecting to ${wsUrl}`)
-
-  let ws: WebSocket | null = null
+  const url = `https://${flyApp}.fly.dev/v1/chat/completions`
+  console.log(`[sub-agent] POST ${url}`)
 
   try {
-    // 15s connection timeout to accommodate suspended machine resume
-    ws = new WebSocket(wsUrl, { origin: `https://${flyApp}.fly.dev` })
-
-    await new Promise<void>((resolve, reject) => {
-      const connectTimeout = setTimeout(
-        () => reject(new Error('Connection timeout (15s)')),
-        15_000,
-      )
-      ws!.on('error', (err) => {
-        clearTimeout(connectTimeout)
-        reject(err)
-      })
-      ws!.on('open', () => {
-        clearTimeout(connectTimeout)
-        resolve()
-      })
-    })
-
-    // Protocol v3 handshake
-    const challengeMsg = await waitForMessage(ws, 10_000)
-    const challenge = JSON.parse(challengeMsg)
-    if (challenge.type !== 'event' || challenge.event !== 'connect.challenge') {
-      return `[Error: unexpected handshake from ${flyApp}: ${challengeMsg.slice(0, 200)}]`
-    }
-
-    const connectParams: Record<string, unknown> = {
-      minProtocol: 3,
-      maxProtocol: 3,
-      client: {
-        id: 'openclaw-control-ui',
-        version: '1.0.0',
-        platform: 'node',
-        mode: 'backend',
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      role: 'operator',
-      scopes: ['operator.admin'],
-    }
-    if (token) {
-      connectParams.auth = { token }
-    }
-
-    ws.send(
-      JSON.stringify({
-        type: 'req',
-        id: generateId(),
-        method: 'connect',
-        params: connectParams,
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: message }],
       }),
-    )
-
-    const helloMsg = await waitForMessage(ws, 10_000)
-    const hello = JSON.parse(helloMsg)
-    if (hello.type === 'res' && hello.ok === false) {
-      return `[Error: connect failed on ${flyApp}: ${JSON.stringify(hello.error)}]`
-    }
-
-    console.log(`[sub-agent] Handshake complete with ${flyApp}`)
-
-    // Send chat.send with ephemeral session key
-    const sessionKey = `sub-agent:${flyApp}:${generateId()}`
-    ws.send(
-      JSON.stringify({
-        type: 'req',
-        id: generateId(),
-        method: 'chat.send',
-        params: {
-          sessionKey,
-          message,
-          idempotencyKey: generateId(),
-        },
-      }),
-    )
-
-    // Collect response — 60s timeout for the full response
-    const responseText = await new Promise<string>((resolve) => {
-      let text = ''
-      let lifecycleEnded = false
-
-      const timer = setTimeout(() => {
-        ws!.removeAllListeners('message')
-        resolve(text || `[Error: ${flyApp} timed out after 60s]`)
-      }, 60_000)
-
-      ws!.on('message', (data: WebSocket.Data) => {
-        try {
-          const msg = JSON.parse(data.toString())
-
-          if (msg.type === 'event' && msg.event === 'agent') {
-            const p = msg.payload
-            if (p?.stream === 'assistant' && p.data?.delta) {
-              text += p.data.delta
-            } else if (p?.stream === 'lifecycle' && p.data?.phase === 'end') {
-              lifecycleEnded = true
-            }
-          }
-
-          if (msg.type === 'event' && msg.event === 'chat') {
-            const p = msg.payload
-            if (p.state === 'final') {
-              // Prefer the completed text from the chat event
-              const parts = p.message?.content ?? []
-              const finalText = parts
-                .filter((pt: { type: string }) => pt.type === 'text')
-                .map((pt: { text: string }) => pt.text)
-                .join('')
-              if (finalText) text = finalText
-
-              if (lifecycleEnded) {
-                clearTimeout(timer)
-                ws!.removeAllListeners('message')
-                resolve(text)
-              }
-            } else if (p.state === 'error') {
-              clearTimeout(timer)
-              ws!.removeAllListeners('message')
-              resolve(text || `[Error: ${flyApp} agent error: ${p.error ?? 'unknown'}]`)
-            }
-          }
-
-          if (msg.type === 'res' && msg.ok === false) {
-            clearTimeout(timer)
-            ws!.removeAllListeners('message')
-            resolve(`[Error: ${flyApp} request error: ${msg.error?.message ?? 'unknown'}]`)
-          }
-        } catch {
-          // skip unparseable messages
-        }
-      })
-
-      ws!.on('close', () => {
-        clearTimeout(timer)
-        resolve(text || `[Error: ${flyApp} connection closed unexpectedly]`)
-      })
-
-      ws!.on('error', () => {
-        clearTimeout(timer)
-        resolve(text || `[Error: ${flyApp} WebSocket error]`)
-      })
+      signal: AbortSignal.timeout(60_000),
     })
 
-    console.log(
-      `[sub-agent] Got response from ${flyApp} (${responseText.length} chars)`,
-    )
-    return responseText
+    if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      console.error(`[sub-agent] ${flyApp} returned ${res.status}: ${body.slice(0, 200)}`)
+      return `[Error: ${flyApp} returned HTTP ${res.status}: ${body.slice(0, 200)}]`
+    }
+
+    const data = (await res.json()) as {
+      choices?: { message?: { content?: string } }[]
+    }
+    const text = data.choices?.[0]?.message?.content ?? ''
+
+    console.log(`[sub-agent] Got response from ${flyApp} (${text.length} chars)`)
+    return text || `[Error: ${flyApp} returned empty response]`
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'unknown error'
     console.error(`[sub-agent] Error querying ${flyApp}:`, msg)
     return `[Error: failed to reach ${flyApp}: ${msg}]`
-  } finally {
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.close()
-    }
   }
 }
 
