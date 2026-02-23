@@ -113,7 +113,7 @@ export async function POST(request: Request) {
   let subAgents: Record<string, { flyApp: string; token?: string }> | undefined
 
   if (instance.team_id) {
-    const serviceSupabase = await createServiceClient()
+    const serviceSupabase = createServiceClient()
     const { data: teamMembers } = await serviceSupabase
       .from('team_agents')
       .select('instance_id, agent_instances!inner(fly_app_name, display_name, status)')
