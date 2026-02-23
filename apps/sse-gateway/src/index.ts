@@ -113,8 +113,9 @@ function extractMentions(text: string): MentionMatch[] {
  * 4. Sends chat.send with sessionKey + message
  * 5. Translates streaming WS events into SSE events back to caller
  * 6. After a "done" event, checks for @mentions in the completed text.
- *    If found, emits thread events with hardcoded responses and sends
- *    a follow-up chat.send so the agent can synthesize.
+ *    If found, opens real WS connections to sub-agent machines (via
+ *    subAgents map in body), or falls back to mock responses.
+ *    Emits thread events and sends a follow-up chat.send for synthesis.
  * 7. Repeats until no more @mentions or depth limit (3) reached.
  *
  * Auth: Connects as openclaw-control-ui client with dangerouslyDisableDeviceAuth
@@ -133,14 +134,19 @@ app.post('/v1/chat', async (c) => {
     return c.json({ error: 'Missing x-fly-app header' }, 400)
   }
 
-  let body: { sessionKey: string; message: string; idempotencyKey?: string }
+  let body: {
+    sessionKey: string
+    message: string
+    idempotencyKey?: string
+    subAgents?: Record<string, SubAgentInfo>
+  }
   try {
     body = await c.req.json()
   } catch {
     return c.json({ error: 'Invalid JSON body' }, 400)
   }
 
-  const { sessionKey, message, idempotencyKey } = body
+  const { sessionKey, message, idempotencyKey, subAgents } = body
   if (!sessionKey || !message) {
     return c.json({ error: 'Missing sessionKey or message' }, 400)
   }
@@ -418,14 +424,17 @@ app.post('/v1/chat', async (c) => {
         for (const m of mentions) mentionedAgents.add(m.agent)
         console.log(`[chat] Detected ${mentions.length} new @mention(s), depth=${mentionDepth}`)
 
-        // Process each mention: emit thread events with hardcoded responses
+        // Process mentions in parallel — emit thread_start immediately,
+        // then query sub-agents concurrently, emitting results as they arrive.
         const threadReplies: string[] = []
 
-        for (const mention of mentions) {
-          const threadId = generateId()
-          const response = AGENT_RESPONSES[mention.agent](mention.message)
+        // Emit all thread_start events up front
+        const mentionJobs = mentions.map((mention) => ({
+          mention,
+          threadId: generateId(),
+        }))
 
-          // thread_start
+        for (const { mention, threadId } of mentionJobs) {
           await stream.writeSSE({
             event: 'thread_start',
             data: JSON.stringify({
@@ -435,11 +444,31 @@ app.post('/v1/chat', async (c) => {
               message: mention.message,
             }),
           })
+        }
 
-          // Simulate a brief delay for realism
-          await sleep(300)
+        // Query all sub-agents concurrently
+        const results = await Promise.all(
+          mentionJobs.map(async ({ mention, threadId }) => {
+            let response: string
+            const sub = subAgents?.[mention.agent]
 
-          // thread_message (the sub-agent's response)
+            if (sub) {
+              // Real sub-agent connection
+              console.log(`[chat] Querying real sub-agent ${mention.agent} at ${sub.flyApp}`)
+              response = await querySubAgent(sub.flyApp, sub.token, mention.message)
+            } else {
+              // Fallback to hardcoded mock
+              console.log(`[chat] Using mock response for ${mention.agent} (no sub-agent configured)`)
+              await sleep(300)
+              response = AGENT_RESPONSES[mention.agent](mention.message)
+            }
+
+            return { mention, threadId, response }
+          }),
+        )
+
+        // Emit thread_message + thread_end for each result
+        for (const { mention, threadId, response } of results) {
           await stream.writeSSE({
             event: 'thread_message',
             data: JSON.stringify({
@@ -449,7 +478,6 @@ app.post('/v1/chat', async (c) => {
             }),
           })
 
-          // thread_end
           await stream.writeSSE({
             event: 'thread_end',
             data: JSON.stringify({ threadId }),
@@ -529,6 +557,189 @@ function generateId(): string {
 /** Sleep for ms milliseconds. */
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+// ---------------------------------------------------------------------------
+// Real sub-agent querying via WebSocket
+// ---------------------------------------------------------------------------
+
+interface SubAgentInfo {
+  flyApp: string
+  token?: string
+}
+
+/**
+ * Open a WebSocket to a sub-agent's Fly machine, perform the OpenClaw
+ * protocol v3 handshake, send a chat.send message, collect all assistant
+ * deltas until the lifecycle ends, and return the full response text.
+ *
+ * Never throws — returns an error string on failure so the master agent
+ * can see it in the synthesis message.
+ */
+async function querySubAgent(
+  flyApp: string,
+  token: string | undefined,
+  message: string,
+): Promise<string> {
+  const wsUrl = `wss://${flyApp}.fly.dev/`
+  console.log(`[sub-agent] Connecting to ${wsUrl}`)
+
+  let ws: WebSocket | null = null
+
+  try {
+    // 15s connection timeout to accommodate suspended machine resume
+    ws = new WebSocket(wsUrl, { origin: `https://${flyApp}.fly.dev` })
+
+    await new Promise<void>((resolve, reject) => {
+      const connectTimeout = setTimeout(
+        () => reject(new Error('Connection timeout (15s)')),
+        15_000,
+      )
+      ws!.on('error', (err) => {
+        clearTimeout(connectTimeout)
+        reject(err)
+      })
+      ws!.on('open', () => {
+        clearTimeout(connectTimeout)
+        resolve()
+      })
+    })
+
+    // Protocol v3 handshake
+    const challengeMsg = await waitForMessage(ws, 10_000)
+    const challenge = JSON.parse(challengeMsg)
+    if (challenge.type !== 'event' || challenge.event !== 'connect.challenge') {
+      return `[Error: unexpected handshake from ${flyApp}: ${challengeMsg.slice(0, 200)}]`
+    }
+
+    const connectParams: Record<string, unknown> = {
+      minProtocol: 3,
+      maxProtocol: 3,
+      client: {
+        id: 'openclaw-control-ui',
+        version: '1.0.0',
+        platform: 'node',
+        mode: 'backend',
+      },
+      role: 'operator',
+      scopes: ['operator.admin'],
+    }
+    if (token) {
+      connectParams.auth = { token }
+    }
+
+    ws.send(
+      JSON.stringify({
+        type: 'req',
+        id: generateId(),
+        method: 'connect',
+        params: connectParams,
+      }),
+    )
+
+    const helloMsg = await waitForMessage(ws, 10_000)
+    const hello = JSON.parse(helloMsg)
+    if (hello.type === 'res' && hello.ok === false) {
+      return `[Error: connect failed on ${flyApp}: ${JSON.stringify(hello.error)}]`
+    }
+
+    console.log(`[sub-agent] Handshake complete with ${flyApp}`)
+
+    // Send chat.send with ephemeral session key
+    const sessionKey = `sub-agent:${flyApp}:${generateId()}`
+    ws.send(
+      JSON.stringify({
+        type: 'req',
+        id: generateId(),
+        method: 'chat.send',
+        params: {
+          sessionKey,
+          message,
+          idempotencyKey: generateId(),
+        },
+      }),
+    )
+
+    // Collect response — 60s timeout for the full response
+    const responseText = await new Promise<string>((resolve) => {
+      let text = ''
+      let lifecycleEnded = false
+
+      const timer = setTimeout(() => {
+        ws!.removeAllListeners('message')
+        resolve(text || `[Error: ${flyApp} timed out after 60s]`)
+      }, 60_000)
+
+      ws!.on('message', (data: WebSocket.Data) => {
+        try {
+          const msg = JSON.parse(data.toString())
+
+          if (msg.type === 'event' && msg.event === 'agent') {
+            const p = msg.payload
+            if (p?.stream === 'assistant' && p.data?.delta) {
+              text += p.data.delta
+            } else if (p?.stream === 'lifecycle' && p.data?.phase === 'end') {
+              lifecycleEnded = true
+            }
+          }
+
+          if (msg.type === 'event' && msg.event === 'chat') {
+            const p = msg.payload
+            if (p.state === 'final') {
+              // Prefer the completed text from the chat event
+              const parts = p.message?.content ?? []
+              const finalText = parts
+                .filter((pt: { type: string }) => pt.type === 'text')
+                .map((pt: { text: string }) => pt.text)
+                .join('')
+              if (finalText) text = finalText
+
+              if (lifecycleEnded) {
+                clearTimeout(timer)
+                ws!.removeAllListeners('message')
+                resolve(text)
+              }
+            } else if (p.state === 'error') {
+              clearTimeout(timer)
+              ws!.removeAllListeners('message')
+              resolve(text || `[Error: ${flyApp} agent error: ${p.error ?? 'unknown'}]`)
+            }
+          }
+
+          if (msg.type === 'res' && msg.ok === false) {
+            clearTimeout(timer)
+            ws!.removeAllListeners('message')
+            resolve(`[Error: ${flyApp} request error: ${msg.error?.message ?? 'unknown'}]`)
+          }
+        } catch {
+          // skip unparseable messages
+        }
+      })
+
+      ws!.on('close', () => {
+        clearTimeout(timer)
+        resolve(text || `[Error: ${flyApp} connection closed unexpectedly]`)
+      })
+
+      ws!.on('error', () => {
+        clearTimeout(timer)
+        resolve(text || `[Error: ${flyApp} WebSocket error]`)
+      })
+    })
+
+    console.log(
+      `[sub-agent] Got response from ${flyApp} (${responseText.length} chars)`,
+    )
+    return responseText
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'unknown error'
+    console.error(`[sub-agent] Error querying ${flyApp}:`, msg)
+    return `[Error: failed to reach ${flyApp}: ${msg}]`
+  } finally {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.close()
+    }
+  }
 }
 
 const port = Number(process.env.PORT ?? 8080)
