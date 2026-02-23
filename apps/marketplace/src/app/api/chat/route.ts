@@ -7,10 +7,7 @@ export const runtime = 'nodejs'
 type AgentInstance = Pick<
   Tables<'agent_instances'>,
   'id' | 'fly_app_name' | 'status' | 'user_id' | 'agent_id' | 'team_id'
-> & {
-  // gateway_token exists in DB but is missing from generated types
-  gateway_token?: string | null
-}
+>
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -40,11 +37,10 @@ export async function POST(request: Request) {
   // 3. Load agent instance — verify ownership and running status
   const { data: instanceData, error: instanceError } = await supabase
     .from('agent_instances')
-    .select('id, fly_app_name, status, user_id, agent_id, team_id, gateway_token')
+    .select('id, fly_app_name, status, user_id, agent_id, team_id')
     .eq('id', agentInstanceId)
     .single()
 
-  // Cast: gateway_token exists in DB but is missing from generated types
   const instance = instanceData as AgentInstance | null
 
   if (instanceError || !instance) {
@@ -119,7 +115,7 @@ export async function POST(request: Request) {
   if (instance.team_id) {
     const { data: teamMembers } = await supabase
       .from('team_agents')
-      .select('instance_id, agent_instances!inner(fly_app_name, display_name, status, gateway_token)')
+      .select('instance_id, agent_instances!inner(fly_app_name, display_name, status)')
       .eq('team_id', instance.team_id)
       .neq('instance_id', instance.id)
 
@@ -131,16 +127,12 @@ export async function POST(request: Request) {
           fly_app_name: string
           display_name: string | null
           status: string
-          gateway_token?: string | null
         }
         if (
           inst.display_name &&
           (inst.status === 'running' || inst.status === 'suspended')
         ) {
-          subAgents[inst.display_name] = {
-            flyApp: inst.fly_app_name,
-            ...(inst.gateway_token ? { token: inst.gateway_token } : {}),
-          }
+          subAgents[inst.display_name] = { flyApp: inst.fly_app_name }
         }
       }
       // Don't send empty object
@@ -158,8 +150,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Gateway not configured' }, { status: 500 })
   }
 
-  // Use per-instance gateway_token if available, fall back to env var
-  const agentToken = instance.gateway_token || process.env.TEST_AGENT_GATEWAY_TOKEN
+  const agentToken = process.env.TEST_AGENT_GATEWAY_TOKEN
 
   const gatewayResponse = await fetch(`${gatewayUrl}/v1/chat`, {
     method: 'POST',
