@@ -1,4 +1,4 @@
-import { createClient } from '@openagents/db/server'
+import { createClient, createServiceClient } from '@openagents/db/server'
 import { NextResponse } from 'next/server'
 import type { Tables } from '@openagents/db'
 
@@ -113,7 +113,8 @@ export async function POST(request: Request) {
   let subAgents: Record<string, { flyApp: string; token?: string }> | undefined
 
   if (instance.team_id) {
-    const { data: teamMembers } = await supabase
+    const serviceSupabase = await createServiceClient()
+    const { data: teamMembers } = await serviceSupabase
       .from('team_agents')
       .select('instance_id, agent_instances!inner(fly_app_name, display_name, status)')
       .eq('team_id', instance.team_id)
