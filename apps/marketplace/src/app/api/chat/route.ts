@@ -174,16 +174,29 @@ export async function POST(request: Request) {
   // 8. Pipe SSE stream through, accumulating assistant content for DB storage.
   // A single run can produce multiple turns (text → tool → text), each ending
   // with a "done" event. We save each turn as a separate assistant message.
+  // Thread data (from @mention sub-agent conversations) is stored as tool_use JSON.
   const decoder = new TextDecoder()
   let currentTurnContent = ''
   const assistantMessages: string[] = []
+
+  // Thread tracking — keyed by turn index (the turn that triggered the @mention)
+  type ThreadData = {
+    id: string
+    participants: string[]
+    messages: { agent: string; content: string }[]
+    complete: boolean
+  }
+  const threadsByTurnIndex = new Map<number, ThreadData>()
+  let activeThreadTurnIdx = -1
+
+  // currentEvent must be closure-scoped so it survives across chunk boundaries
+  let currentEvent = ''
 
   const transformStream = new TransformStream({
     transform(chunk, controller) {
       const text = decoder.decode(chunk, { stream: true })
 
       const lines = text.split('\n')
-      let currentEvent = ''
       for (const line of lines) {
         if (line.startsWith('event:')) {
           currentEvent = line.slice(6).trim()
@@ -197,6 +210,27 @@ export async function POST(request: Request) {
               if (currentTurnContent) {
                 assistantMessages.push(currentTurnContent)
                 currentTurnContent = ''
+              }
+            } else if (currentEvent === 'thread_start') {
+              // Thread belongs to the most recently completed turn
+              activeThreadTurnIdx = assistantMessages.length - 1
+              if (activeThreadTurnIdx >= 0) {
+                threadsByTurnIndex.set(activeThreadTurnIdx, {
+                  id: data.threadId,
+                  participants: [data.from, data.to],
+                  messages: [{ agent: data.from, content: data.message }],
+                  complete: false,
+                })
+              }
+            } else if (currentEvent === 'thread_message') {
+              const thread = threadsByTurnIndex.get(activeThreadTurnIdx)
+              if (thread && thread.id === data.threadId) {
+                thread.messages.push({ agent: data.agent, content: data.content })
+              }
+            } else if (currentEvent === 'thread_end') {
+              const thread = threadsByTurnIndex.get(activeThreadTurnIdx)
+              if (thread && thread.id === data.threadId) {
+                thread.complete = true
               }
             }
           } catch {
@@ -215,10 +249,11 @@ export async function POST(request: Request) {
       }
       if (assistantMessages.length > 0) {
         await supabase.from('messages').insert(
-          assistantMessages.map((content) => ({
+          assistantMessages.map((content, idx) => ({
             session_id: sessionId,
             role: 'assistant' as const,
             content,
+            tool_use: (threadsByTurnIndex.get(idx) ?? null) as never,
           })),
         )
       }

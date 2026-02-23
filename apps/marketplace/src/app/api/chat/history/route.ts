@@ -39,7 +39,7 @@ export async function GET(request: Request) {
   // Load messages for this session
   const { data: messages, error } = await supabase
     .from('messages')
-    .select('id, role, content, created_at')
+    .select('id, role, content, created_at, tool_use')
     .eq('session_id', sessionId)
     .order('created_at', { ascending: true })
 

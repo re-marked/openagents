@@ -21,12 +21,30 @@ export function DiscordChatPanel({ agentInstanceId }: { agentInstanceId: string 
         const res = await fetch(`/api/chat/history?agentInstanceId=${agentInstanceId}`)
         if (res.ok) {
           const data = await res.json()
+          type RawThread = {
+            id: string
+            participants: string[]
+            messages: { agent: string; content: string }[]
+            complete: boolean
+          }
           setMessages(
-            data.messages.map((m: { id: string; role: string; content: string; created_at?: string }) => ({
+            data.messages.map((m: { id: string; role: string; content: string; created_at?: string; tool_use?: RawThread | null }) => ({
               id: m.id,
               role: m.role === 'assistant' ? 'master' : 'user',
               content: m.content,
               timestamp: m.created_at ? new Date(m.created_at) : new Date(),
+              thread: m.tool_use
+                ? {
+                    id: String((m.tool_use as RawThread).id),
+                    participants: (m.tool_use as RawThread).participants ?? [],
+                    messages: ((m.tool_use as RawThread).messages ?? []).map((tm) => ({
+                      agent: tm.agent,
+                      content: tm.content,
+                      timestamp: m.created_at ? new Date(m.created_at) : new Date(),
+                    })),
+                    complete: true,
+                  }
+                : undefined,
             })),
           )
         }
@@ -121,7 +139,10 @@ export function DiscordChatPanel({ agentInstanceId }: { agentInstanceId: string 
               } else if (currentEvent === 'thread_start') {
                 // Attach thread to the last master message (immutable)
                 setMessages((prev) => {
-                  const lastIdx = prev.findLastIndex((m) => m.role === 'master')
+                  let lastIdx = -1
+                  for (let i = prev.length - 1; i >= 0; i--) {
+                    if (prev[i].role === 'master') { lastIdx = i; break }
+                  }
                   if (lastIdx === -1) return prev
                   return prev.map((m, i) =>
                     i === lastIdx
@@ -147,9 +168,9 @@ export function DiscordChatPanel({ agentInstanceId }: { agentInstanceId: string 
                       ? {
                           ...m,
                           thread: {
-                            ...m.thread,
+                            ...m.thread!,
                             messages: [
-                              ...m.thread.messages,
+                              ...m.thread!.messages,
                               { agent: data.agent, content: data.content, timestamp: new Date() },
                             ],
                           },
@@ -162,7 +183,7 @@ export function DiscordChatPanel({ agentInstanceId }: { agentInstanceId: string 
                 setMessages((prev) =>
                   prev.map((m) =>
                     m.thread?.id === data.threadId
-                      ? { ...m, thread: { ...m.thread, complete: true } }
+                      ? { ...m, thread: { ...m.thread!, complete: true } }
                       : m,
                   ),
                 )
