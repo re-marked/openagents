@@ -115,19 +115,47 @@ export function DiscordChatPanel({ agentInstanceId }: { agentInstanceId: string 
                 }
                 contentBuffer = ''
                 turnCount++
-              } else if (currentEvent === 'delegation') {
-                // Master delegated a task to a sub-agent
-                const input = data.tool_call?.input ?? {}
-                console.log('[delegation]', data)
-                setMessages((prev) => [
-                  ...prev,
-                  {
-                    id: `delegation-${Date.now()}`,
-                    role: 'master',
-                    content: `Delegating to ${input.agent_type ?? 'agent'}: ${input.task ?? 'task'}\n→ ${data.status}`,
-                    timestamp: new Date(),
-                  },
-                ])
+              } else if (currentEvent === 'thread_start') {
+                // Attach thread to the last master message
+                setMessages((prev) => {
+                  const updated = [...prev]
+                  const lastMaster = [...updated].reverse().find((m) => m.role === 'master')
+                  if (lastMaster) {
+                    lastMaster.thread = {
+                      id: data.threadId,
+                      participants: [data.from, data.to],
+                      messages: [
+                        { agent: data.from, content: data.message, timestamp: new Date() },
+                      ],
+                      complete: false,
+                    }
+                  }
+                  return updated
+                })
+              } else if (currentEvent === 'thread_message') {
+                // Add message to active thread
+                setMessages((prev) => {
+                  const updated = [...prev]
+                  const withThread = updated.find((m) => m.thread?.id === data.threadId)
+                  if (withThread?.thread) {
+                    withThread.thread.messages.push({
+                      agent: data.agent,
+                      content: data.content,
+                      timestamp: new Date(),
+                    })
+                  }
+                  return updated
+                })
+              } else if (currentEvent === 'thread_end') {
+                // Mark thread complete
+                setMessages((prev) => {
+                  const updated = [...prev]
+                  const withThread = updated.find((m) => m.thread?.id === data.threadId)
+                  if (withThread?.thread) {
+                    withThread.thread.complete = true
+                  }
+                  return updated
+                })
               } else if (currentEvent === 'end') {
                 // Entire run finished
                 break

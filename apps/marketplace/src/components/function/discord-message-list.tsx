@@ -5,16 +5,46 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
+export interface ThreadMessage {
+  agent: string
+  content: string
+  timestamp: Date
+}
+
+export interface Thread {
+  id: string
+  participants: string[]
+  messages: ThreadMessage[]
+  complete: boolean
+}
+
 export interface DiscordMessage {
   id: string
   role: 'user' | 'master'
   content: string
   timestamp: Date
+  thread?: Thread
 }
 
 interface MessageGroup {
   role: 'user' | 'master'
   messages: DiscordMessage[]
+}
+
+const AGENT_COLORS: Record<string, { bg: string; text: string }> = {
+  master: { bg: 'bg-indigo-600', text: 'text-indigo-400' },
+  researcher: { bg: 'bg-emerald-600', text: 'text-emerald-400' },
+  coder: { bg: 'bg-amber-600', text: 'text-amber-400' },
+  analyst: { bg: 'bg-cyan-600', text: 'text-cyan-400' },
+  writer: { bg: 'bg-purple-600', text: 'text-purple-400' },
+}
+
+function getAgentColor(agent: string) {
+  return AGENT_COLORS[agent] ?? { bg: 'bg-zinc-600', text: 'text-zinc-400' }
+}
+
+function getAgentInitial(agent: string): string {
+  return agent.charAt(0).toUpperCase()
 }
 
 function formatTime(date: Date): string {
@@ -33,13 +63,75 @@ function formatTime(date: Date): string {
 function groupMessages(messages: DiscordMessage[]): MessageGroup[] {
   return messages.reduce<MessageGroup[]>((groups, msg) => {
     const last = groups[groups.length - 1]
-    if (last && last.role === msg.role) {
+    // Don't group messages that have threads — they should stand alone
+    if (last && last.role === msg.role && !msg.thread && !last.messages[last.messages.length - 1]?.thread) {
       last.messages.push(msg)
     } else {
       groups.push({ role: msg.role, messages: [msg] })
     }
     return groups
   }, [])
+}
+
+function ThreadView({ thread }: { thread: Thread }) {
+  const initiator = thread.participants[0] ?? 'master'
+  const invited = thread.participants.slice(1)
+
+  return (
+    <div className="mt-2 ml-2 border-l-2 border-indigo-500/20 bg-muted/30 rounded-r-md py-2 px-3">
+      {/* Thread header */}
+      <div className="text-muted-foreground text-xs mb-2 flex items-center gap-1">
+        <span className="capitalize font-medium">{initiator}</span>
+        <span>invited</span>
+        {invited.map((agent, i) => (
+          <span key={agent}>
+            <span className={`font-medium ${getAgentColor(agent).text}`}>@{agent}</span>
+            {i < invited.length - 1 && <span>, </span>}
+          </span>
+        ))}
+      </div>
+
+      {/* Thread messages */}
+      <div className="flex flex-col gap-2">
+        {thread.messages.map((msg, i) => {
+          const colors = getAgentColor(msg.agent)
+          return (
+            <div key={`${thread.id}-${i}`} className="flex gap-2 items-start">
+              <div className="shrink-0 pt-0.5">
+                <div
+                  className={`h-6 w-6 rounded-full ${colors.bg} flex items-center justify-center`}
+                >
+                  <span className="text-white text-[10px] font-semibold">
+                    {getAgentInitial(msg.agent)}
+                  </span>
+                </div>
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className={`text-xs font-semibold ${colors.text} capitalize`}>
+                  {msg.agent}
+                </span>
+                <p className="text-foreground/90 text-sm leading-relaxed whitespace-pre-wrap break-words">
+                  {msg.content}
+                </p>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Loading indicator when thread is still running */}
+      {!thread.complete && (
+        <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+          <span className="flex gap-0.5">
+            <span className="bg-muted-foreground/60 h-1 w-1 animate-bounce rounded-full [animation-delay:0ms]" />
+            <span className="bg-muted-foreground/60 h-1 w-1 animate-bounce rounded-full [animation-delay:150ms]" />
+            <span className="bg-muted-foreground/60 h-1 w-1 animate-bounce rounded-full [animation-delay:300ms]" />
+          </span>
+          <span>working...</span>
+        </div>
+      )}
+    </div>
+  )
 }
 
 function MessageGroupView({ group }: { group: MessageGroup }) {
@@ -82,9 +174,12 @@ function MessageGroupView({ group }: { group: MessageGroup }) {
 
         {/* Messages */}
         {group.messages.map((msg) => (
-          <p key={msg.id} className="text-foreground/90 text-sm leading-relaxed whitespace-pre-wrap break-words">
-            {msg.content}
-          </p>
+          <div key={msg.id}>
+            <p className="text-foreground/90 text-sm leading-relaxed whitespace-pre-wrap break-words">
+              {msg.content}
+            </p>
+            {msg.thread && <ThreadView thread={msg.thread} />}
+          </div>
         ))}
       </div>
     </div>
