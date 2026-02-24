@@ -1,6 +1,7 @@
 import { getUser } from '@/lib/auth/get-user'
 import { createServiceClient } from '@openagents/db/server'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 
 export default async function HomePage() {
   const user = await getUser()
@@ -36,14 +37,6 @@ export default async function HomePage() {
     agent = newAgent as { id: string } | null
   }
 
-  if (!agent) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center p-8">
-        <p className="text-destructive">Failed to set up agent. Check Supabase logs.</p>
-      </div>
-    )
-  }
-
   // --- Ensure project exists for user ---
   const { data: existingProject } = await service
     .from('projects')
@@ -54,7 +47,7 @@ export default async function HomePage() {
 
   let project = existingProject as { id: string } | null
 
-  if (!project) {
+  if (!project && agent) {
     const { data: newProject } = await service
       .from('projects')
       .insert({ user_id: user.id, name: 'My Workspace' })
@@ -64,82 +57,69 @@ export default async function HomePage() {
     project = newProject as { id: string } | null
   }
 
-  if (!project) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center p-8">
-        <p className="text-destructive">Failed to create project. Check Supabase logs.</p>
-      </div>
-    )
-  }
-
   // --- Ensure team exists under project ---
-  const { data: existingTeam } = await service
-    .from('teams')
-    .select('id')
-    .eq('project_id', project.id)
-    .eq('name', 'team-chat')
-    .single()
-
-  let team = existingTeam as { id: string } | null
-
-  if (!team) {
-    const { data: newTeam } = await service
+  let team: { id: string } | null = null
+  if (project) {
+    const { data: existingTeam } = await service
       .from('teams')
-      .insert({ project_id: project.id, name: 'team-chat' })
       .select('id')
+      .eq('project_id', project.id)
+      .eq('name', 'team-chat')
       .single()
 
-    team = newTeam as { id: string } | null
+    team = existingTeam as { id: string } | null
+
+    if (!team) {
+      const { data: newTeam } = await service
+        .from('teams')
+        .insert({ project_id: project.id, name: 'team-chat' })
+        .select('id')
+        .single()
+
+      team = newTeam as { id: string } | null
+    }
   }
 
-  if (!team) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center p-8">
-        <p className="text-destructive">Failed to create team. Check Supabase logs.</p>
-      </div>
-    )
-  }
-
-  // --- Ensure agent instance exists for this user ---
-  const { data: existingInstance } = await service
-    .from('agent_instances')
-    .select('id, status')
-    .eq('user_id', user.id)
-    .eq('agent_id', agent.id)
-    .single()
-
-  let instance = existingInstance as { id: string; status: string } | null
-
-  if (!instance) {
-    const { data: newInstance } = await service
+  // --- Ensure agent instance exists ---
+  if (agent && team) {
+    const { data: existingInstance } = await service
       .from('agent_instances')
-      .insert({
-        user_id: user.id,
-        agent_id: agent.id,
-        team_id: team.id,
-        fly_app_name: 'oa-test-agent',
-        fly_machine_id: '2861050fe63548',
-        status: 'running',
-      })
-      .select('id, status')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('agent_id', agent.id)
       .single()
 
-    instance = newInstance as { id: string; status: string } | null
-  } else {
-    // Ensure instance is linked to team
-    await service
-      .from('agent_instances')
-      .update({ team_id: team.id })
-      .eq('id', instance.id)
+    if (!existingInstance) {
+      await service
+        .from('agent_instances')
+        .insert({
+          user_id: user.id,
+          agent_id: agent.id,
+          team_id: team.id,
+          fly_app_name: 'oa-test-agent',
+          fly_machine_id: '2861050fe63548',
+          status: 'running',
+        })
+    } else {
+      await service
+        .from('agent_instances')
+        .update({ team_id: team.id })
+        .eq('id', existingInstance.id)
+    }
   }
 
-  if (!instance) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center p-8">
-        <p className="text-destructive">Failed to create agent instance. Check Supabase logs.</p>
-      </div>
-    )
+  // If we have a chat destination, redirect straight there
+  if (project && team) {
+    redirect(`/workspace/p/${project.id}/t/${team.id}/chat`)
   }
 
-  redirect(`/workspace/p/${project.id}/t/${team.id}/chat`)
+  // Fallback: show error if bootstrap failed
+  return (
+    <div className="flex min-h-dvh items-center justify-center p-8">
+      <p className="text-muted-foreground text-sm">
+        Failed to set up workspace. Check Supabase logs or{' '}
+        <Link href="/workspace/home" className="underline">try again</Link>.
+      </p>
+    </div>
+  )
 }

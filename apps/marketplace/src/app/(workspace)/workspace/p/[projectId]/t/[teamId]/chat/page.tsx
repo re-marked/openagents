@@ -29,6 +29,7 @@ export default async function TeamChatPage({
     .select('id, status')
     .eq('team_id', teamId)
     .eq('user_id', user.id)
+    .limit(1)
     .single()
 
   if (!instance) redirect('/workspace/home')
