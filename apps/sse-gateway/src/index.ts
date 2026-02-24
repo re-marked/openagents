@@ -455,7 +455,7 @@ app.post('/v1/chat', async (c) => {
             if (sub) {
               // Real sub-agent connection
               console.log(`[chat] Querying real sub-agent ${mention.agent} at ${sub.flyApp}`)
-              response = await querySubAgent(sub.flyApp, sub.token, mention.message)
+              response = await querySubAgent(sub.flyApp, sub.token ?? agentToken, mention.message)
             } else {
               // Fallback to hardcoded mock
               console.log(`[chat] Using mock response for ${mention.agent} (no sub-agent configured)`)
