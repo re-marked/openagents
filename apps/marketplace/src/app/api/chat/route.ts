@@ -101,8 +101,10 @@ export async function POST(request: Request) {
     content: message,
   })
 
-  // 6. Build session key for OpenClaw native sessions
-  const sessionKey = `agent:main:oa-user-${user.id}`
+  // 6. Build session key for OpenClaw native sessions.
+  // Use the DB session ID so each fresh DB session maps to a fresh OpenClaw
+  // session, avoiding stale/corrupted conversation history on the agent side.
+  const sessionKey = `agent:main:session-${sessionId}`
   const idempotencyKey = `${sessionId}-${Date.now()}`
 
   // 7. POST to SSE gateway
