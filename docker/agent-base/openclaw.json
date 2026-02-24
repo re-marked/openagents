@@ -22,7 +22,10 @@
     "deny": ["browser", "gateway", "cron"],
     "elevated": {
       "enabled": true,
-      "allowFrom": []
+      "allowFrom": {
+        "webchat": ["*"],
+        "api": ["*"]
+      }
     }
   },
   "skills": {
