@@ -266,6 +266,7 @@ app.post('/v1/chat', async (c) => {
       // for the agent to synthesize. This repeats up to MAX_MENTION_DEPTH.
       const MAX_MENTION_DEPTH = 3
       let mentionDepth = 0
+      const mentionedAgents = new Set<string>()
 
       /**
        * Listen for one full agent turn (deltas → done, or lifecycle end + done).
@@ -399,15 +400,19 @@ app.post('/v1/chat', async (c) => {
       let lastText = await listenForTurn()
 
       while (lastText && !closed) {
-        const mentions = extractMentions(lastText)
+        // Only trigger on NEW @mentions — ignore agents already invoked in prior rounds
+        const mentions = extractMentions(lastText).filter(
+          (m) => !mentionedAgents.has(m.agent),
+        )
 
         if (mentions.length === 0 || mentionDepth >= MAX_MENTION_DEPTH) {
-          // No mentions or depth exceeded — we're done
+          // No new mentions or depth exceeded — we're done
           break
         }
 
         mentionDepth++
-        console.log(`[chat] Detected ${mentions.length} @mention(s), depth=${mentionDepth}`)
+        for (const m of mentions) mentionedAgents.add(m.agent)
+        console.log(`[chat] Detected ${mentions.length} new @mention(s), depth=${mentionDepth}`)
 
         // Process each mention: emit thread events with hardcoded responses
         const threadReplies: string[] = []
