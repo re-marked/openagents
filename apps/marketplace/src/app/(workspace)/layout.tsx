@@ -13,13 +13,24 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
 
   // Load sidebar nav from the user's agent instance (source of truth)
   const service = createServiceClient()
-  const { data: instance } = await service
-    .from('agent_instances')
-    .select('team_id')
-    .eq('user_id', user.id)
-    .not('team_id', 'is', null)
-    .limit(1)
+
+  // Find the test-agent to use as the anchor for sidebar nav
+  const { data: agent } = await service
+    .from('agents')
+    .select('id')
+    .eq('slug', 'test-agent')
     .single()
+
+  const { data: instance } = agent
+    ? await service
+        .from('agent_instances')
+        .select('team_id')
+        .eq('user_id', user.id)
+        .eq('agent_id', agent.id)
+        .not('team_id', 'is', null)
+        .limit(1)
+        .single()
+    : { data: null }
 
   const teamId = (instance as { team_id: string } | null)?.team_id
 
