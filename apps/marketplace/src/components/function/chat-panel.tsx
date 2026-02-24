@@ -86,6 +86,7 @@ export function ChatPanel({ agentInstanceId }: { agentInstanceId: string }) {
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
         let buffer = ''
+        let currentEvent = ''
 
         while (true) {
           const { done, value } = await reader.read()
@@ -93,18 +94,11 @@ export function ChatPanel({ agentInstanceId }: { agentInstanceId: string }) {
 
           buffer += decoder.decode(value, { stream: true })
           const lines = buffer.split('\n')
-          // Keep the last potentially incomplete line in the buffer
           buffer = lines.pop() ?? ''
 
           for (const line of lines) {
             if (line.startsWith('event:')) {
-              const event = line.slice(6).trim()
-
-              // Read the next data line from buffer or already processed lines
-              // SSE format: event line followed by data line
-              if (event === 'error') {
-                // Will be handled when we see the data line
-              }
+              currentEvent = line.slice(6).trim()
               continue
             }
 
@@ -112,7 +106,7 @@ export function ChatPanel({ agentInstanceId }: { agentInstanceId: string }) {
               try {
                 const data = JSON.parse(line.slice(5).trim())
 
-                if (data.content !== undefined) {
+                if (currentEvent === 'delta' && data.content !== undefined) {
                   setMessages((prev) =>
                     prev.map((m) =>
                       m.id === assistantMsgId
@@ -120,9 +114,15 @@ export function ChatPanel({ agentInstanceId }: { agentInstanceId: string }) {
                         : m,
                     ),
                   )
-                }
-
-                if (data.error) {
+                } else if (currentEvent === 'done') {
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantMsgId ? { ...m, isStreaming: false } : m,
+                    ),
+                  )
+                  setIsStreaming(false)
+                  return
+                } else if (currentEvent === 'error' || data.error) {
                   setMessages((prev) =>
                     prev.map((m) =>
                       m.id === assistantMsgId
@@ -140,6 +140,7 @@ export function ChatPanel({ agentInstanceId }: { agentInstanceId: string }) {
               } catch {
                 // Not valid JSON data line, skip
               }
+              currentEvent = ''
             }
           }
         }
