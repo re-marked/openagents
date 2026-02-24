@@ -9,7 +9,7 @@
     ],
     "defaults": {
       "model": {
-        "primary": "openai/gpt-4o"
+        "primary": "google/gemini-3-flash-preview"
       },
       "sandbox": {
         "mode": "off"
