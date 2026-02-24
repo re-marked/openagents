@@ -180,6 +180,15 @@ SSE_GATEWAY_SECRET=     # Random string, set on both sides
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
+## Git Commits
+
+Always include both authors in every commit:
+
+```
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Co-Authored-By: psyhik17 <psyhik17@gmail.com>
+```
+
 ## Key Conventions
 
 - **Use Agent with an A for OpenAgent's agents, and agent with an a for any other agent.**
