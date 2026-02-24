@@ -6,7 +6,7 @@ export const runtime = 'nodejs'
 
 type AgentInstance = Pick<
   Tables<'agent_instances'>,
-  'id' | 'fly_app_name' | 'gateway_token' | 'status' | 'user_id' | 'agent_id'
+  'id' | 'fly_app_name' | 'status' | 'user_id' | 'agent_id'
 >
 
 export async function POST(request: Request) {
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
   // 3. Load agent instance — verify ownership and running status
   const { data: instanceData, error: instanceError } = await supabase
     .from('agent_instances')
-    .select('id, fly_app_name, gateway_token, status, user_id, agent_id')
+    .select('id, fly_app_name, status, user_id, agent_id')
     .eq('id', agentInstanceId)
     .single()
 
@@ -62,14 +62,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Agent has no Fly app configured' }, { status: 500 })
   }
 
-  // 4. Find or create active session
+  // 4. Find or create session for this user + instance
   const { data: existingSession } = await supabase
     .from('sessions')
     .select('id')
     .eq('user_id', user.id)
-    .eq('agent_instance_id', agentInstanceId)
-    .eq('status', 'active')
-    .order('created_at', { ascending: false })
+    .eq('instance_id', agentInstanceId)
+    .is('ended_at', null)
+    .order('started_at', { ascending: false })
     .limit(1)
     .single()
 
@@ -82,9 +82,9 @@ export async function POST(request: Request) {
       .from('sessions')
       .insert({
         user_id: user.id,
-        agent_instance_id: agentInstanceId,
-        status: 'active',
-      } as never)
+        instance_id: agentInstanceId,
+        relay: 'web',
+      })
       .select('id')
       .single()
 
@@ -99,8 +99,7 @@ export async function POST(request: Request) {
     session_id: sessionId,
     role: 'user',
     content: message,
-    relay_type: 'web',
-  } as never)
+  })
 
   // 6. Build session key for OpenClaw native sessions
   const sessionKey = `agent:main:oa-user-${user.id}`
@@ -120,7 +119,9 @@ export async function POST(request: Request) {
       'Content-Type': 'application/json',
       'x-gateway-token': gatewaySecret,
       'x-fly-app': instance.fly_app_name,
-      ...(instance.gateway_token ? { 'x-agent-token': instance.gateway_token } : {}),
+      ...(process.env.TEST_AGENT_GATEWAY_TOKEN
+        ? { 'x-agent-token': process.env.TEST_AGENT_GATEWAY_TOKEN }
+        : {}),
     },
     body: JSON.stringify({ sessionKey, message, idempotencyKey }),
   })
@@ -166,8 +167,7 @@ export async function POST(request: Request) {
           session_id: sessionId,
           role: 'assistant',
           content: assistantContent,
-          relay_type: 'web',
-        } as never)
+        })
       }
     },
   })

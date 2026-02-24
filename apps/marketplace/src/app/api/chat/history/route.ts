@@ -19,14 +19,14 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Missing agentInstanceId' }, { status: 400 })
   }
 
-  // Find the active session for this user + agent instance
+  // Find the most recent open session for this user + instance
   const { data: session } = await supabase
     .from('sessions')
     .select('id')
     .eq('user_id', user.id)
-    .eq('agent_instance_id', agentInstanceId)
-    .eq('status', 'active')
-    .order('created_at', { ascending: false })
+    .eq('instance_id', agentInstanceId)
+    .is('ended_at', null)
+    .order('started_at', { ascending: false })
     .limit(1)
     .single()
 

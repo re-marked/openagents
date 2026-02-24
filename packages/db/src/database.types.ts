@@ -1,400 +1,923 @@
-// Auto-generated types will be placed here by: supabase gen types typescript
-// Run: pnpm dlx supabase gen types typescript --project-id <project-id> > packages/db/src/database.types.ts
-
-export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.1"
+  }
   public: {
     Tables: {
-      users: {
+      agent_instances: {
         Row: {
-          id: string
+          agent_id: string
           created_at: string
-          updated_at: string
-          email: string
           display_name: string | null
-          avatar_url: string | null
-          role: 'user' | 'creator' | 'admin'
-          stripe_customer_id: string | null
-          github_username: string | null
+          error_message: string | null
+          fly_app_name: string
+          fly_machine_id: string
+          fly_volume_id: string | null
+          id: string
+          last_active_at: string | null
+          model_preference: string | null
+          region: string
+          status: string
+          team_id: string | null
+          updated_at: string
+          user_id: string
         }
         Insert: {
-          id?: string
+          agent_id: string
           created_at?: string
-          updated_at?: string
-          email: string
           display_name?: string | null
-          avatar_url?: string | null
-          role?: 'user' | 'creator' | 'admin'
-          stripe_customer_id?: string | null
-          github_username?: string | null
+          error_message?: string | null
+          fly_app_name: string
+          fly_machine_id: string
+          fly_volume_id?: string | null
+          id?: string
+          last_active_at?: string | null
+          model_preference?: string | null
+          region?: string
+          status?: string
+          team_id?: string | null
+          updated_at?: string
+          user_id: string
         }
         Update: {
-          id?: string
+          agent_id?: string
           created_at?: string
-          updated_at?: string
-          email?: string
           display_name?: string | null
-          avatar_url?: string | null
-          role?: 'user' | 'creator' | 'admin'
-          stripe_customer_id?: string | null
-          github_username?: string | null
+          error_message?: string | null
+          fly_app_name?: string
+          fly_machine_id?: string
+          fly_volume_id?: string | null
+          id?: string
+          last_active_at?: string | null
+          model_preference?: string | null
+          region?: string
+          status?: string
+          team_id?: string | null
+          updated_at?: string
+          user_id?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "agent_instances_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_instances_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_instances_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_reviews: {
+        Row: {
+          agent_id: string
+          content: string | null
+          created_at: string
+          id: string
+          rating: number
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          content?: string | null
+          created_at?: string
+          id?: string
+          rating: number
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          content?: string | null
+          created_at?: string
+          id?: string
+          rating?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_reviews_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_reviews_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_skills: {
+        Row: {
+          agent_id: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          permissions: string[] | null
+          skill_content: string
+          slug: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          permissions?: string[] | null
+          skill_content: string
+          slug: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          permissions?: string[] | null
+          skill_content?: string
+          slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_skills_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_versions: {
+        Row: {
+          agent_id: string
+          changelog: string | null
+          created_at: string
+          docker_image: string
+          id: string
+          version: string
+        }
+        Insert: {
+          agent_id: string
+          changelog?: string | null
+          created_at?: string
+          docker_image: string
+          id?: string
+          version: string
+        }
+        Update: {
+          agent_id?: string
+          changelog?: string | null
+          created_at?: string
+          docker_image?: string
+          id?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_versions_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       agents: {
         Row: {
-          id: string
-          created_at: string
-          updated_at: string
-          creator_id: string
-          slug: string
-          name: string
-          tagline: string
-          description: string
+          avg_rating: number | null
           category: string
-          icon_url: string | null
-          status: 'draft' | 'review' | 'published' | 'suspended'
-          pricing_model: 'free' | 'per_session' | 'per_task'
+          created_at: string
+          creator_id: string
           credits_per_session: number | null
-          github_repo_url: string | null
-          fly_app_name: string | null
-          version: string
-          rating_average: number
-          rating_count: number
-          hire_count: number
-        }
-        Insert: {
-          id?: string
-          created_at?: string
-          updated_at?: string
-          creator_id: string
-          slug: string
-          name: string
-          tagline: string
           description: string
+          docker_image: string | null
+          fly_machine_memory_mb: number
+          fly_machine_size: string
+          github_repo_url: string
+          icon_url: string | null
+          id: string
+          name: string
+          openclaw_version: string | null
+          pricing_model: string
+          published_at: string | null
+          slug: string
+          status: string
+          supported_models: string[] | null
+          supported_relays: string[] | null
+          tagline: string
+          tags: string[] | null
+          total_hires: number
+          total_reviews: number
+          updated_at: string
+        }
+        Insert: {
+          avg_rating?: number | null
           category: string
-          icon_url?: string | null
-          status?: 'draft' | 'review' | 'published' | 'suspended'
-          pricing_model?: 'free' | 'per_session' | 'per_task'
+          created_at?: string
+          creator_id: string
           credits_per_session?: number | null
-          github_repo_url?: string | null
-          fly_app_name?: string | null
-          version?: string
-          rating_average?: number
-          rating_count?: number
-          hire_count?: number
+          description: string
+          docker_image?: string | null
+          fly_machine_memory_mb?: number
+          fly_machine_size?: string
+          github_repo_url: string
+          icon_url?: string | null
+          id?: string
+          name: string
+          openclaw_version?: string | null
+          pricing_model?: string
+          published_at?: string | null
+          slug: string
+          status?: string
+          supported_models?: string[] | null
+          supported_relays?: string[] | null
+          tagline: string
+          tags?: string[] | null
+          total_hires?: number
+          total_reviews?: number
+          updated_at?: string
         }
         Update: {
-          id?: string
-          created_at?: string
-          updated_at?: string
-          creator_id?: string
-          slug?: string
-          name?: string
-          tagline?: string
-          description?: string
+          avg_rating?: number | null
           category?: string
-          icon_url?: string | null
-          status?: 'draft' | 'review' | 'published' | 'suspended'
-          pricing_model?: 'free' | 'per_session' | 'per_task'
+          created_at?: string
+          creator_id?: string
           credits_per_session?: number | null
-          github_repo_url?: string | null
-          fly_app_name?: string | null
-          version?: string
-          rating_average?: number
-          rating_count?: number
-          hire_count?: number
+          description?: string
+          docker_image?: string | null
+          fly_machine_memory_mb?: number
+          fly_machine_size?: string
+          github_repo_url?: string
+          icon_url?: string | null
+          id?: string
+          name?: string
+          openclaw_version?: string | null
+          pricing_model?: string
+          published_at?: string | null
+          slug?: string
+          status?: string
+          supported_models?: string[] | null
+          supported_relays?: string[] | null
+          tagline?: string
+          tags?: string[] | null
+          total_hires?: number
+          total_reviews?: number
+          updated_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "agents_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
-      agent_instances: {
+      creator_earnings: {
         Row: {
-          id: string
-          created_at: string
-          updated_at: string
-          user_id: string
           agent_id: string
-          fly_machine_id: string | null
-          fly_app_name: string | null
-          status: 'provisioning' | 'running' | 'suspended' | 'stopped' | 'error'
-          last_active_at: string | null
-          gateway_token: string | null
+          compute_cost: number
+          created_at: string
+          creator_amount: number
+          creator_id: string
+          creator_rate: number
+          gross_revenue: number
+          id: string
+          paid_out: boolean
+          paid_out_at: string | null
+          platform_amount: number
+          session_id: string | null
+          stripe_transfer_id: string | null
         }
         Insert: {
-          id?: string
-          created_at?: string
-          updated_at?: string
-          user_id: string
           agent_id: string
-          fly_machine_id?: string | null
-          fly_app_name?: string | null
-          status?: 'provisioning' | 'running' | 'suspended' | 'stopped' | 'error'
-          last_active_at?: string | null
-          gateway_token?: string | null
+          compute_cost: number
+          created_at?: string
+          creator_amount: number
+          creator_id: string
+          creator_rate?: number
+          gross_revenue: number
+          id?: string
+          paid_out?: boolean
+          paid_out_at?: string | null
+          platform_amount: number
+          session_id?: string | null
+          stripe_transfer_id?: string | null
         }
         Update: {
-          id?: string
-          created_at?: string
-          updated_at?: string
-          user_id?: string
           agent_id?: string
-          fly_machine_id?: string | null
-          fly_app_name?: string | null
-          status?: 'provisioning' | 'running' | 'suspended' | 'stopped' | 'error'
-          last_active_at?: string | null
-          gateway_token?: string | null
-        }
-      }
-      sessions: {
-        Row: {
-          id: string
-          created_at: string
-          updated_at: string
-          user_id: string
-          agent_instance_id: string
-          status: 'active' | 'completed' | 'expired'
-          credits_used: number
-          ended_at: string | null
-        }
-        Insert: {
-          id?: string
+          compute_cost?: number
           created_at?: string
-          updated_at?: string
-          user_id: string
-          agent_instance_id: string
-          status?: 'active' | 'completed' | 'expired'
-          credits_used?: number
-          ended_at?: string | null
-        }
-        Update: {
+          creator_amount?: number
+          creator_id?: string
+          creator_rate?: number
+          gross_revenue?: number
           id?: string
-          created_at?: string
-          updated_at?: string
-          user_id?: string
-          agent_instance_id?: string
-          status?: 'active' | 'completed' | 'expired'
-          credits_used?: number
-          ended_at?: string | null
+          paid_out?: boolean
+          paid_out_at?: string | null
+          platform_amount?: number
+          session_id?: string | null
+          stripe_transfer_id?: string | null
         }
-      }
-      messages: {
-        Row: {
-          id: string
-          created_at: string
-          session_id: string
-          role: 'user' | 'assistant' | 'system'
-          content: string
-          tokens_used: number | null
-          relay_type: 'web' | 'telegram' | 'slack' | 'discord' | null
-        }
-        Insert: {
-          id?: string
-          created_at?: string
-          session_id: string
-          role: 'user' | 'assistant' | 'system'
-          content: string
-          tokens_used?: number | null
-          relay_type?: 'web' | 'telegram' | 'slack' | 'discord' | null
-        }
-        Update: {
-          id?: string
-          created_at?: string
-          session_id?: string
-          role?: 'user' | 'assistant' | 'system'
-          content?: string
-          tokens_used?: number | null
-          relay_type?: 'web' | 'telegram' | 'slack' | 'discord' | null
-        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_earnings_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_earnings_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_earnings_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       credit_balances: {
         Row: {
           id: string
-          user_id: string
-          balance: number
+          subscription_credits: number
+          topup_credits: number
           updated_at: string
+          user_id: string
         }
         Insert: {
           id?: string
-          user_id: string
-          balance?: number
+          subscription_credits?: number
+          topup_credits?: number
           updated_at?: string
+          user_id: string
         }
         Update: {
           id?: string
-          user_id?: string
-          balance?: number
+          subscription_credits?: number
+          topup_credits?: number
           updated_at?: string
+          user_id?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "credit_balances_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       credit_transactions: {
         Row: {
-          id: string
-          created_at: string
-          user_id: string
           amount: number
-          type: 'purchase' | 'usage' | 'refund' | 'bonus'
+          created_at: string
+          credit_type: string
           description: string | null
-          stripe_payment_intent_id: string | null
+          id: string
           session_id: string | null
+          stripe_payment_id: string | null
+          type: string
+          user_id: string
         }
         Insert: {
-          id?: string
-          created_at?: string
-          user_id: string
           amount: number
-          type: 'purchase' | 'usage' | 'refund' | 'bonus'
+          created_at?: string
+          credit_type: string
           description?: string | null
-          stripe_payment_intent_id?: string | null
+          id?: string
           session_id?: string | null
+          stripe_payment_id?: string | null
+          type: string
+          user_id: string
         }
         Update: {
-          id?: string
-          created_at?: string
-          user_id?: string
           amount?: number
-          type?: 'purchase' | 'usage' | 'refund' | 'bonus'
+          created_at?: string
+          credit_type?: string
           description?: string | null
-          stripe_payment_intent_id?: string | null
+          id?: string
           session_id?: string | null
-        }
-      }
-      usage_events: {
-        Row: {
-          id: string
-          created_at: string
-          user_id: string
-          agent_id: string
-          session_id: string
-          event_type: 'token' | 'compute_second' | 'tool_call'
-          quantity: number
-          credits_charged: number
-        }
-        Insert: {
-          id?: string
-          created_at?: string
-          user_id: string
-          agent_id: string
-          session_id: string
-          event_type: 'token' | 'compute_second' | 'tool_call'
-          quantity: number
-          credits_charged: number
-        }
-        Update: {
-          id?: string
-          created_at?: string
+          stripe_payment_id?: string | null
+          type?: string
           user_id?: string
-          agent_id?: string
-          session_id?: string
-          event_type?: 'token' | 'compute_second' | 'tool_call'
-          quantity?: number
-          credits_charged?: number
         }
+        Relationships: [
+          {
+            foreignKeyName: "credit_transactions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
-      creator_earnings: {
+      messages: {
         Row: {
-          id: string
+          content: string
           created_at: string
-          creator_id: string
-          agent_id: string
+          id: string
+          role: string
           session_id: string
-          gross_credits: number
-          platform_fee_credits: number
-          net_credits: number
-          paid_out: boolean
-          stripe_transfer_id: string | null
+          tokens_used: number
+          tool_use: Json | null
         }
         Insert: {
-          id?: string
+          content: string
           created_at?: string
-          creator_id: string
-          agent_id: string
+          id?: string
+          role: string
           session_id: string
-          gross_credits: number
-          platform_fee_credits: number
-          net_credits: number
-          paid_out?: boolean
-          stripe_transfer_id?: string | null
+          tokens_used?: number
+          tool_use?: Json | null
         }
         Update: {
-          id?: string
+          content?: string
           created_at?: string
-          creator_id?: string
-          agent_id?: string
+          id?: string
+          role?: string
           session_id?: string
-          gross_credits?: number
-          platform_fee_credits?: number
-          net_credits?: number
-          paid_out?: boolean
-          stripe_transfer_id?: string | null
+          tokens_used?: number
+          tool_use?: Json | null
         }
+        Relationships: [
+          {
+            foreignKeyName: "messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
-      agent_reviews: {
+      projects: {
         Row: {
-          id: string
           created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
           user_id: string
-          agent_id: string
-          rating: number
-          comment: string | null
         }
         Insert: {
-          id?: string
           created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
           user_id: string
-          agent_id: string
-          rating: number
-          comment?: string | null
         }
         Update: {
-          id?: string
           created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
           user_id?: string
-          agent_id?: string
-          rating?: number
-          comment?: string | null
         }
+        Relationships: [
+          {
+            foreignKeyName: "projects_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       relay_connections: {
         Row: {
-          id: string
+          config: Json | null
           created_at: string
-          user_id: string
-          agent_instance_id: string
-          relay_type: 'telegram' | 'slack' | 'discord' | 'whatsapp'
-          relay_user_id: string
-          relay_chat_id: string | null
-          is_active: boolean
+          external_chat_id: string | null
+          external_user_id: string
+          id: string
+          instance_id: string
+          relay: string
+          status: string
         }
         Insert: {
-          id?: string
+          config?: Json | null
           created_at?: string
-          user_id: string
-          agent_instance_id: string
-          relay_type: 'telegram' | 'slack' | 'discord' | 'whatsapp'
-          relay_user_id: string
-          relay_chat_id?: string | null
-          is_active?: boolean
+          external_chat_id?: string | null
+          external_user_id: string
+          id?: string
+          instance_id: string
+          relay: string
+          status?: string
         }
         Update: {
-          id?: string
+          config?: Json | null
           created_at?: string
-          user_id?: string
-          agent_instance_id?: string
-          relay_type?: 'telegram' | 'slack' | 'discord' | 'whatsapp'
-          relay_user_id?: string
-          relay_chat_id?: string | null
-          is_active?: boolean
+          external_chat_id?: string | null
+          external_user_id?: string
+          id?: string
+          instance_id?: string
+          relay?: string
+          status?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "relay_connections_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "agent_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sessions: {
+        Row: {
+          compute_seconds: number
+          ended_at: string | null
+          id: string
+          instance_id: string
+          relay: string
+          started_at: string
+          total_credits_consumed: number
+          total_input_tokens: number
+          total_output_tokens: number
+          user_id: string
+        }
+        Insert: {
+          compute_seconds?: number
+          ended_at?: string | null
+          id?: string
+          instance_id: string
+          relay?: string
+          started_at?: string
+          total_credits_consumed?: number
+          total_input_tokens?: number
+          total_output_tokens?: number
+          user_id: string
+        }
+        Update: {
+          compute_seconds?: number
+          ended_at?: string | null
+          id?: string
+          instance_id?: string
+          relay?: string
+          started_at?: string
+          total_credits_consumed?: number
+          total_input_tokens?: number
+          total_output_tokens?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessions_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "agent_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_agents: {
+        Row: {
+          created_at: string
+          id: string
+          instance_id: string
+          team_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          instance_id: string
+          team_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          instance_id?: string
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_agents_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "agent_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_agents_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          project_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          project_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teams_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      usage_events: {
+        Row: {
+          compute_seconds: number
+          cost_usd: number
+          created_at: string
+          credits_consumed: number
+          id: string
+          input_tokens: number
+          instance_id: string
+          output_tokens: number
+          session_id: string | null
+          user_id: string
+        }
+        Insert: {
+          compute_seconds?: number
+          cost_usd?: number
+          created_at?: string
+          credits_consumed?: number
+          id?: string
+          input_tokens?: number
+          instance_id: string
+          output_tokens?: number
+          session_id?: string | null
+          user_id: string
+        }
+        Update: {
+          compute_seconds?: number
+          cost_usd?: number
+          created_at?: string
+          credits_consumed?: number
+          id?: string
+          input_tokens?: number
+          instance_id?: string
+          output_tokens?: number
+          session_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_events_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "agent_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_events_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          email: string
+          id: string
+          role: string
+          stripe_connect_account_id: string | null
+          stripe_customer_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          email: string
+          id: string
+          role?: string
+          stripe_connect_account_id?: string | null
+          stripe_customer_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string
+          id?: string
+          role?: string
+          stripe_connect_account_id?: string | null
+          stripe_customer_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
     }
-    Views: Record<string, never>
-    Functions: Record<string, never>
-    Enums: Record<string, never>
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      custom_access_token_hook: { Args: { event: Json }; Returns: Json }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
 }
 
-export type Tables<T extends keyof Database['public']['Tables']> =
-  Database['public']['Tables'][T]['Row']
-export type TablesInsert<T extends keyof Database['public']['Tables']> =
-  Database['public']['Tables'][T]['Insert']
-export type TablesUpdate<T extends keyof Database['public']['Tables']> =
-  Database['public']['Tables'][T]['Update']
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const
