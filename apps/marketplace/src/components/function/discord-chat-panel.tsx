@@ -78,8 +78,9 @@ export function DiscordChatPanel({ agentInstanceId }: { agentInstanceId: string 
       let currentEvent = ''
       let contentBuffer = ''
       let turnCount = 0
+      let streamDone = false
 
-      while (true) {
+      while (!streamDone) {
         const { done, value } = await reader.read()
         if (done) break
 
@@ -88,6 +89,8 @@ export function DiscordChatPanel({ agentInstanceId }: { agentInstanceId: string 
         sseBuffer = lines.pop() ?? ''
 
         for (const line of lines) {
+          if (streamDone) break
+
           if (line.startsWith('event:')) {
             currentEvent = line.slice(6).trim()
             continue
@@ -116,48 +119,56 @@ export function DiscordChatPanel({ agentInstanceId }: { agentInstanceId: string 
                 contentBuffer = ''
                 turnCount++
               } else if (currentEvent === 'thread_start') {
-                // Attach thread to the last master message
+                // Attach thread to the last master message (immutable)
                 setMessages((prev) => {
-                  const updated = [...prev]
-                  const lastMaster = [...updated].reverse().find((m) => m.role === 'master')
-                  if (lastMaster) {
-                    lastMaster.thread = {
-                      id: data.threadId,
-                      participants: [data.from, data.to],
-                      messages: [
-                        { agent: data.from, content: data.message, timestamp: new Date() },
-                      ],
-                      complete: false,
-                    }
-                  }
-                  return updated
+                  const lastIdx = prev.findLastIndex((m) => m.role === 'master')
+                  if (lastIdx === -1) return prev
+                  return prev.map((m, i) =>
+                    i === lastIdx
+                      ? {
+                          ...m,
+                          thread: {
+                            id: data.threadId,
+                            participants: [data.from, data.to],
+                            messages: [
+                              { agent: data.from, content: data.message, timestamp: new Date() },
+                            ],
+                            complete: false,
+                          },
+                        }
+                      : m,
+                  )
                 })
               } else if (currentEvent === 'thread_message') {
-                // Add message to active thread
-                setMessages((prev) => {
-                  const updated = [...prev]
-                  const withThread = updated.find((m) => m.thread?.id === data.threadId)
-                  if (withThread?.thread) {
-                    withThread.thread.messages.push({
-                      agent: data.agent,
-                      content: data.content,
-                      timestamp: new Date(),
-                    })
-                  }
-                  return updated
-                })
+                // Add message to active thread (immutable to avoid StrictMode double-push)
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.thread?.id === data.threadId
+                      ? {
+                          ...m,
+                          thread: {
+                            ...m.thread,
+                            messages: [
+                              ...m.thread.messages,
+                              { agent: data.agent, content: data.content, timestamp: new Date() },
+                            ],
+                          },
+                        }
+                      : m,
+                  ),
+                )
               } else if (currentEvent === 'thread_end') {
-                // Mark thread complete
-                setMessages((prev) => {
-                  const updated = [...prev]
-                  const withThread = updated.find((m) => m.thread?.id === data.threadId)
-                  if (withThread?.thread) {
-                    withThread.thread.complete = true
-                  }
-                  return updated
-                })
+                // Mark thread complete (immutable)
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.thread?.id === data.threadId
+                      ? { ...m, thread: { ...m.thread, complete: true } }
+                      : m,
+                  ),
+                )
               } else if (currentEvent === 'end') {
                 // Entire run finished
+                streamDone = true
                 break
               } else if (currentEvent === 'error' || data.error) {
                 setMessages((prev) => [
@@ -169,6 +180,7 @@ export function DiscordChatPanel({ agentInstanceId }: { agentInstanceId: string 
                     timestamp: new Date(),
                   },
                 ])
+                streamDone = true
                 break
               }
             } catch {
