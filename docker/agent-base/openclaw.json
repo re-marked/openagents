@@ -18,14 +18,10 @@
   },
   "tools": {
     "profile": "coding",
-    "allow": ["exec", "web_search", "file_read", "file_write"],
+    "allow": ["exec", "web_search", "read", "write", "edit", "apply_patch"],
     "deny": ["browser", "gateway", "cron"],
     "elevated": {
-      "enabled": true,
-      "allowFrom": {
-        "webchat": ["*"],
-        "api": ["*"]
-      }
+      "enabled": false
     }
   },
   "skills": {
