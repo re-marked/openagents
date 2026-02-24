@@ -116,7 +116,7 @@ export async function POST(request: Request) {
     const serviceSupabase = createServiceClient()
     const { data: teamMembers } = await serviceSupabase
       .from('team_agents')
-      .select('instance_id, agent_instances!inner(fly_app_name, display_name, status)')
+      .select('instance_id, agent_instances!inner(fly_app_name, display_name, status, gateway_token)')
       .eq('team_id', instance.team_id)
       .neq('instance_id', instance.id)
 
@@ -128,12 +128,16 @@ export async function POST(request: Request) {
           fly_app_name: string
           display_name: string | null
           status: string
+          gateway_token: string | null
         }
         if (
           inst.display_name &&
           (inst.status === 'running' || inst.status === 'suspended')
         ) {
-          subAgents[inst.display_name] = { flyApp: inst.fly_app_name }
+          subAgents[inst.display_name] = {
+            flyApp: inst.fly_app_name,
+            ...(inst.gateway_token ? { token: inst.gateway_token } : {}),
+          }
         }
       }
       // Don't send empty object

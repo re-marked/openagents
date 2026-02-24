@@ -189,6 +189,16 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 Co-Authored-By: psyhik17 <psyhik17@gmail.com>
 ```
 
+## Operational Tasks
+
+You have full access to run infrastructure commands directly — never ask the user to do these manually:
+
+- **SQL migrations**: Run via `npx supabase` CLI or the Supabase Management API
+- **Docker**: Build and push images (`docker build`, `docker push`, `fly auth docker`)
+- **Fly.io**: Deploy apps, manage machines (`fly deploy`, `fly machine list`, etc.)
+- **Trigger.dev**: Deploy tasks (`npx trigger.dev@latest deploy`)
+- **Type generation**: Regenerate DB types after schema changes (`npx supabase gen types`)
+
 ## Key Conventions
 
 - **Use Agent with an A for OpenAgent's agents, and agent with an a for any other agent.**

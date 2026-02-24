@@ -23,6 +23,7 @@ export type Database = {
           fly_app_name: string
           fly_machine_id: string
           fly_volume_id: string | null
+          gateway_token: string | null
           id: string
           last_active_at: string | null
           model_preference: string | null
@@ -40,6 +41,7 @@ export type Database = {
           fly_app_name: string
           fly_machine_id: string
           fly_volume_id?: string | null
+          gateway_token?: string | null
           id?: string
           last_active_at?: string | null
           model_preference?: string | null
@@ -57,6 +59,7 @@ export type Database = {
           fly_app_name?: string
           fly_machine_id?: string
           fly_volume_id?: string | null
+          gateway_token?: string | null
           id?: string
           last_active_at?: string | null
           model_preference?: string | null

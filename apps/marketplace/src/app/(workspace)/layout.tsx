@@ -6,6 +6,7 @@ import {
   SidebarInset,
   SidebarProvider,
 } from '@/components/ui/sidebar'
+import { AGENT_ROLES } from '@/lib/agent-roles'
 
 export default async function WorkspaceLayout({ children }: { children: React.ReactNode }) {
   const user = await getUser()
@@ -44,12 +45,40 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
     projectId = (team as { project_id: string } | null)?.project_id
   }
 
+  // Load team members for sidebar
+  type TeamMemberInfo = { name: string; status: string; color: string }
+  let teamMembers: TeamMemberInfo[] = []
+
+  if (teamId) {
+    const { data: teamAgents } = await service
+      .from('team_agents')
+      .select('agent_instances!inner(display_name, status, agents!inner(name, slug))')
+      .eq('team_id', teamId)
+
+    teamMembers = (teamAgents ?? []).map((ta) => {
+      const inst = (ta as Record<string, unknown>).agent_instances as {
+        display_name: string | null
+        status: string
+        agents: { name: string; slug: string }
+      }
+      const isMaster = !inst.agents.slug.startsWith('sub-')
+      const roleId = inst.display_name ?? ''
+      const color = AGENT_ROLES[roleId]?.color ?? (isMaster ? 'indigo' : 'zinc')
+      return {
+        name: inst.agents.name,
+        status: inst.status,
+        color,
+      }
+    }).filter((m) => m.status !== 'destroyed')
+  }
+
   return (
     <SidebarProvider>
       <AppSidebar
         projectId={projectId}
         teamId={teamId}
         userEmail={user.email}
+        teamMembers={teamMembers}
       />
       <SidebarInset>
         {children}

@@ -1,6 +1,7 @@
 import { task, logger } from '@trigger.dev/sdk/v3'
 import { createServiceClient } from '@openagents/db'
 import { FlyClient } from '@openagents/fly'
+import { AGENT_ROLES } from './agent-roles'
 
 const BASE_IMAGE = process.env.FLY_AGENT_BASE_IMAGE ?? 'registry.fly.io/openagents-agent-base:latest'
 const FLY_ORG = process.env.FLY_ORG_SLUG ?? 'personal'
@@ -10,6 +11,7 @@ export interface ProvisionPayload {
   userId: string
   agentId: string
   instanceId: string
+  role?: string
 }
 
 export const provisionAgentMachine = task({
@@ -22,7 +24,7 @@ export const provisionAgentMachine = task({
   },
 
   run: async (payload: ProvisionPayload) => {
-    const { userId, agentId, instanceId } = payload
+    const { userId, agentId, instanceId, role: roleId } = payload
     const db = createServiceClient()
     const fly = new FlyClient()
 
@@ -34,6 +36,10 @@ export const provisionAgentMachine = task({
       .single()
 
     if (agentErr || !agent) throw new Error(`Agent not found: ${agentId}`)
+
+    // ── 1b. Load role definition if this is a sub-agent ──────────────────
+    const role = roleId ? AGENT_ROLES[roleId] : undefined
+    if (roleId && !role) throw new Error(`Unknown role: ${roleId}`)
 
     // ── 2. Load user's API keys (BYOK) ──────────────────────────────────
     const { data: apiKeys } = await db
@@ -53,7 +59,10 @@ export const provisionAgentMachine = task({
     }
 
     const image = agent.docker_image ?? BASE_IMAGE
-    const appName = `oa-${agent.slug}-${userId.slice(0, 8)}`
+    // Sub-agents get named by role, master agents by slug
+    const appName = role
+      ? `oa-${role.id}-${userId.slice(0, 8)}`
+      : `oa-${agent.slug}-${userId.slice(0, 8)}`
     const gatewayToken = crypto.randomUUID()
 
     logger.info('Provisioning agent machine', { appName, userId, agentId })
@@ -72,6 +81,14 @@ export const provisionAgentMachine = task({
     logger.info('Volume created', { volumeId: volume.id })
 
     // ── 5. Create machine ─────────────────────────────────────────────────
+    // Inject role-specific env vars for sub-agents
+    const roleEnv: Record<string, string> = {}
+    if (role) {
+      roleEnv.AGENT_SOUL_MD = role.soul
+      roleEnv.AGENT_YAML = role.agentYaml
+      roleEnv.AGENT_OPENCLAW_OVERRIDES = JSON.stringify(role.openclawOverrides)
+    }
+
     const machine = await fly.createMachine(appName, {
       region: FLY_REGION,
       config: {
@@ -79,8 +96,10 @@ export const provisionAgentMachine = task({
         env: {
           OPENCLAW_STATE_DIR: '/data',
           OPENCLAW_GATEWAY_TOKEN: gatewayToken,
+          NODE_OPTIONS: '--max-old-space-size=1536',
           NODE_ENV: 'production',
           ...keyEnv,
+          ...roleEnv,
         },
         mounts: [{ volume: volume.id, path: '/data' }],
         services: [
@@ -105,8 +124,8 @@ export const provisionAgentMachine = task({
         ],
         guest: {
           cpu_kind: 'shared',
-          cpus: 1,
-          memory_mb: agent.fly_machine_memory_mb ?? 512,
+          cpus: 2,
+          memory_mb: agent.fly_machine_memory_mb ?? 2048,
         },
         restart: { policy: 'on-failure' },
       },

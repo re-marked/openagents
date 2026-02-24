@@ -58,36 +58,25 @@ app.post('/v1/responses', async (c) => {
 // @mention detection helpers
 // ---------------------------------------------------------------------------
 
-const AGENT_NAMES = ['researcher', 'coder', 'analyst', 'writer'] as const
-type AgentName = (typeof AGENT_NAMES)[number]
-
-const MENTION_RE = new RegExp(`@(${AGENT_NAMES.join('|')})\\b`, 'g')
-
-/** Hardcoded Phase 1 responses per agent type. */
-const AGENT_RESPONSES: Record<AgentName, (msg: string) => string> = {
-  researcher: (msg) =>
-    `Hey! I looked into this. Here's what I found:\n\n1. Key finding relevant to "${msg.slice(0, 50)}${msg.length > 50 ? '...' : ''}"\n2. Supporting evidence from recent sources\n3. Some important context to consider\n\nLet me know if you want me to dig deeper into any of these.`,
-  coder: (msg) =>
-    `On it! I've analyzed the requirements. Here's my take:\n\n- Approach: Based on "${msg.slice(0, 40)}${msg.length > 40 ? '...' : ''}"\n- Key considerations: architecture, testing, maintainability\n- Ready to implement once you give the go-ahead.`,
-  analyst: (msg) =>
-    `Good question. Here's my analysis:\n\n- The data suggests several interesting patterns related to "${msg.slice(0, 40)}${msg.length > 40 ? '...' : ''}"\n- Key patterns: correlation, causation, outliers\n- My recommendation: proceed with a data-driven approach\n\nHappy to break this down further.`,
-  writer: (msg) =>
-    `Got it! Here's a draft based on what you described:\n\n[Draft for: "${msg.slice(0, 50)}${msg.length > 50 ? '...' : ''}"]\n\nWant me to adjust the tone or focus?`,
-}
-
 interface MentionMatch {
-  agent: AgentName
+  agent: string
   message: string
 }
 
-/** Extract all @mentions and the text directed at each agent. */
-function extractMentions(text: string): MentionMatch[] {
+/**
+ * Extract all @mentions and the text directed at each agent.
+ * Agent names are derived dynamically from the subAgents map keys.
+ */
+function extractMentions(text: string, agentNames: string[]): MentionMatch[] {
+  if (agentNames.length === 0) return []
+
+  const re = new RegExp(`@(${agentNames.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`, 'g')
   const mentions: MentionMatch[] = []
-  const matches = [...text.matchAll(MENTION_RE)]
+  const matches = [...text.matchAll(re)]
 
   for (let i = 0; i < matches.length; i++) {
     const match = matches[i]
-    const agent = match[1] as AgentName
+    const agent = match[1]
     const start = match.index! + match[0].length
     const end = i + 1 < matches.length ? matches[i + 1].index! : text.length
     const message = text.slice(start, end).trim()
@@ -408,8 +397,9 @@ app.post('/v1/chat', async (c) => {
       while (lastText && !closed) {
         // Only trigger on NEW @mentions — deduplicate by agent name and ignore
         // agents already invoked in prior rounds
+        const agentNames = subAgents ? Object.keys(subAgents) : []
         const seen = new Set(mentionedAgents)
-        const mentions = extractMentions(lastText).filter((m) => {
+        const mentions = extractMentions(lastText, agentNames).filter((m) => {
           if (seen.has(m.agent)) return false
           seen.add(m.agent)
           return true
@@ -457,10 +447,10 @@ app.post('/v1/chat', async (c) => {
               console.log(`[chat] Querying real sub-agent ${mention.agent} at ${sub.flyApp}`)
               response = await querySubAgent(sub.flyApp, sub.token ?? agentToken, mention.message)
             } else {
-              // Fallback to hardcoded mock
-              console.log(`[chat] Using mock response for ${mention.agent} (no sub-agent configured)`)
+              // Safety net — agent name matched but no sub-agent configured
+              console.log(`[chat] No sub-agent configured for ${mention.agent}, using generic fallback`)
               await sleep(300)
-              response = AGENT_RESPONSES[mention.agent](mention.message)
+              response = `[${mention.agent} is not available — no machine configured for this role]`
             }
 
             return { mention, threadId, response }

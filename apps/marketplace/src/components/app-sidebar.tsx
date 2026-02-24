@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Hash, Home, Settings } from "lucide-react"
+import { Hash, Home, Settings, Users } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
@@ -21,11 +21,25 @@ import {
 } from "@/components/ui/sidebar"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
+interface TeamMemberInfo {
+  name: string
+  status: string
+  color: string
+}
+
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   projectId?: string
   teamId?: string
   teamName?: string
   userEmail?: string
+  teamMembers?: TeamMemberInfo[]
+}
+
+const STATUS_DOT_COLORS: Record<string, string> = {
+  running: "bg-green-500",
+  suspended: "bg-yellow-500",
+  provisioning: "bg-blue-500 animate-pulse",
+  error: "bg-red-500",
 }
 
 export function AppSidebar({
@@ -33,6 +47,7 @@ export function AppSidebar({
   teamId,
   teamName = "team-chat",
   userEmail,
+  teamMembers = [],
   ...props
 }: AppSidebarProps) {
   const pathname = usePathname()
@@ -73,6 +88,35 @@ export function AppSidebar({
                     <Link href={chatPath}>
                       <Hash />
                       <span>{teamName}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {teamMembers.length > 0 && projectId && teamId && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Team</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {teamMembers.map((member) => (
+                  <SidebarMenuItem key={member.name}>
+                    <SidebarMenuButton asChild={false} className="cursor-default">
+                      <span className={`inline-block h-2 w-2 rounded-full ${STATUS_DOT_COLORS[member.status] ?? "bg-zinc-400"}`} />
+                      <span>{member.name}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname === `/workspace/p/${projectId}/t/${teamId}/settings`}
+                  >
+                    <Link href={`/workspace/p/${projectId}/t/${teamId}/settings`}>
+                      <Users className="h-4 w-4" />
+                      <span>Manage team</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
