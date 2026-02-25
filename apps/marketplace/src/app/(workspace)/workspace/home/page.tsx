@@ -2,8 +2,8 @@ import { getUser } from '@/lib/auth/get-user'
 import { createServiceClient } from '@openagents/db/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { AGENT_ROLES } from '@/lib/agent-roles'
-import { MessageSquare, Settings, Users } from 'lucide-react'
+import { Plus, MessageSquare, Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 export default async function HomePage() {
   const user = await getUser()
@@ -11,233 +11,155 @@ export default async function HomePage() {
 
   const service = createServiceClient()
 
-  // --- Ensure test agent exists ---
-  const { data: existingAgent } = await service
-    .from('agents')
-    .select('id')
-    .eq('slug', 'test-agent')
-    .single()
-
-  let agent = existingAgent as { id: string } | null
-
-  if (!agent) {
-    const { data: newAgent } = await service
-      .from('agents')
-      .insert({
-        slug: 'test-agent',
-        name: 'Master',
-        creator_id: user.id,
-        tagline: 'Your AI team member',
-        description: 'Master agent — your first AI assistant',
-        category: 'general',
-        status: 'published',
-        github_repo_url: 'https://github.com/openagents/test-agent',
-      })
-      .select('id')
-      .single()
-
-    agent = newAgent as { id: string } | null
-  }
-
-  // --- Ensure project exists for user ---
-  const { data: existingProject } = await service
-    .from('projects')
-    .select('id')
+  // Load user's agents
+  const { data: instances } = await service
+    .from('agent_instances')
+    .select('id, display_name, status, team_id, created_at, agents!inner(name, slug, category, tagline)')
     .eq('user_id', user.id)
-    .eq('name', 'My Workspace')
-    .limit(1)
-    .single()
+    .not('status', 'eq', 'destroyed')
+    .order('created_at', { ascending: false })
 
-  let project = existingProject as { id: string } | null
-
-  if (!project && agent) {
-    const { data: newProject } = await service
-      .from('projects')
-      .insert({ user_id: user.id, name: 'My Workspace' })
-      .select('id')
-      .single()
-
-    project = newProject as { id: string } | null
+  type HiredAgent = {
+    instanceId: string
+    name: string
+    slug: string
+    category: string
+    tagline: string
+    status: string
+    teamId: string | null
   }
 
-  // --- Ensure team exists under project ---
-  let team: { id: string } | null = null
-  if (project) {
-    const { data: existingTeam } = await service
+  const agents: HiredAgent[] = (instances ?? []).map((inst) => {
+    const agent = (inst as Record<string, unknown>).agents as {
+      name: string; slug: string; category: string; tagline: string
+    }
+    return {
+      instanceId: inst.id,
+      name: inst.display_name ?? agent.name,
+      slug: agent.slug,
+      category: agent.category,
+      tagline: agent.tagline,
+      status: inst.status,
+      teamId: inst.team_id,
+    }
+  })
+
+  // Get project ID for chat links
+  let projectId: string | null = null
+  const firstTeamId = agents.find((a) => a.teamId)?.teamId
+  if (firstTeamId) {
+    const { data: team } = await service
       .from('teams')
-      .select('id')
-      .eq('project_id', project.id)
-      .eq('name', 'team-chat')
-      .limit(1)
+      .select('project_id')
+      .eq('id', firstTeamId)
       .single()
-
-    team = existingTeam as { id: string } | null
-
-    if (!team) {
-      const { data: newTeam } = await service
-        .from('teams')
-        .insert({ project_id: project.id, name: 'team-chat' })
-        .select('id')
-        .single()
-
-      team = newTeam as { id: string } | null
-    }
+    projectId = team?.project_id ?? null
   }
 
-  // --- Ensure agent instance exists ---
-  if (agent && team) {
-    const { data: existingInstance } = await service
-      .from('agent_instances')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('agent_id', agent.id)
-      .limit(1)
-      .single()
-
-    if (!existingInstance) {
-      await service
-        .from('agent_instances')
-        .insert({
-          user_id: user.id,
-          agent_id: agent.id,
-          team_id: team.id,
-          fly_app_name: 'oa-test-agent',
-          fly_machine_id: '2861050fe63548',
-          status: 'running',
-        })
-    } else {
-      await service
-        .from('agent_instances')
-        .update({ team_id: team.id })
-        .eq('id', existingInstance.id)
-    }
+  const CATEGORY_GRADIENT: Record<string, string> = {
+    productivity: "from-blue-500 to-blue-600",
+    research: "from-emerald-500 to-emerald-600",
+    writing: "from-purple-500 to-purple-600",
+    coding: "from-amber-500 to-amber-600",
+    business: "from-rose-500 to-rose-600",
+    creative: "from-pink-500 to-pink-600",
+    personal: "from-cyan-500 to-cyan-600",
   }
 
-  // --- Bootstrap sub-agent `agents` rows (no instances — user adds via team settings) ---
-  if (agent) {
-    for (const role of Object.values(AGENT_ROLES)) {
-      const subSlug = `sub-${role.id}`
-      const { data: existing } = await service
-        .from('agents')
-        .select('id')
-        .eq('slug', subSlug)
-        .single()
-
-      if (!existing) {
-        await service.from('agents').insert({
-          slug: subSlug,
-          name: role.name,
-          creator_id: user.id,
-          tagline: role.tagline,
-          description: `Sub-agent: ${role.name} — ${role.tagline}`,
-          category: 'sub-agent',
-          status: 'published',
-          github_repo_url: 'https://github.com/openagents/sub-agents',
-        })
-      }
-    }
+  const STATUS_LABEL: Record<string, { text: string; color: string }> = {
+    running: { text: "Running", color: "text-green-400" },
+    suspended: { text: "Suspended", color: "text-yellow-400" },
+    provisioning: { text: "Provisioning...", color: "text-blue-400" },
+    error: { text: "Error", color: "text-red-400" },
   }
-
-  // --- Load team members for display ---
-  type TeamMember = { name: string; status: string; displayName: string }
-  let teamMembers: TeamMember[] = []
-
-  if (team) {
-    const { data: teamAgents } = await service
-      .from('team_agents')
-      .select('agent_instances!inner(display_name, status, agents!inner(name))')
-      .eq('team_id', team.id)
-
-    teamMembers = (teamAgents ?? []).map((ta) => {
-      const inst = (ta as Record<string, unknown>).agent_instances as {
-        display_name: string | null
-        status: string
-        agents: { name: string }
-      }
-      return {
-        name: inst.agents.name,
-        status: inst.status,
-        displayName: inst.display_name ?? inst.agents.name,
-      }
-    }).filter((m) => m.status !== 'destroyed')
-  }
-
-  const chatPath = project && team
-    ? `/workspace/p/${project.id}/t/${team.id}/chat`
-    : null
-  const settingsPath = project && team
-    ? `/workspace/p/${project.id}/t/${team.id}/settings`
-    : null
 
   return (
-    <div className="mx-auto max-w-xl px-4 py-12">
-      <h1 className="mb-1 text-2xl font-semibold">Welcome back</h1>
-      <p className="text-muted-foreground mb-8 text-sm">
-        Your workspace is ready. Here's what's going on.
-      </p>
-
-      {/* Team overview */}
-      <div className="mb-8">
-        <h2 className="mb-3 text-sm font-medium uppercase tracking-wider text-muted-foreground">
-          Your Team
-        </h2>
-        <div className="space-y-2">
-          {teamMembers.length > 0 ? (
-            teamMembers.map((m) => (
-              <div key={m.displayName} className="flex items-center gap-3 rounded-lg border p-3">
-                <span className={`inline-block h-2 w-2 rounded-full ${
-                  m.status === 'running' ? 'bg-green-500' :
-                  m.status === 'suspended' ? 'bg-yellow-500' :
-                  m.status === 'provisioning' ? 'bg-blue-500 animate-pulse' :
-                  'bg-zinc-400'
-                }`} />
-                <span className="text-sm font-medium">{m.name}</span>
-                <span className="text-muted-foreground text-xs">{m.status}</span>
-              </div>
-            ))
-          ) : (
-            <p className="text-muted-foreground text-sm">No team members yet.</p>
-          )}
+    <div className="px-8 py-8 lg:px-12">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-[28px] font-bold tracking-tight">Your Agents</h1>
+          <p className="text-muted-foreground mt-1">
+            {agents.length === 0
+              ? "Hire your first assistant from the marketplace"
+              : `${agents.length} agent${agents.length === 1 ? "" : "s"} in your workspace`}
+          </p>
         </div>
+        <Button asChild>
+          <Link href="/discover">
+            <Plus className="size-4 mr-2" />
+            Hire Agent
+          </Link>
+        </Button>
       </div>
 
-      {/* Quick links */}
-      <div className="grid gap-3 sm:grid-cols-2">
-        {chatPath && (
-          <Link
-            href={chatPath}
-            className="flex items-center gap-3 rounded-lg border p-4 transition-colors hover:bg-accent"
-          >
-            <MessageSquare className="h-5 w-5 text-muted-foreground" />
-            <div>
-              <div className="text-sm font-medium">Team Chat</div>
-              <div className="text-muted-foreground text-xs">Talk to your team</div>
-            </div>
-          </Link>
-        )}
-        {settingsPath && (
-          <Link
-            href={settingsPath}
-            className="flex items-center gap-3 rounded-lg border p-4 transition-colors hover:bg-accent"
-          >
-            <Users className="h-5 w-5 text-muted-foreground" />
-            <div>
-              <div className="text-sm font-medium">Team Settings</div>
-              <div className="text-muted-foreground text-xs">Add or remove specialists</div>
-            </div>
-          </Link>
-        )}
-        <Link
-          href="/workspace/settings"
-          className="flex items-center gap-3 rounded-lg border p-4 transition-colors hover:bg-accent"
-        >
-          <Settings className="h-5 w-5 text-muted-foreground" />
-          <div>
-            <div className="text-sm font-medium">Settings</div>
-            <div className="text-muted-foreground text-xs">API keys and account</div>
+      {/* Agent grid */}
+      {agents.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-32 text-center">
+          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-card mb-5">
+            <Plus className="h-9 w-9 text-muted-foreground" />
           </div>
-        </Link>
-      </div>
+          <h3 className="text-xl font-semibold mb-2">No agents yet</h3>
+          <p className="text-sm text-muted-foreground max-w-sm mb-6">
+            Browse the marketplace and hire your first AI assistant. They'll appear here ready to chat.
+          </p>
+          <Button size="lg" asChild>
+            <Link href="/discover">
+              Browse Marketplace
+            </Link>
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {agents.map((agent) => {
+            const gradient = CATEGORY_GRADIENT[agent.category] ?? "from-zinc-500 to-zinc-600"
+            const statusInfo = STATUS_LABEL[agent.status] ?? { text: agent.status, color: "text-zinc-400" }
+            const chatPath = agent.teamId && projectId
+              ? `/workspace/p/${projectId}/t/${agent.teamId}/chat`
+              : null
+            const isProvisioning = agent.status === "provisioning"
+
+            return (
+              <div
+                key={agent.instanceId}
+                className="group rounded-2xl bg-card p-5 transition-all duration-200 hover:bg-accent"
+              >
+                <div className="flex items-start gap-4 mb-4">
+                  {/* Icon */}
+                  <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${gradient} text-white text-lg font-semibold shrink-0`}>
+                    {agent.name[0]}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-[15px] font-semibold leading-tight truncate">{agent.name}</h3>
+                    <p className="text-[13px] text-muted-foreground mt-0.5 truncate">{agent.tagline}</p>
+                    <p className={`text-xs mt-1.5 font-medium ${statusInfo.color}`}>
+                      {isProvisioning && <Loader2 className="inline size-3 mr-1 animate-spin" />}
+                      {statusInfo.text}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                {chatPath && !isProvisioning && (
+                  <Link
+                    href={chatPath}
+                    className="flex items-center justify-center gap-2 rounded-xl bg-primary/15 py-2.5 text-sm font-semibold text-primary transition-colors hover:bg-primary/25"
+                  >
+                    <MessageSquare className="size-4" />
+                    Open Chat
+                  </Link>
+                )}
+                {isProvisioning && (
+                  <div className="flex items-center justify-center gap-2 rounded-xl bg-secondary py-2.5 text-sm font-medium text-muted-foreground">
+                    <Loader2 className="size-4 animate-spin" />
+                    Setting up your agent...
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
