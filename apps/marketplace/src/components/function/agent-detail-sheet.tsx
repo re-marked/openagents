@@ -164,7 +164,7 @@ export function AgentDetailSheet({ agent, open, onOpenChange }: AgentDetailSheet
             className="w-full rounded-xl bg-primary text-primary-foreground font-semibold text-base h-13 hover:bg-primary/90 transition-colors duration-200"
             asChild
           >
-            <a href={`/agents/${agent.slug}`}>
+            <a href={`/workspace/home?hire=${encodeURIComponent(agent.slug)}`}>
               <Rocket className="size-4 mr-2" />
               Deploy this Assistant
             </a>
