@@ -42,7 +42,7 @@ export default async function TeamChatPage({
 
   return (
     <div className="flex h-screen flex-col">
-      <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border/40 px-4">
+      <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b border-border/40 bg-background px-4 rounded-t-xl">
         <SidebarTrigger className="-ml-1" />
         <Separator
           orientation="vertical"

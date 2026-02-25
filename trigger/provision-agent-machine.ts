@@ -5,7 +5,7 @@ import { AGENT_ROLES } from './agent-roles'
 
 const BASE_IMAGE = process.env.FLY_AGENT_BASE_IMAGE ?? 'registry.fly.io/openagents-agent-base:latest'
 const FLY_ORG = process.env.FLY_ORG_SLUG ?? 'personal'
-const FLY_REGION = process.env.FLY_REGION ?? 'iad'
+const FLY_REGION = process.env.FLY_REGION ?? 'ord'
 
 export interface ProvisionPayload {
   userId: string
@@ -28,7 +28,8 @@ export const provisionAgentMachine = task({
     const db = createServiceClient()
     const fly = new FlyClient()
 
-    // ── 1. Load agent definition ─────────────────────────────────────────
+    try {
+      // ── 1. Load agent definition ─────────────────────────────────────────
     const { data: agent, error: agentErr } = await db
       .from('agents')
       .select('slug, docker_image, fly_machine_size, fly_machine_memory_mb')
@@ -173,11 +174,23 @@ export const provisionAgentMachine = task({
 
     logger.info('Instance record updated', { instanceId })
 
-    return {
-      machineId: machine.id,
-      appName,
-      volumeId: volume.id,
-      region: FLY_REGION,
+      return {
+        machineId: machine.id,
+        appName,
+        volumeId: volume.id,
+        region: FLY_REGION,
+      }
+    } catch (err) {
+      // Mark instance as error so the UI can show failure
+      logger.error('Provisioning failed', {
+        instanceId,
+        error: err instanceof Error ? err.message : String(err),
+      })
+      await db
+        .from('agent_instances')
+        .update({ status: 'error' })
+        .eq('id', instanceId)
+      throw err // rethrow so Trigger.dev marks the run as failed
     }
   },
 })

@@ -3,6 +3,9 @@
 import * as React from "react"
 import { Search, Plus } from "lucide-react"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Card } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { CATEGORIES, AgentInitial } from "@/lib/agents"
 
 interface Agent {
@@ -50,9 +53,9 @@ export function DiscoverDialog({ open, onOpenChange, agents }: DiscoverDialogPro
           <h1 className="text-2xl font-semibold mb-4">Discover Assistants</h1>
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input
+            <Input
               placeholder="What do you need help with?"
-              className="w-full rounded-lg bg-secondary py-2 pl-9 pr-4 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+              className="pl-9"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               autoFocus
@@ -60,17 +63,15 @@ export function DiscoverDialog({ open, onOpenChange, agents }: DiscoverDialogPro
           </div>
           <div className="flex gap-2 flex-wrap">
             {CATEGORIES.map((cat) => (
-              <button
+              <Badge
                 key={cat.id}
+                role="button"
                 onClick={() => setActiveCategory(cat.id)}
-                className={`rounded-full px-3 py-1 text-sm font-medium transition-colors duration-150 ${
-                  activeCategory === cat.id
-                    ? "bg-primary/15 text-primary"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                }`}
+                variant={activeCategory === cat.id ? "default" : "secondary"}
+                className="cursor-pointer text-sm py-1 px-3"
               >
                 {cat.label}
-              </button>
+              </Badge>
             ))}
           </div>
         </div>
@@ -84,20 +85,22 @@ export function DiscoverDialog({ open, onOpenChange, agents }: DiscoverDialogPro
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
               {filtered.map((agent) => (
-                <div
+                <Card
                   key={agent.id}
-                  className="group flex items-center gap-3 rounded-xl bg-card p-3 transition-all duration-200 hover:bg-accent cursor-pointer"
+                  className="group border-0 gap-0 py-0 transition-all duration-200 hover:bg-accent cursor-pointer"
                 >
-                  <AgentInitial name={agent.name} category={agent.category} size="sm" />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm leading-snug truncate">{agent.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{agent.tagline}</p>
+                  <div className="flex items-center gap-3 p-3">
+                    <AgentInitial name={agent.name} category={agent.category} size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm leading-snug truncate">{agent.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{agent.tagline}</p>
+                    </div>
+                    <Badge className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                      <Plus className="h-3 w-3 mr-1" />
+                      Add
+                    </Badge>
                   </div>
-                  <button className="shrink-0 rounded-full bg-primary/15 px-3 py-1 text-xs font-semibold text-primary opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                    <Plus className="h-3 w-3 inline mr-1" />
-                    Add
-                  </button>
-                </div>
+                </Card>
               ))}
             </div>
           )}

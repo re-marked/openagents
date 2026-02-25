@@ -3,6 +3,7 @@ import { createClient } from "@openagents/db/server"
 import { DiscoverSidebar } from "@/components/function/discover-sidebar"
 import { DiscoverContent } from "@/components/function/discover-content"
 import { seedDemoAgentsIfEmpty } from "@/lib/agents-seed"
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import type { AgentListItem } from "@/lib/agents"
 
 interface Props {
@@ -84,18 +85,15 @@ export default async function DiscoverPage({ searchParams }: Props) {
   const agents = await fetchAgents(params)
 
   return (
-    <div className="flex min-h-[calc(100vh-3.5rem)]">
-      {/* Sidebar */}
+    <SidebarProvider>
       <Suspense>
         <DiscoverSidebar />
       </Suspense>
-
-      {/* Main content */}
-      <div className="flex-1 min-w-0">
+      <SidebarInset>
         <Suspense>
           <DiscoverContent agents={agents} />
         </Suspense>
-      </div>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   )
 }

@@ -2,6 +2,9 @@
 
 import { useState, useTransition } from 'react'
 import { Check, Loader2 } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { saveDefaultModel } from '@/lib/settings/actions'
 
 const MODELS = [
@@ -83,15 +86,12 @@ export function ModelSelector({ currentModel, configuredProviders }: ModelSelect
       </div>
 
       {message && (
-        <div
-          className={`rounded-xl px-4 py-3 text-sm ${
-            message.type === 'success'
-              ? 'bg-green-500/10 text-green-400'
-              : 'bg-red-500/10 text-red-400'
-          }`}
+        <Alert
+          variant={message.type === 'error' ? 'destructive' : 'default'}
+          className={`border-0 ${message.type === 'success' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10'}`}
         >
-          {message.text}
-        </div>
+          <AlertDescription>{message.text}</AlertDescription>
+        </Alert>
       )}
 
       <div className="space-y-2">
@@ -100,42 +100,45 @@ export function ModelSelector({ currentModel, configuredProviders }: ModelSelect
           const hasKey = configuredProviders.includes(model.provider)
 
           return (
-            <button
+            <Card
               key={model.id}
+              role="button"
+              tabIndex={0}
               onClick={() => hasKey && handleSelect(model.id)}
-              disabled={isPending || !hasKey}
-              className={`w-full rounded-2xl p-4 text-left transition-all ${
+              className={`border-0 gap-0 py-0 cursor-pointer transition-all ${
                 isSelected
-                  ? 'bg-primary/10 ring-2 ring-primary'
+                  ? 'ring-2 ring-primary bg-primary/10'
                   : hasKey
-                    ? 'bg-card hover:bg-accent'
-                    : 'bg-card opacity-50 cursor-not-allowed'
+                    ? 'hover:bg-accent'
+                    : 'opacity-50 cursor-not-allowed'
               }`}
             >
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">{model.name}</span>
-                    <span className="text-[11px] text-muted-foreground bg-accent rounded px-1.5 py-0.5">
-                      {PROVIDER_LABELS[model.provider]}
-                    </span>
-                    {!hasKey && (
-                      <span className="text-[11px] text-yellow-400 bg-yellow-400/10 rounded px-1.5 py-0.5">
-                        No API key
-                      </span>
-                    )}
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">{model.name}</span>
+                      <Badge variant="secondary" className="text-[10px] py-0">
+                        {PROVIDER_LABELS[model.provider]}
+                      </Badge>
+                      {!hasKey && (
+                        <Badge variant="secondary" className="text-[10px] py-0 bg-yellow-400/10 text-yellow-400 border-0">
+                          No API key
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{model.description}</p>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">{model.description}</p>
+                  {isSelected && (
+                    isPending ? (
+                      <Loader2 className="size-5 text-primary animate-spin" />
+                    ) : (
+                      <Check className="size-5 text-primary" />
+                    )
+                  )}
                 </div>
-                {isSelected && (
-                  isPending ? (
-                    <Loader2 className="size-5 text-primary animate-spin" />
-                  ) : (
-                    <Check className="size-5 text-primary" />
-                  )
-                )}
-              </div>
-            </button>
+              </CardContent>
+            </Card>
           )
         })}
       </div>

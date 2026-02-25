@@ -7,15 +7,24 @@ import type {
 } from './types'
 
 const FLY_API_BASE = 'https://api.machines.dev/v1'
+const FLY_GRAPHQL_URL = 'https://api.fly.io/graphql'
 
 export class FlyClient {
   private headers: Record<string, string>
+  private graphqlHeaders: Record<string, string>
 
   constructor(apiToken?: string) {
     const token = apiToken ?? process.env.FLY_API_TOKEN
     if (!token) throw new Error('FLY_API_TOKEN is required')
+    // FLY_GRAPHQL_TOKEN is an org-level token that works with the GraphQL API.
+    // FLY_API_TOKEN (deploy token) only works with the Machines REST API.
+    const graphqlToken = process.env.FLY_GRAPHQL_TOKEN ?? token
     this.headers = {
       Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    }
+    this.graphqlHeaders = {
+      Authorization: `Bearer ${graphqlToken}`,
       'Content-Type': 'application/json',
     }
   }
@@ -37,6 +46,23 @@ export class FlyClient {
     // 204 No Content
     if (res.status === 204) return undefined as T
     return res.json() as Promise<T>
+  }
+
+  private async graphql<T>(query: string, variables: Record<string, unknown>): Promise<T> {
+    const res = await fetch(FLY_GRAPHQL_URL, {
+      method: 'POST',
+      headers: this.graphqlHeaders,
+      body: JSON.stringify({ query, variables }),
+    })
+    if (!res.ok) {
+      const text = await res.text().catch(() => res.statusText)
+      throw new Error(`Fly GraphQL → ${res.status}: ${text}`)
+    }
+    const json = await res.json() as { data?: T; errors?: { message: string }[] }
+    if (json.errors?.length) {
+      throw new Error(`Fly GraphQL error: ${json.errors.map(e => e.message).join(', ')}`)
+    }
+    return json.data as T
   }
 
   // ── Apps ──────────────────────────────────────────────────────────────────
@@ -67,9 +93,14 @@ export class FlyClient {
   /** Allocate a shared IPv4 address for an app (needed for public .fly.dev access). */
   async allocateSharedIpv4(appName: string): Promise<void> {
     try {
-      await this.request<unknown>('POST', `/apps/${appName}/ips`, {
-        type: 'shared_v4',
-      })
+      await this.graphql(
+        `mutation($appId: ID!, $type: IPAddressType!) {
+          allocateIpAddress(input: { appId: $appId, type: $type }) {
+            ipAddress { id address type }
+          }
+        }`,
+        { appId: appName, type: 'shared_v4' }
+      )
     } catch {
       // May already exist — ignore
     }
@@ -78,9 +109,14 @@ export class FlyClient {
   /** Allocate a dedicated IPv6 address for an app. */
   async allocateIpv6(appName: string): Promise<void> {
     try {
-      await this.request<unknown>('POST', `/apps/${appName}/ips`, {
-        type: 'v6',
-      })
+      await this.graphql(
+        `mutation($appId: ID!, $type: IPAddressType!) {
+          allocateIpAddress(input: { appId: $appId, type: $type }) {
+            ipAddress { id address type }
+          }
+        }`,
+        { appId: appName, type: 'v6' }
+      )
     } catch {
       // May already exist — ignore
     }
