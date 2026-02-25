@@ -1,3 +1,26 @@
+import {
+  Sparkles,
+  Rocket,
+  Search,
+  PenTool,
+  Code,
+  Briefcase,
+  Palette,
+  Heart,
+  type LucideIcon,
+} from "lucide-react"
+
+export const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  all: Sparkles,
+  productivity: Rocket,
+  research: Search,
+  writing: PenTool,
+  coding: Code,
+  business: Briefcase,
+  creative: Palette,
+  personal: Heart,
+}
+
 export const CATEGORIES = [
   { id: "all", label: "All" },
   { id: "productivity", label: "Productivity" },
@@ -10,31 +33,46 @@ export const CATEGORIES = [
 ] as const
 
 export const CATEGORY_COLORS: Record<string, string> = {
-  productivity: "bg-blue-500/10 text-blue-400",
-  research: "bg-emerald-500/10 text-emerald-400",
-  writing: "bg-purple-500/10 text-purple-400",
-  coding: "bg-amber-500/10 text-amber-400",
-  business: "bg-rose-500/10 text-rose-400",
-  creative: "bg-pink-500/10 text-pink-400",
-  personal: "bg-cyan-500/10 text-cyan-400",
-  general: "bg-zinc-500/10 text-zinc-400",
+  productivity: "bg-blue-500/15 text-blue-400",
+  research: "bg-emerald-500/15 text-emerald-400",
+  writing: "bg-purple-500/15 text-purple-400",
+  coding: "bg-amber-500/15 text-amber-400",
+  business: "bg-rose-500/15 text-rose-400",
+  creative: "bg-pink-500/15 text-pink-400",
+  personal: "bg-cyan-500/15 text-cyan-400",
+  general: "bg-zinc-500/15 text-zinc-400",
 }
 
-const CATEGORY_BG_COLORS: Record<string, string> = {
-  productivity: "bg-blue-500",
-  research: "bg-emerald-500",
-  writing: "bg-purple-500",
-  coding: "bg-amber-500",
-  business: "bg-rose-500",
-  creative: "bg-pink-500",
-  personal: "bg-cyan-500",
-  general: "bg-indigo-500",
+const CATEGORY_GRADIENT: Record<string, string> = {
+  productivity: "from-blue-500 to-blue-600",
+  research: "from-emerald-500 to-emerald-600",
+  writing: "from-purple-500 to-purple-600",
+  coding: "from-amber-500 to-amber-600",
+  business: "from-rose-500 to-rose-600",
+  creative: "from-pink-500 to-pink-600",
+  personal: "from-cyan-500 to-cyan-600",
+  general: "from-indigo-500 to-indigo-600",
 }
 
-export function AgentInitial({ name, category }: { name: string; category: string }) {
-  const bg = CATEGORY_BG_COLORS[category] ?? "bg-zinc-500"
+export function AgentInitial({
+  name,
+  category,
+  size = "md",
+}: {
+  name: string
+  category: string
+  size?: "sm" | "md" | "lg"
+}) {
+  const gradient = CATEGORY_GRADIENT[category] ?? "from-zinc-500 to-zinc-600"
+  const sizeClasses = {
+    sm: "h-10 w-10 rounded-xl text-sm",
+    md: "h-12 w-12 rounded-[14px] text-lg",
+    lg: "h-16 w-16 rounded-2xl text-2xl",
+  }
   return (
-    <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${bg} text-white text-lg font-semibold shrink-0`}>
+    <div
+      className={`flex items-center justify-center bg-gradient-to-br ${gradient} text-white font-semibold shrink-0 ${sizeClasses[size]}`}
+    >
       {name[0]}
     </div>
   )

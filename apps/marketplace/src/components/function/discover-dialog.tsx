@@ -3,9 +3,7 @@
 import * as React from "react"
 import { Search, Plus } from "lucide-react"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { CATEGORIES, CATEGORY_COLORS, AgentInitial } from "@/lib/agents"
+import { CATEGORIES, AgentInitial } from "@/lib/agents"
 
 interface Agent {
   id: string
@@ -37,7 +35,7 @@ export function DiscoverDialog({ open, onOpenChange, agents }: DiscoverDialogPro
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="!fixed !translate-x-0 !translate-y-0 !max-w-none !rounded-2xl border p-0 flex flex-col gap-0 overflow-hidden !duration-0 !animate-none"
+        className="!fixed !translate-x-0 !translate-y-0 !max-w-none !rounded-2xl p-0 flex flex-col gap-0 overflow-hidden !duration-0 !animate-none bg-[hsl(220,14%,10%)]"
         style={{
           top: '1rem',
           left: 'calc(16rem + 1rem)',
@@ -48,13 +46,13 @@ export function DiscoverDialog({ open, onOpenChange, agents }: DiscoverDialogPro
         <DialogTitle className="sr-only">Discover Assistants</DialogTitle>
 
         {/* Header */}
-        <div className="border-b px-8 py-6 shrink-0">
+        <div className="border-b border-border/50 px-8 py-6 shrink-0">
           <h1 className="text-2xl font-semibold mb-4">Discover Assistants</h1>
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
+            <input
               placeholder="What do you need help with?"
-              className="pl-9 h-10"
+              className="w-full rounded-lg bg-secondary py-2 pl-9 pr-4 text-sm text-foreground outline-none placeholder:text-muted-foreground"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               autoFocus
@@ -65,10 +63,10 @@ export function DiscoverDialog({ open, onOpenChange, agents }: DiscoverDialogPro
               <button
                 key={cat.id}
                 onClick={() => setActiveCategory(cat.id)}
-                className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${
+                className={`rounded-full px-3 py-1 text-sm font-medium transition-colors duration-150 ${
                   activeCategory === cat.id
-                    ? "bg-foreground text-background"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    ? "bg-primary/15 text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                 }`}
               >
                 {cat.label}
@@ -84,28 +82,20 @@ export function DiscoverDialog({ open, onOpenChange, agents }: DiscoverDialogPro
               <p className="text-sm">No assistants found. Try a different search.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
               {filtered.map((agent) => (
                 <div
                   key={agent.id}
-                  className="group relative flex flex-col gap-3 rounded-xl border bg-card p-4 hover:border-foreground/20 hover:shadow-sm transition-all cursor-pointer"
+                  className="group flex items-center gap-3 rounded-xl bg-card p-3 transition-all duration-200 hover:bg-[hsl(220,13%,17%)] cursor-pointer"
                 >
-                  <div className="flex items-start gap-3">
-                    <AgentInitial name={agent.name} category={agent.category} />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm leading-snug">{agent.name}</p>
-                      <Badge
-                        variant="secondary"
-                        className={`mt-1 text-[10px] px-1.5 py-0 ${CATEGORY_COLORS[agent.category] ?? ""}`}
-                      >
-                        {agent.category}
-                      </Badge>
-                    </div>
+                  <AgentInitial name={agent.name} category={agent.category} size="sm" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm leading-snug truncate">{agent.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{agent.tagline}</p>
                   </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{agent.tagline}</p>
-                  <button className="mt-auto flex items-center justify-center gap-1.5 rounded-lg bg-foreground text-background text-xs font-medium py-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Plus className="h-3 w-3" />
-                    Add to team
+                  <button className="shrink-0 rounded-full bg-primary/15 px-3 py-1 text-xs font-semibold text-primary opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                    <Plus className="h-3 w-3 inline mr-1" />
+                    Add
                   </button>
                 </div>
               ))}

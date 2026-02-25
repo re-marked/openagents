@@ -30,8 +30,8 @@ export function PublicSiteHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-lg">
-      <nav className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-6">
+    <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-xl">
+      <nav className="mx-auto flex h-14 max-w-[1440px] items-center justify-between gap-4 px-6">
         {/* Logo */}
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
           <SierpinskiLogo className="size-5 text-foreground" />
@@ -40,27 +40,33 @@ export function PublicSiteHeader() {
 
         {/* Search bar */}
         <form onSubmit={handleSearch} className="w-full max-w-sm">
-          <div className="flex h-9 items-center gap-2 rounded-lg border bg-muted/50 px-3 transition-colors focus-within:border-ring focus-within:bg-background">
-            <Search className="size-4 shrink-0 text-muted-foreground" />
+          <div className="flex h-8 items-center gap-2 rounded-lg bg-secondary px-3 transition-colors focus-within:bg-[hsl(220,12%,22%)]">
+            <Search className="size-3.5 shrink-0 text-muted-foreground" />
             <input
               ref={inputRef}
               type="text"
               placeholder="Search assistants..."
               className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
             />
-            <kbd className="hidden rounded border px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:inline-block">
+            <kbd className="hidden rounded bg-[hsl(220,12%,24%)] px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:inline-block">
               /
             </kbd>
           </div>
         </form>
 
         {/* Nav links */}
-        <div className="flex shrink-0 items-center gap-2">
-          <Button variant="ghost" size="sm" asChild>
+        <div className="flex shrink-0 items-center gap-1">
+          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" asChild>
             <Link href="/discover">Discover</Link>
           </Button>
-          <Button size="sm" asChild>
+          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" asChild>
             <Link href="/workspace/home">Workspace</Link>
+          </Button>
+          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" asChild>
+            <Link href="#">Pricing</Link>
+          </Button>
+          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" asChild>
+            <Link href="/platform">For Devs</Link>
           </Button>
         </div>
       </nav>

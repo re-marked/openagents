@@ -1,64 +1,109 @@
 import Link from "next/link"
 import { Star } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import { AgentInitial, CATEGORY_COLORS, type AgentListItem } from "@/lib/agents"
+import { AgentInitial, type AgentListItem } from "@/lib/agents"
+
+function formatCount(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`
+  return n.toString()
+}
 
 function RatingStars({ rating, count }: { rating: number | null; count: number }) {
-  if (!rating || count === 0) return <span className="text-xs text-muted-foreground">No reviews yet</span>
+  if (!rating || count === 0) {
+    return <span className="text-xs text-muted-foreground/60">New</span>
+  }
 
   return (
-    <span className="flex items-center gap-1">
-      <span className="flex">
+    <span className="flex items-center gap-1.5">
+      <span className="flex gap-px">
         {[1, 2, 3, 4, 5].map((star) => (
           <Star
             key={star}
             className={`h-3 w-3 ${
               star <= Math.round(rating)
                 ? "fill-amber-400 text-amber-400"
-                : "fill-muted text-muted"
+                : "fill-muted-foreground/20 text-muted-foreground/20"
             }`}
           />
         ))}
       </span>
-      <span className="text-xs text-muted-foreground">({count})</span>
+      <span className="text-xs text-muted-foreground">{formatCount(count)}</span>
     </span>
   )
 }
 
-export function AgentCard({ agent }: { agent: AgentListItem }) {
-  const price =
-    agent.pricing_model === "free" || !agent.credits_per_session
-      ? "Free"
-      : `${agent.credits_per_session} credits/session`
-
+/**
+ * Large App Store-style card used on the Discover page.
+ * No borders — uses subtle background elevation and hover lift.
+ */
+export function AgentCardLarge({ agent }: { agent: AgentListItem }) {
   return (
     <Link
       href={`/agents/${agent.slug}`}
-      className="group flex flex-col gap-3 rounded-xl border bg-card p-4 hover:border-foreground/20 hover:shadow-sm transition-all"
+      className="group block rounded-2xl bg-card transition-all duration-300 ease-out hover:bg-[hsl(220,13%,17%)] hover:scale-[1.01]"
     >
-      <div className="flex items-start gap-3">
-        <AgentInitial name={agent.name} category={agent.category} />
+      {/* Header row: icon + info + CTA */}
+      <div className="flex items-center gap-4 p-5 pb-4">
+        <AgentInitial name={agent.name} category={agent.category} size="lg" />
         <div className="flex-1 min-w-0">
-          <p className="font-medium text-sm leading-snug">{agent.name}</p>
-          <RatingStars rating={agent.avg_rating} count={agent.total_reviews} />
-          <Badge
-            variant="secondary"
-            className={`mt-1 text-[10px] px-1.5 py-0 ${CATEGORY_COLORS[agent.category] ?? ""}`}
-          >
-            {agent.category}
-          </Badge>
+          <h3 className="text-[15px] font-semibold leading-tight text-foreground truncate">
+            {agent.name}
+          </h3>
+          <p className="text-[13px] text-muted-foreground mt-0.5 truncate">
+            {agent.tagline}
+          </p>
+          <div className="mt-1.5">
+            <RatingStars rating={agent.avg_rating} count={agent.total_reviews} />
+          </div>
         </div>
+        <button
+          className="shrink-0 rounded-full bg-primary/15 px-5 py-1.5 text-sm font-semibold text-primary transition-colors duration-200 hover:bg-primary/25"
+          onClick={(e) => {
+            // Let the link handle navigation; this is just visual
+            e.stopPropagation()
+          }}
+        >
+          View
+        </button>
       </div>
 
-      <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
-        {agent.tagline}
-      </p>
-
-      <div className="mt-auto flex items-center justify-between">
-        <span className="text-xs font-medium text-muted-foreground">{price}</span>
-        <span className="rounded-lg bg-foreground px-3 py-1 text-xs font-medium text-background opacity-0 group-hover:opacity-100 transition-opacity">
-          Hire
+      {/* Feature tags — horizontal scroll, styled like screenshot previews area */}
+      <div className="flex gap-2 px-5 pb-5 overflow-x-auto no-scrollbar">
+        {agent.pricing_model === "free" ? (
+          <span className="shrink-0 rounded-lg bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-400">
+            Free
+          </span>
+        ) : (
+          <span className="shrink-0 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary">
+            {agent.credits_per_session} credits
+          </span>
+        )}
+        <span className="shrink-0 rounded-lg bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground">
+          {agent.category}
         </span>
+        {agent.total_hires > 0 && (
+          <span className="shrink-0 rounded-lg bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground">
+            {formatCount(agent.total_hires)} hires
+          </span>
+        )}
+      </div>
+    </Link>
+  )
+}
+
+/**
+ * Compact card for use in the discover dialog overlay.
+ */
+export function AgentCard({ agent }: { agent: AgentListItem }) {
+  return (
+    <Link
+      href={`/agents/${agent.slug}`}
+      className="group flex items-center gap-3 rounded-xl bg-card p-3 transition-all duration-200 hover:bg-[hsl(220,13%,17%)]"
+    >
+      <AgentInitial name={agent.name} category={agent.category} size="sm" />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium leading-snug truncate">{agent.name}</p>
+        <p className="text-xs text-muted-foreground truncate">{agent.tagline}</p>
       </div>
     </Link>
   )
