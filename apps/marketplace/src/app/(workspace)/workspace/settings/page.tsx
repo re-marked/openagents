@@ -1,7 +1,8 @@
 import { getUser } from '@/lib/auth/get-user'
 import { redirect } from 'next/navigation'
-import { getApiKeys } from '@/lib/settings/actions'
+import { getApiKeys, getDefaultModel } from '@/lib/settings/actions'
 import { ApiKeysSettings } from '@/components/function/api-keys-settings'
+import { ModelSelector } from '@/components/function/model-selector'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -15,7 +16,8 @@ export default async function UserSettingsPage() {
   const user = await getUser()
   if (!user) redirect('/login')
 
-  const apiKeys = await getApiKeys()
+  const [apiKeys, defaultModel] = await Promise.all([getApiKeys(), getDefaultModel()])
+  const configuredProviders = apiKeys.map((k) => k.provider)
 
   return (
     <div className="flex h-screen flex-col">
@@ -42,6 +44,7 @@ export default async function UserSettingsPage() {
 
         <div className="max-w-2xl space-y-10">
           <ApiKeysSettings initialKeys={apiKeys} />
+          <ModelSelector currentModel={defaultModel} configuredProviders={configuredProviders} />
         </div>
       </div>
     </div>

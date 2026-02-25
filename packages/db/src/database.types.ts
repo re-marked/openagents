@@ -781,6 +781,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          default_model: string
           display_name: string | null
           email: string
           id: string
@@ -792,6 +793,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          default_model?: string
           display_name?: string | null
           email: string
           id: string
@@ -803,6 +805,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
+          default_model?: string
           display_name?: string | null
           email?: string
           id?: string
