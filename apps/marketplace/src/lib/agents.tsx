@@ -85,6 +85,7 @@ export interface AgentListItem {
   slug: string
   name: string
   tagline: string
+  description: string
   category: string
   avg_rating: number | null
   total_hires: number
