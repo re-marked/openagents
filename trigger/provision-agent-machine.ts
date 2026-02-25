@@ -14,6 +14,42 @@ export interface ProvisionPayload {
   role?: string
 }
 
+/**
+ * Allocate a shared IPv4 and dedicated IPv6 for a Fly app.
+ * Uses the Fly GraphQL API (Machines REST API doesn't support IP allocation).
+ * Requires FLY_GRAPHQL_TOKEN (org-level token) or falls back to FLY_API_TOKEN.
+ */
+async function allocatePublicIPs(appName: string): Promise<void> {
+  const token = process.env.FLY_GRAPHQL_TOKEN ?? process.env.FLY_API_TOKEN
+  if (!token) return
+
+  const mutation = `
+    mutation($appId: ID!, $type: IPAddressType!) {
+      allocateIpAddress(input: { appId: $appId, type: $type }) {
+        ipAddress { id address type }
+      }
+    }
+  `
+
+  for (const type of ['shared_v4', 'v6']) {
+    try {
+      const res = await fetch('https://api.fly.io/graphql', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: mutation, variables: { appId: appName, type } }),
+      })
+      const json = await res.json() as { errors?: { message: string }[] }
+      if (json.errors?.length) {
+        logger.warn(`IP allocation warning for ${type}`, { errors: json.errors.map(e => e.message) })
+      } else {
+        logger.info(`Allocated ${type} for ${appName}`)
+      }
+    } catch (err) {
+      logger.warn(`Failed to allocate ${type} for ${appName}`, { error: String(err) })
+    }
+  }
+}
+
 export const provisionAgentMachine = task({
   id: 'provision-agent-machine',
   maxDuration: 300,
@@ -30,149 +66,147 @@ export const provisionAgentMachine = task({
 
     try {
       // ── 1. Load agent definition ─────────────────────────────────────────
-    const { data: agent, error: agentErr } = await db
-      .from('agents')
-      .select('slug, docker_image, fly_machine_size, fly_machine_memory_mb')
-      .eq('id', agentId)
-      .single()
+      const { data: agent, error: agentErr } = await db
+        .from('agents')
+        .select('slug, docker_image, fly_machine_size, fly_machine_memory_mb')
+        .eq('id', agentId)
+        .single()
 
-    if (agentErr || !agent) throw new Error(`Agent not found: ${agentId}`)
+      if (agentErr || !agent) throw new Error(`Agent not found: ${agentId}`)
 
-    // ── 1b. Load role definition if this is a sub-agent ──────────────────
-    const role = roleId ? AGENT_ROLES[roleId] : undefined
-    if (roleId && !role) throw new Error(`Unknown role: ${roleId}`)
+      // ── 1b. Load role definition if this is a sub-agent ──────────────────
+      const role = roleId ? AGENT_ROLES[roleId] : undefined
+      if (roleId && !role) throw new Error(`Unknown role: ${roleId}`)
 
-    // ── 2. Load user's API keys (BYOK) and model preference ─────────────
-    const { data: apiKeys } = await (db as any)
-      .from('user_api_keys')
-      .select('provider, api_key')
-      .eq('user_id', userId)
+      // ── 2. Load user's API keys (BYOK) and model preference ─────────────
+      const { data: apiKeys } = await db
+        .from('user_api_keys')
+        .select('provider, api_key')
+        .eq('user_id', userId)
 
-    const { data: userRow } = await db
-      .from('users')
-      .select('default_model')
-      .eq('id', userId)
-      .single()
+      const { data: userRow } = await db
+        .from('users')
+        .select('default_model')
+        .eq('id', userId)
+        .single()
 
-    const defaultModel = (userRow as { default_model: string } | null)?.default_model ?? 'google/gemini-2.0-flash'
+      const defaultModel = (userRow as { default_model: string } | null)?.default_model ?? 'google/gemini-2.0-flash'
 
-    const keyEnv: Record<string, string> = {}
-    for (const row of apiKeys ?? []) {
-      if (row.provider === 'anthropic') keyEnv.ANTHROPIC_API_KEY = row.api_key
-      if (row.provider === 'openai') keyEnv.OPENAI_API_KEY = row.api_key
-      // OpenClaw reads GEMINI_API_KEY, not GOOGLE_API_KEY
-      if (row.provider === 'google') keyEnv.GEMINI_API_KEY = row.api_key
-    }
+      const keyEnv: Record<string, string> = {}
+      for (const row of apiKeys ?? []) {
+        if (row.provider === 'anthropic') keyEnv.ANTHROPIC_API_KEY = row.api_key
+        if (row.provider === 'openai') keyEnv.OPENAI_API_KEY = row.api_key
+        // OpenClaw reads GEMINI_API_KEY, not GOOGLE_API_KEY
+        if (row.provider === 'google') keyEnv.GEMINI_API_KEY = row.api_key
+      }
 
-    if (Object.keys(keyEnv).length === 0) {
-      throw new Error('No API keys configured. Add at least one key in Settings.')
-    }
+      if (Object.keys(keyEnv).length === 0) {
+        throw new Error('No API keys configured. Add at least one key in Settings.')
+      }
 
-    const image = agent.docker_image ?? BASE_IMAGE
-    // Sub-agents get named by role, master agents by slug
-    const appName = role
-      ? `oa-${role.id}-${userId.slice(0, 8)}`
-      : `oa-${agent.slug}-${userId.slice(0, 8)}`
-    const gatewayToken = crypto.randomUUID()
+      const image = agent.docker_image ?? BASE_IMAGE
+      // Sub-agents get named by role, master agents by slug
+      const appName = role
+        ? `oa-${role.id}-${userId.slice(0, 8)}`
+        : `oa-${agent.slug}-${userId.slice(0, 8)}`
+      const gatewayToken = crypto.randomUUID()
 
-    logger.info('Provisioning agent machine', { appName, userId, agentId })
+      logger.info('Provisioning agent machine', { appName, userId, agentId })
 
-    // ── 3. Upsert Fly app + allocate public IPs ──────────────────────────
-    const app = await fly.upsertApp(appName, FLY_ORG)
-    await fly.allocateSharedIpv4(appName)
-    await fly.allocateIpv6(appName)
-    logger.info('Fly app ready with IPs', { appName: app.name })
+      // ── 3. Upsert Fly app + allocate public IPs ──────────────────────────
+      const app = await fly.upsertApp(appName, FLY_ORG)
+      await allocatePublicIPs(appName)
+      logger.info('Fly app ready with IPs', { appName: app.name })
 
-    // ── 4. Create volume ─────────────────────────────────────────────────
-    const volume = await fly.createVolume(appName, {
-      name: 'agent_data',
-      region: FLY_REGION,
-      size_gb: 1,
-      encrypted: true,
-    })
-    logger.info('Volume created', { volumeId: volume.id })
-
-    // ── 5. Create machine ─────────────────────────────────────────────────
-    // Inject role-specific env vars for sub-agents
-    const roleEnv: Record<string, string> = {}
-    if (role) {
-      roleEnv.AGENT_SOUL_MD = role.soul
-      roleEnv.AGENT_YAML = role.agentYaml
-      roleEnv.AGENT_OPENCLAW_OVERRIDES = JSON.stringify(role.openclawOverrides)
-    }
-
-    // Build OpenClaw config overrides to set the user's preferred model
-    const modelOverrides = {
-      agents: { defaults: { model: { primary: defaultModel }, sandbox: { mode: 'off' } } },
-    }
-
-    const machine = await fly.createMachine(appName, {
-      region: FLY_REGION,
-      config: {
-        image,
-        env: {
-          OPENCLAW_STATE_DIR: '/data',
-          OPENCLAW_GATEWAY_TOKEN: gatewayToken,
-          NODE_OPTIONS: '--max-old-space-size=1536',
-          NODE_ENV: 'production',
-          AGENT_OPENCLAW_OVERRIDES: JSON.stringify(modelOverrides),
-          ...keyEnv,
-          ...roleEnv,
-        },
-        mounts: [{ volume: volume.id, path: '/data' }],
-        services: [
-          {
-            protocol: 'tcp',
-            internal_port: 18789,
-            ports: [
-              { port: 443, handlers: ['tls', 'http'] },
-              { port: 80, handlers: ['http'] },
-            ],
-            autostop: 'suspend',
-            autostart: true,
-            min_machines_running: 0,
-            checks: [
-              {
-                type: 'http',
-                port: 18789,
-                path: '/health',
-                method: 'GET',
-                interval: '30s',
-                timeout: '5s',
-                grace_period: '30s',
-              },
-            ],
-          },
-        ],
-        guest: {
-          cpu_kind: 'shared',
-          cpus: 2,
-          memory_mb: agent.fly_machine_memory_mb ?? 2048,
-        },
-        restart: { policy: 'on-failure' },
-      },
-    })
-
-    logger.info('Machine created', { machineId: machine.id })
-
-    // ── 6. Wait for machine to start ─────────────────────────────────────
-    await fly.waitForMachineState(appName, machine.id, 'started', 60)
-    logger.info('Machine started', { machineId: machine.id })
-
-    // ── 7. Store machine info + gateway token in DB ──────────────────────
-    await db
-      .from('agent_instances')
-      .update({
-        fly_app_name: appName,
-        fly_machine_id: machine.id,
-        fly_volume_id: volume.id,
-        gateway_token: gatewayToken,
+      // ── 4. Create volume ─────────────────────────────────────────────────
+      const volume = await fly.createVolume(appName, {
+        name: 'agent_data',
         region: FLY_REGION,
-        status: 'running',
+        size_gb: 1,
+        encrypted: true,
       })
-      .eq('id', instanceId)
+      logger.info('Volume created', { volumeId: volume.id })
 
-    logger.info('Instance record updated', { instanceId })
+      // ── 5. Create machine ─────────────────────────────────────────────────
+      const roleEnv: Record<string, string> = {}
+      if (role) {
+        roleEnv.AGENT_SOUL_MD = role.soul
+        roleEnv.AGENT_YAML = role.agentYaml
+        roleEnv.AGENT_OPENCLAW_OVERRIDES = JSON.stringify(role.openclawOverrides)
+      }
+
+      // Build OpenClaw config overrides to set the user's preferred model
+      const modelOverrides = {
+        agents: { defaults: { model: { primary: defaultModel }, sandbox: { mode: 'off' } } },
+      }
+
+      const machine = await fly.createMachine(appName, {
+        region: FLY_REGION,
+        config: {
+          image,
+          env: {
+            OPENCLAW_STATE_DIR: '/data',
+            OPENCLAW_GATEWAY_TOKEN: gatewayToken,
+            NODE_OPTIONS: '--max-old-space-size=1536',
+            NODE_ENV: 'production',
+            AGENT_OPENCLAW_OVERRIDES: JSON.stringify(modelOverrides),
+            ...keyEnv,
+            ...roleEnv,
+          },
+          mounts: [{ volume: volume.id, path: '/data' }],
+          services: [
+            {
+              protocol: 'tcp',
+              internal_port: 18789,
+              ports: [
+                { port: 443, handlers: ['tls', 'http'] },
+                { port: 80, handlers: ['http'] },
+              ],
+              autostop: 'suspend',
+              autostart: true,
+              min_machines_running: 0,
+              checks: [
+                {
+                  type: 'http',
+                  port: 18789,
+                  path: '/health',
+                  method: 'GET',
+                  interval: '30s',
+                  timeout: '5s',
+                  grace_period: '30s',
+                },
+              ],
+            },
+          ],
+          guest: {
+            cpu_kind: 'shared',
+            cpus: 2,
+            memory_mb: agent.fly_machine_memory_mb ?? 2048,
+          },
+          restart: { policy: 'on-failure' },
+        },
+      })
+
+      logger.info('Machine created', { machineId: machine.id })
+
+      // ── 6. Wait for machine to start ─────────────────────────────────────
+      await fly.waitForMachineState(appName, machine.id, 'started', 60)
+      logger.info('Machine started', { machineId: machine.id })
+
+      // ── 7. Store machine info + gateway token in DB ──────────────────────
+      await db
+        .from('agent_instances')
+        .update({
+          fly_app_name: appName,
+          fly_machine_id: machine.id,
+          fly_volume_id: volume.id,
+          gateway_token: gatewayToken,
+          region: FLY_REGION,
+          status: 'running',
+        })
+        .eq('id', instanceId)
+
+      logger.info('Instance record updated', { instanceId })
 
       return {
         machineId: machine.id,
