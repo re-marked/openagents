@@ -5,7 +5,13 @@ import { DiscordMessageList, type DiscordMessage } from './discord-message-list'
 import { DiscordChatInput } from './discord-chat-input'
 import { Skeleton } from '@/components/ui/skeleton'
 
-export function DiscordChatPanel({ agentInstanceId }: { agentInstanceId: string }) {
+interface DiscordChatPanelProps {
+  agentInstanceId: string
+  agentName?: string
+  agentCategory?: string
+}
+
+export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCategory }: DiscordChatPanelProps) {
   const [messages, setMessages] = useState<DiscordMessage[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isTyping, setIsTyping] = useState(false)
@@ -279,7 +285,7 @@ export function DiscordChatPanel({ agentInstanceId }: { agentInstanceId: string 
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <DiscordMessageList messages={messages} />
+      <DiscordMessageList messages={messages} agentName={agentName} agentCategory={agentCategory} />
 
       {/* Typing indicator */}
       {isTyping && (
@@ -291,7 +297,7 @@ export function DiscordChatPanel({ agentInstanceId }: { agentInstanceId: string 
                 <span className="bg-muted-foreground/60 h-1 w-1 animate-bounce rounded-full [animation-delay:150ms]" />
                 <span className="bg-muted-foreground/60 h-1 w-1 animate-bounce rounded-full [animation-delay:300ms]" />
               </span>
-              <span className="font-semibold text-indigo-400">master</span> is typing…
+              <span className="font-semibold text-primary">{agentName}</span> is typing…
             </span>
           </span>
         </div>
