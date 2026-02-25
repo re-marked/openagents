@@ -43,10 +43,10 @@ export function DiscoverSidebar() {
   )
 
   return (
-    <aside className="hidden md:flex w-56 shrink-0 flex-col border-r border-border/50 bg-[hsl(220,14%,7%)] px-4 py-6">
+    <aside className="hidden md:flex w-56 shrink-0 flex-col border-r border-border/40 bg-sidebar px-4 py-6">
       {/* Search */}
       <form onSubmit={handleSearch} className="mb-6">
-        <div className="flex h-8 items-center gap-2 rounded-lg bg-[hsl(220,12%,14%)] px-2.5">
+        <div className="flex h-8 items-center gap-2 rounded-lg bg-card px-2.5">
           <Search className="size-3.5 shrink-0 text-muted-foreground" />
           <input
             name="q"
@@ -75,7 +75,7 @@ export function DiscoverSidebar() {
               className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors duration-150 ${
                 active
                   ? "bg-primary/15 text-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-[hsl(220,12%,14%)]"
+                  : "text-sidebar-foreground hover:text-foreground hover:bg-card"
               }`}
             >
               {Icon && <Icon className="size-4 shrink-0" />}

@@ -30,7 +30,7 @@ export function PublicSiteHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 bg-sidebar/95 backdrop-blur-xl border-b border-border/40">
       <nav className="mx-auto flex h-14 max-w-[1440px] items-center justify-between gap-4 px-6">
         {/* Logo */}
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
@@ -40,7 +40,7 @@ export function PublicSiteHeader() {
 
         {/* Search bar */}
         <form onSubmit={handleSearch} className="w-full max-w-sm">
-          <div className="flex h-8 items-center gap-2 rounded-lg bg-secondary px-3 transition-colors focus-within:bg-[hsl(220,12%,22%)]">
+          <div className="flex h-8 items-center gap-2 rounded-lg bg-card px-3 transition-colors focus-within:bg-accent">
             <Search className="size-3.5 shrink-0 text-muted-foreground" />
             <input
               ref={inputRef}
@@ -48,7 +48,7 @@ export function PublicSiteHeader() {
               placeholder="Search assistants..."
               className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
             />
-            <kbd className="hidden rounded bg-[hsl(220,12%,24%)] px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:inline-block">
+            <kbd className="hidden rounded bg-accent px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:inline-block">
               /
             </kbd>
           </div>

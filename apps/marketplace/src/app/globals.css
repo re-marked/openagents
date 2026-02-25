@@ -3,44 +3,52 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * OpenAgents design system — App Store-inspired dark palette.
- * Rich charcoal grays, never pure black. Blue accent for CTAs.
+ * OpenAgents design system — warm dark palette.
+ *
+ * Surface hierarchy (3 levels):
+ *   Level 0 — sidebar + header:  hsl(30, 3%, 7%)   deepest
+ *   Level 1 — page background:   hsl(30, 3%, 10%)  mid
+ *   Level 2 — cards / elevated:  hsl(30, 3%, 13%)  lightest surface
+ *   Hover:                       hsl(30, 4%, 16%)
+ *
+ * All grays use hue 30 (warm) at very low saturation (3-4%).
+ * Accent: warm blue hsl(215, 90%, 58%) — not electric, slightly muted.
  */
 @layer base {
   :root {
-    --background: 220 14% 10%;
-    --foreground: 210 20% 96%;
-    --card: 220 13% 14%;
-    --card-foreground: 210 20% 96%;
-    --popover: 220 13% 14%;
-    --popover-foreground: 210 20% 96%;
-    --primary: 211 100% 50%;
+    --background: 30 3% 10%;
+    --foreground: 40 10% 95%;
+    --card: 30 3% 13%;
+    --card-foreground: 40 10% 95%;
+    --popover: 30 3% 13%;
+    --popover-foreground: 40 10% 95%;
+    --primary: 215 90% 58%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 12% 18%;
-    --secondary-foreground: 210 15% 80%;
-    --muted: 220 12% 18%;
-    --muted-foreground: 215 10% 55%;
-    --accent: 220 12% 20%;
-    --accent-foreground: 210 20% 96%;
+    --secondary: 30 3% 16%;
+    --secondary-foreground: 40 6% 75%;
+    --muted: 30 3% 16%;
+    --muted-foreground: 30 5% 50%;
+    --accent: 30 3% 18%;
+    --accent-foreground: 40 10% 95%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 10% 20%;
-    --input: 220 10% 20%;
-    --ring: 211 100% 50%;
-    --chart-1: 211 100% 50%;
+    --border: 30 3% 18%;
+    --input: 30 3% 18%;
+    --ring: 215 90% 58%;
+    --chart-1: 215 90% 58%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
     --radius: 0.75rem;
-    --sidebar-background: 220 14% 8%;
-    --sidebar-foreground: 210 15% 70%;
-    --sidebar-primary: 211 100% 50%;
+    --sidebar-background: 30 3% 7%;
+    --sidebar-foreground: 30 5% 55%;
+    --sidebar-primary: 215 90% 58%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 12% 14%;
-    --sidebar-accent-foreground: 210 20% 96%;
-    --sidebar-border: 220 10% 16%;
-    --sidebar-ring: 211 100% 50%;
+    --sidebar-accent: 30 3% 13%;
+    --sidebar-accent-foreground: 40 10% 95%;
+    --sidebar-border: 30 3% 14%;
+    --sidebar-ring: 215 90% 58%;
   }
 }
 
@@ -104,19 +112,13 @@
   scrollbar-width: none;
 }
 
-/* Smooth transitions globally */
-* {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
 :root {
-  --sidebar: hsl(220 14% 8%);
-  --sidebar-foreground: hsl(210 15% 70%);
-  --sidebar-primary: hsl(211 100% 50%);
+  --sidebar: hsl(30 3% 7%);
+  --sidebar-foreground: hsl(30 5% 55%);
+  --sidebar-primary: hsl(215 90% 58%);
   --sidebar-primary-foreground: hsl(0 0% 100%);
-  --sidebar-accent: hsl(220 12% 14%);
-  --sidebar-accent-foreground: hsl(210 20% 96%);
-  --sidebar-border: hsl(220 10% 16%);
-  --sidebar-ring: hsl(211 100% 50%);
+  --sidebar-accent: hsl(30 3% 13%);
+  --sidebar-accent-foreground: hsl(40 10% 95%);
+  --sidebar-border: hsl(30 3% 14%);
+  --sidebar-ring: hsl(215 90% 58%);
 }
