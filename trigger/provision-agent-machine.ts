@@ -41,17 +41,26 @@ export const provisionAgentMachine = task({
     const role = roleId ? AGENT_ROLES[roleId] : undefined
     if (roleId && !role) throw new Error(`Unknown role: ${roleId}`)
 
-    // ── 2. Load user's API keys (BYOK) ──────────────────────────────────
+    // ── 2. Load user's API keys (BYOK) and model preference ─────────────
     const { data: apiKeys } = await (db as any)
       .from('user_api_keys')
       .select('provider, api_key')
       .eq('user_id', userId)
 
+    const { data: userRow } = await db
+      .from('users')
+      .select('default_model')
+      .eq('id', userId)
+      .single()
+
+    const defaultModel = (userRow as { default_model: string } | null)?.default_model ?? 'google/gemini-2.0-flash'
+
     const keyEnv: Record<string, string> = {}
     for (const row of apiKeys ?? []) {
       if (row.provider === 'anthropic') keyEnv.ANTHROPIC_API_KEY = row.api_key
       if (row.provider === 'openai') keyEnv.OPENAI_API_KEY = row.api_key
-      if (row.provider === 'google') keyEnv.GOOGLE_API_KEY = row.api_key
+      // OpenClaw reads GEMINI_API_KEY, not GOOGLE_API_KEY
+      if (row.provider === 'google') keyEnv.GEMINI_API_KEY = row.api_key
     }
 
     if (Object.keys(keyEnv).length === 0) {
@@ -91,6 +100,11 @@ export const provisionAgentMachine = task({
       roleEnv.AGENT_OPENCLAW_OVERRIDES = JSON.stringify(role.openclawOverrides)
     }
 
+    // Build OpenClaw config overrides to set the user's preferred model
+    const modelOverrides = {
+      agents: { defaults: { model: { primary: defaultModel }, sandbox: { mode: 'off' } } },
+    }
+
     const machine = await fly.createMachine(appName, {
       region: FLY_REGION,
       config: {
@@ -100,6 +114,7 @@ export const provisionAgentMachine = task({
           OPENCLAW_GATEWAY_TOKEN: gatewayToken,
           NODE_OPTIONS: '--max-old-space-size=1536',
           NODE_ENV: 'production',
+          AGENT_OPENCLAW_OVERRIDES: JSON.stringify(modelOverrides),
           ...keyEnv,
           ...roleEnv,
         },

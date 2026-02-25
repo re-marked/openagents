@@ -83,6 +83,44 @@ export async function getApiKeys() {
   }))
 }
 
+/**
+ * Save the user's default model preference.
+ */
+export async function saveDefaultModel(modelId: string) {
+  const user = await getUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const service = createServiceClient()
+
+  const { error } = await service
+    .from('users')
+    .update({ default_model: modelId })
+    .eq('id', user.id)
+
+  if (error) throw new Error(`Failed to save model: ${error.message}`)
+
+  revalidatePath('/workspace/settings')
+  return { success: true }
+}
+
+/**
+ * Get the user's default model preference.
+ */
+export async function getDefaultModel(): Promise<string> {
+  const user = await getUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const service = createServiceClient()
+
+  const { data } = await service
+    .from('users')
+    .select('default_model')
+    .eq('id', user.id)
+    .single()
+
+  return (data as { default_model: string } | null)?.default_model ?? 'google/gemini-2.0-flash'
+}
+
 function maskKey(key: string): string {
   if (key.length <= 8) return '••••••••'
   return key.slice(0, 4) + '••••••••' + key.slice(-4)
