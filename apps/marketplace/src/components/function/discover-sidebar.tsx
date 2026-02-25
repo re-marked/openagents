@@ -2,8 +2,21 @@
 
 import { useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Search } from "lucide-react"
+import { Search, Sparkles } from "lucide-react"
 import { CATEGORIES, CATEGORY_ICONS } from "@/lib/agents"
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarRail,
+} from "@/components/ui/sidebar"
+import { Input } from "@/components/ui/input"
 
 export function DiscoverSidebar() {
   const router = useRouter()
@@ -43,47 +56,70 @@ export function DiscoverSidebar() {
   )
 
   return (
-    <aside className="hidden md:flex w-56 shrink-0 flex-col border-r border-border/40 bg-sidebar px-4 py-6">
-      {/* Search */}
-      <form onSubmit={handleSearch} className="mb-6">
-        <div className="flex h-8 items-center gap-2 rounded-lg bg-card px-2.5">
-          <Search className="size-3.5 shrink-0 text-muted-foreground" />
-          <input
-            name="q"
-            type="text"
-            placeholder="Search"
-            defaultValue={searchParams.get("q") ?? ""}
-            className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
-          />
-        </div>
-      </form>
+    <Sidebar variant="inset">
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton size="lg" asChild>
+              <a href="/discover">
+                <div className="bg-primary text-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                  <Sparkles className="size-4" />
+                </div>
+                <div className="flex flex-col gap-0.5 leading-none">
+                  <span className="font-medium">Discover</span>
+                  <span className="text-xs text-sidebar-foreground/50">Find agents</span>
+                </div>
+              </a>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
 
-      {/* Categories heading */}
-      <p className="mb-3 px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-        Categories
-      </p>
+      <SidebarContent>
+        {/* Search */}
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <form onSubmit={handleSearch}>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  name="q"
+                  type="text"
+                  placeholder="Search agents..."
+                  defaultValue={searchParams.get("q") ?? ""}
+                  className="pl-8 h-8 text-sm"
+                />
+              </div>
+            </form>
+          </SidebarGroupContent>
+        </SidebarGroup>
 
-      {/* Category list */}
-      <nav className="flex flex-col gap-0.5">
-        {CATEGORIES.map((cat) => {
-          const Icon = CATEGORY_ICONS[cat.id]
-          const active = currentCategory === cat.id
-          return (
-            <button
-              key={cat.id}
-              onClick={() => setCategory(cat.id)}
-              className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors duration-150 ${
-                active
-                  ? "bg-primary/15 text-primary"
-                  : "text-sidebar-foreground hover:text-foreground hover:bg-card"
-              }`}
-            >
-              {Icon && <Icon className="size-4 shrink-0" />}
-              {cat.label}
-            </button>
-          )
-        })}
-      </nav>
-    </aside>
+        {/* Categories */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Categories</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {CATEGORIES.map((cat) => {
+                const Icon = CATEGORY_ICONS[cat.id]
+                const active = currentCategory === cat.id
+                return (
+                  <SidebarMenuItem key={cat.id}>
+                    <SidebarMenuButton
+                      isActive={active}
+                      onClick={() => setCategory(cat.id)}
+                    >
+                      {Icon && <Icon className="size-4" />}
+                      <span>{cat.label}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+
+      <SidebarRail />
+    </Sidebar>
   )
 }

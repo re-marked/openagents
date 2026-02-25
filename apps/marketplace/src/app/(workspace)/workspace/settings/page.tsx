@@ -20,8 +20,8 @@ export default async function UserSettingsPage() {
   const configuredProviders = apiKeys.map((k) => k.provider)
 
   return (
-    <div className="flex h-screen flex-col">
-      <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border/40 px-4">
+    <div className="flex flex-col">
+      <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b border-border/40 bg-background px-4 rounded-t-xl">
         <SidebarTrigger className="-ml-1" />
         <Separator
           orientation="vertical"
@@ -36,7 +36,7 @@ export default async function UserSettingsPage() {
         </Breadcrumb>
       </header>
 
-      <div className="flex-1 overflow-auto px-8 py-8 lg:px-12">
+      <div className="px-8 py-8 lg:px-12">
         <div className="mb-8">
           <h1 className="text-[28px] font-bold tracking-tight">Settings</h1>
           <p className="text-muted-foreground mt-1">{user.email}</p>

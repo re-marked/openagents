@@ -1,6 +1,7 @@
-import Link from "next/link"
 import { Star } from "lucide-react"
 import { AgentInitial, type AgentListItem } from "@/lib/agents"
+import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 
 function formatCount(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
@@ -8,10 +9,12 @@ function formatCount(n: number): string {
   return n.toString()
 }
 
-function RatingStars({ rating, count }: { rating: number | null; count: number }) {
+export function RatingStars({ rating, count, size = "sm" }: { rating: number | null; count: number; size?: "sm" | "md" }) {
   if (!rating || count === 0) {
-    return <span className="text-xs text-muted-foreground/60">New</span>
+    return <Badge variant="secondary" className="text-[10px]">New</Badge>
   }
+
+  const starSize = size === "sm" ? "h-3 w-3" : "h-4 w-4"
 
   return (
     <span className="flex items-center gap-1.5">
@@ -19,7 +22,7 @@ function RatingStars({ rating, count }: { rating: number | null; count: number }
         {[1, 2, 3, 4, 5].map((star) => (
           <Star
             key={star}
-            className={`h-3 w-3 ${
+            className={`${starSize} ${
               star <= Math.round(rating)
                 ? "fill-amber-400 text-amber-400"
                 : "fill-muted-foreground/20 text-muted-foreground/20"
@@ -27,13 +30,15 @@ function RatingStars({ rating, count }: { rating: number | null; count: number }
           />
         ))}
       </span>
-      <span className="text-xs text-muted-foreground">{formatCount(count)}</span>
+      <span className={`text-muted-foreground ${size === "sm" ? "text-xs" : "text-sm"}`}>
+        {size === "md" && `${rating.toFixed(1)} · `}{formatCount(count)}{size === "md" && " reviews"}
+      </span>
     </span>
   )
 }
 
 /**
- * Large App Store-style card. Clicking "View" opens the detail sheet.
+ * Large App Store-style card. Clicking opens the detail sheet.
  */
 export function AgentCardLarge({
   agent,
@@ -43,15 +48,15 @@ export function AgentCardLarge({
   onSelect: (agent: AgentListItem) => void
 }) {
   return (
-    <div
+    <Card
       role="button"
       tabIndex={0}
       onClick={() => onSelect(agent)}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onSelect(agent) }}
-      className="group block rounded-2xl bg-card transition-all duration-300 ease-out hover:bg-accent hover:scale-[1.01] cursor-pointer select-none"
+      className="group border-0 gap-0 py-0 transition-all duration-300 ease-out hover:bg-accent hover:scale-[1.01] cursor-pointer select-none"
     >
       {/* Header row: icon + info + CTA */}
-      <div className="flex items-center gap-4 p-5 pb-4">
+      <CardContent className="flex items-center gap-4 p-5 pb-4">
         <AgentInitial name={agent.name} category={agent.category} size="lg" />
         <div className="flex-1 min-w-0">
           <h3 className="text-[15px] font-semibold leading-tight text-foreground truncate">
@@ -64,32 +69,28 @@ export function AgentCardLarge({
             <RatingStars rating={agent.avg_rating} count={agent.total_reviews} />
           </div>
         </div>
-        <span className="shrink-0 rounded-full bg-primary/15 px-5 py-1.5 text-sm font-semibold text-primary transition-colors duration-200 group-hover:bg-primary/25">
+        <Badge className="shrink-0 px-4 py-1.5 text-sm font-semibold transition-colors duration-200 group-hover:bg-primary/90">
           View
-        </span>
-      </div>
+        </Badge>
+      </CardContent>
 
       {/* Feature tags */}
-      <div className="flex gap-2 px-5 pb-5 overflow-x-auto no-scrollbar">
+      <CardContent className="flex gap-2 px-5 pb-5 overflow-x-auto no-scrollbar">
         {agent.pricing_model === "free" ? (
-          <span className="shrink-0 rounded-lg bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-400">
+          <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-400 border-0">
             Free
-          </span>
+          </Badge>
         ) : (
-          <span className="shrink-0 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary">
+          <Badge variant="secondary" className="bg-primary/10 text-primary border-0">
             {agent.credits_per_session} credits
-          </span>
+          </Badge>
         )}
-        <span className="shrink-0 rounded-lg bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground">
-          {agent.category}
-        </span>
+        <Badge variant="secondary">{agent.category}</Badge>
         {agent.total_hires > 0 && (
-          <span className="shrink-0 rounded-lg bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground">
-            {formatCount(agent.total_hires)} hires
-          </span>
+          <Badge variant="secondary">{formatCount(agent.total_hires)} hires</Badge>
         )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -98,15 +99,16 @@ export function AgentCardLarge({
  */
 export function AgentCard({ agent }: { agent: AgentListItem }) {
   return (
-    <Link
-      href={`/agents/${agent.slug}`}
-      className="group flex items-center gap-3 rounded-xl bg-card p-3 transition-all duration-200 hover:bg-accent"
+    <Card
+      className="group border-0 gap-0 py-0 transition-all duration-200 hover:bg-accent"
     >
-      <AgentInitial name={agent.name} category={agent.category} size="sm" />
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium leading-snug truncate">{agent.name}</p>
-        <p className="text-xs text-muted-foreground truncate">{agent.tagline}</p>
-      </div>
-    </Link>
+      <a href={`/agents/${agent.slug}`} className="flex items-center gap-3 p-3">
+        <AgentInitial name={agent.name} category={agent.category} size="sm" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium leading-snug truncate">{agent.name}</p>
+          <p className="text-xs text-muted-foreground truncate">{agent.tagline}</p>
+        </div>
+      </a>
+    </Card>
   )
 }

@@ -1,9 +1,12 @@
 import { createClient } from '@openagents/db/server'
 import { notFound } from 'next/navigation'
-import { Star, Zap, Users, Rocket } from 'lucide-react'
+import { Zap, Users, Rocket } from 'lucide-react'
 import { AgentInitial, CATEGORY_COLORS } from '@/lib/agents'
 import { PublicSiteHeader } from '@/components/function/public-site-header'
 import { AgentHireButton } from '@/components/function/agent-hire-button'
+import { RatingStars } from '@/components/function/agent-card'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import type { Metadata } from 'next'
 
 interface Props {
@@ -13,7 +16,6 @@ interface Props {
 async function getAgent(slugOrId: string) {
   const supabase = await createClient()
 
-  // Try by slug first, then by id
   const { data } = await supabase
     .from('agents')
     .select('id, slug, name, tagline, description, category, avg_rating, total_hires, total_reviews, pricing_model, credits_per_session, icon_url')
@@ -75,52 +77,40 @@ export default async function AgentPage({ params }: Props) {
             <p className="text-lg text-muted-foreground mt-1">{agent.tagline}</p>
 
             <div className="flex items-center gap-3 mt-3 flex-wrap">
-              <span className={`rounded-full px-3 py-1 text-xs font-medium ${CATEGORY_COLORS[agent.category] ?? 'bg-secondary text-secondary-foreground'}`}>
+              <Badge variant="secondary" className={CATEGORY_COLORS[agent.category] ?? ''}>
                 {agent.category}
-              </span>
-              <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400">
+              </Badge>
+              <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-400 border-0">
                 {price}
-              </span>
+              </Badge>
             </div>
           </div>
         </div>
 
         {/* Stats */}
-        <div className="flex gap-8 rounded-2xl bg-card p-6 mb-8">
-          <div className="flex flex-col items-center gap-1">
-            <span className="text-2xl font-bold">{formatCount(agent.total_hires)}</span>
-            <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Hires</span>
-          </div>
-          <div className="w-px bg-border/40" />
-          <div className="flex flex-col items-center gap-1">
-            <span className="text-2xl font-bold">{agent.avg_rating?.toFixed(1) ?? '—'}</span>
-            <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Rating</span>
-          </div>
-          <div className="w-px bg-border/40" />
-          <div className="flex flex-col items-center gap-1">
-            <span className="text-2xl font-bold">{formatCount(agent.total_reviews)}</span>
-            <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Reviews</span>
-          </div>
-        </div>
+        <Card className="mb-8 border-0 py-4">
+          <CardContent className="flex gap-8">
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-2xl font-bold">{formatCount(agent.total_hires)}</span>
+              <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Hires</span>
+            </div>
+            <div className="w-px bg-border/40" />
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-2xl font-bold">{agent.avg_rating?.toFixed(1) ?? '—'}</span>
+              <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Rating</span>
+            </div>
+            <div className="w-px bg-border/40" />
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-2xl font-bold">{formatCount(agent.total_reviews)}</span>
+              <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Reviews</span>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Rating stars */}
         {agent.avg_rating && agent.total_reviews > 0 && (
-          <div className="flex items-center gap-2 mb-8">
-            <span className="flex gap-0.5">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star
-                  key={star}
-                  className={`h-5 w-5 ${
-                    star <= Math.round(agent.avg_rating!)
-                      ? 'fill-amber-400 text-amber-400'
-                      : 'fill-muted-foreground/20 text-muted-foreground/20'
-                  }`}
-                />
-              ))}
-            </span>
-            <span className="text-sm text-muted-foreground">
-              {agent.avg_rating.toFixed(1)} ({formatCount(agent.total_reviews)} reviews)
-            </span>
+          <div className="mb-8">
+            <RatingStars rating={agent.avg_rating} count={agent.total_reviews} size="md" />
           </div>
         )}
 

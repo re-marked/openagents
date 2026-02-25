@@ -62,13 +62,13 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
   }
 
   return (
-    <SidebarProvider>
+    <SidebarProvider className="h-svh !min-h-0">
       <AppSidebar
         projectId={projectId}
         userEmail={user.email}
         agents={agents}
       />
-      <SidebarInset>
+      <SidebarInset className="overflow-y-auto">
         {children}
       </SidebarInset>
     </SidebarProvider>

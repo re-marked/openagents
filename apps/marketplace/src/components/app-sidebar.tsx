@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Home, Settings, Plus } from "lucide-react"
+import { Home, Settings, Plus, BarChart3, CreditCard, Key } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
@@ -63,7 +63,7 @@ export function AppSidebar({
   const pathname = usePathname()
 
   return (
-    <Sidebar {...props}>
+    <Sidebar variant="inset" {...props}>
       <SidebarHeader>
         <WorkspaceSwitcher />
       </SidebarHeader>
@@ -149,8 +149,32 @@ export function AppSidebar({
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === "/workspace/usage"}>
+                  <Link href="/workspace/usage">
+                    <BarChart3 className="size-4" />
+                    <span>Usage</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === "/workspace/billing"}>
+                  <Link href="/workspace/billing">
+                    <CreditCard className="size-4" />
+                    <span>Billing</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={pathname === "/workspace/settings"}>
                   <Link href="/workspace/settings">
+                    <Key className="size-4" />
+                    <span>API Keys</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === "/workspace/settings/general"}>
+                  <Link href="/workspace/settings/general">
                     <Settings className="size-4" />
                     <span>Settings</span>
                   </Link>

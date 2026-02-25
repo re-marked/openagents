@@ -2,7 +2,7 @@
 
 import { createServiceClient } from '@openagents/db/server'
 import { getUser } from '@/lib/auth/get-user'
-import { triggerProvision } from '@/lib/trigger'
+import { triggerProvision, triggerDestroy } from '@/lib/trigger'
 import { revalidatePath } from 'next/cache'
 
 interface HireAgentParams {
@@ -123,6 +123,47 @@ export async function hireAgent({ agentSlug }: HireAgentParams) {
   revalidatePath('/workspace')
 
   return { instanceId: instance.id, status: 'provisioning', alreadyHired: false }
+}
+
+/**
+ * Remove a hired agent — destroys the Fly.io machine and marks instance as destroyed.
+ */
+export async function removeAgent(instanceId: string) {
+  const user = await getUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const service = createServiceClient()
+
+  // Verify ownership
+  const { data: inst } = await service
+    .from('agent_instances')
+    .select('id, status, fly_app_name, fly_machine_id')
+    .eq('id', instanceId)
+    .eq('user_id', user.id)
+    .single()
+
+  if (!inst) throw new Error('Agent not found')
+  if (inst.status === 'destroyed') throw new Error('Agent already removed')
+
+  // Mark as destroying immediately for UI feedback
+  await service
+    .from('agent_instances')
+    .update({ status: 'destroying' })
+    .eq('id', instanceId)
+
+  // Fire Trigger.dev destroy task (handles Fly cleanup async)
+  if (inst.fly_app_name !== 'pending' && inst.fly_machine_id !== 'pending') {
+    await triggerDestroy({ instanceId })
+  } else {
+    // No machine was ever created — just mark destroyed directly
+    await service
+      .from('agent_instances')
+      .update({ status: 'destroyed' })
+      .eq('id', instanceId)
+  }
+
+  revalidatePath('/workspace')
+  return { success: true }
 }
 
 /**

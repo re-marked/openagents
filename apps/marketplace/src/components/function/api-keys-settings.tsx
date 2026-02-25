@@ -3,6 +3,8 @@
 import { useState, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Card, CardContent } from '@/components/ui/card'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { saveApiKey, deleteApiKey, type ApiKeyProvider } from '@/lib/settings/actions'
 import { Key, Trash2, Check, Loader2, Plus } from 'lucide-react'
 
@@ -77,15 +79,12 @@ export function ApiKeysSettings({ initialKeys }: { initialKeys: MaskedKey[] }) {
       </div>
 
       {message && (
-        <div
-          className={`rounded-xl px-4 py-3 text-sm ${
-            message.type === 'success'
-              ? 'bg-green-500/10 text-green-400'
-              : 'bg-red-500/10 text-red-400'
-          }`}
+        <Alert
+          variant={message.type === 'error' ? 'destructive' : 'default'}
+          className={`border-0 ${message.type === 'success' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10'}`}
         >
-          {message.text}
-        </div>
+          <AlertDescription>{message.text}</AlertDescription>
+        </Alert>
       )}
 
       <div className="space-y-3">
@@ -94,95 +93,94 @@ export function ApiKeysSettings({ initialKeys }: { initialKeys: MaskedKey[] }) {
           const isEditing = editingProvider === provider.id
 
           return (
-            <div
-              key={provider.id}
-              className="rounded-2xl bg-card p-4"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent">
-                    <Key className="size-5 text-muted-foreground" />
+            <Card key={provider.id} className="border-0 gap-0 py-0">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent">
+                      <Key className="size-5 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{provider.name}</p>
+                      {existing && !isEditing ? (
+                        <p className="text-xs text-muted-foreground font-mono">{existing.maskedKey}</p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          {existing ? 'Update your key' : 'Not configured'}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium">{provider.name}</p>
-                    {existing && !isEditing ? (
-                      <p className="text-xs text-muted-foreground font-mono">{existing.maskedKey}</p>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">
-                        {existing ? 'Update your key' : 'Not configured'}
-                      </p>
-                    )}
-                  </div>
+
+                  {!isEditing && (
+                    <div className="flex items-center gap-2">
+                      {existing && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-red-400"
+                          onClick={() => handleDelete(provider.id)}
+                          disabled={isPending}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setEditingProvider(provider.id)
+                          setInputValue('')
+                        }}
+                      >
+                        {existing ? 'Update' : <><Plus className="size-3 mr-1" /> Add</>}
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
-                {!isEditing && (
-                  <div className="flex items-center gap-2">
-                    {existing && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-red-400"
-                        onClick={() => handleDelete(provider.id)}
-                        disabled={isPending}
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
-                    )}
+                {isEditing && (
+                  <div className="mt-3 flex gap-2">
+                    <Input
+                      type="password"
+                      placeholder={provider.placeholder}
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      className="font-mono text-sm"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSave(provider.id)
+                        if (e.key === 'Escape') {
+                          setEditingProvider(null)
+                          setInputValue('')
+                        }
+                      }}
+                    />
                     <Button
-                      variant="outline"
+                      size="sm"
+                      onClick={() => handleSave(provider.id)}
+                      disabled={isPending || !inputValue.trim()}
+                    >
+                      {isPending ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <Check className="size-4" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
                       size="sm"
                       onClick={() => {
-                        setEditingProvider(provider.id)
+                        setEditingProvider(null)
                         setInputValue('')
                       }}
                     >
-                      {existing ? 'Update' : <><Plus className="size-3 mr-1" /> Add</>}
+                      Cancel
                     </Button>
                   </div>
                 )}
-              </div>
-
-              {isEditing && (
-                <div className="mt-3 flex gap-2">
-                  <Input
-                    type="password"
-                    placeholder={provider.placeholder}
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    className="font-mono text-sm"
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleSave(provider.id)
-                      if (e.key === 'Escape') {
-                        setEditingProvider(null)
-                        setInputValue('')
-                      }
-                    }}
-                  />
-                  <Button
-                    size="sm"
-                    onClick={() => handleSave(provider.id)}
-                    disabled={isPending || !inputValue.trim()}
-                  >
-                    {isPending ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      <Check className="size-4" />
-                    )}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setEditingProvider(null)
-                      setInputValue('')
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              )}
-            </div>
+              </CardContent>
+            </Card>
           )
         })}
       </div>

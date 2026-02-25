@@ -4,8 +4,13 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, MessageSquare, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ProvisioningPoller } from '@/components/function/provisioning-poller'
 import { OnboardingWizard } from '@/components/function/onboarding-wizard'
+import { RemoveAgentButton } from '@/components/function/remove-agent-button'
+import { AgentInitial } from '@/lib/agents'
 import { getApiKeys } from '@/lib/settings/actions'
 
 export default async function HomePage() {
@@ -63,21 +68,12 @@ export default async function HomePage() {
     projectId = team?.project_id ?? null
   }
 
-  const CATEGORY_GRADIENT: Record<string, string> = {
-    productivity: "from-blue-500 to-blue-600",
-    research: "from-emerald-500 to-emerald-600",
-    writing: "from-purple-500 to-purple-600",
-    coding: "from-amber-500 to-amber-600",
-    business: "from-rose-500 to-rose-600",
-    creative: "from-pink-500 to-pink-600",
-    personal: "from-cyan-500 to-cyan-600",
-  }
-
-  const STATUS_LABEL: Record<string, { text: string; color: string }> = {
-    running: { text: "Running", color: "text-green-400" },
-    suspended: { text: "Suspended", color: "text-yellow-400" },
-    provisioning: { text: "Provisioning...", color: "text-blue-400" },
-    error: { text: "Error", color: "text-red-400" },
+  const STATUS_BADGE: Record<string, { text: string; className: string }> = {
+    running: { text: "Running", className: "bg-green-500/10 text-green-400 border-0" },
+    suspended: { text: "Suspended", className: "bg-yellow-500/10 text-yellow-400 border-0" },
+    provisioning: { text: "Provisioning...", className: "bg-blue-500/10 text-blue-400 border-0" },
+    error: { text: "Error", className: "bg-red-500/10 text-red-400 border-0" },
+    destroying: { text: "Removing...", className: "bg-orange-500/10 text-orange-400 border-0" },
   }
 
   return (
@@ -121,50 +117,60 @@ export default async function HomePage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {agents.map((agent) => {
-            const gradient = CATEGORY_GRADIENT[agent.category] ?? "from-zinc-500 to-zinc-600"
-            const statusInfo = STATUS_LABEL[agent.status] ?? { text: agent.status, color: "text-zinc-400" }
+            const statusBadge = STATUS_BADGE[agent.status] ?? { text: agent.status, className: "bg-secondary" }
             const chatPath = agent.teamId && projectId
               ? `/workspace/p/${projectId}/t/${agent.teamId}/chat`
               : null
             const isProvisioning = agent.status === "provisioning"
+            const isDestroying = agent.status === "destroying"
 
             return (
-              <div
+              <Card
                 key={agent.instanceId}
-                className="group rounded-2xl bg-card p-5 transition-all duration-200 hover:bg-accent"
+                className="group border-0 gap-0 py-0 transition-all duration-200 hover:bg-accent"
               >
-                <div className="flex items-start gap-4 mb-4">
-                  {/* Icon */}
-                  <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${gradient} text-white text-lg font-semibold shrink-0`}>
-                    {agent.name[0]}
+                <CardContent className="p-5">
+                  <div className="flex items-start gap-4 mb-4">
+                    <AgentInitial name={agent.name} category={agent.category} size="md" />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-[15px] font-semibold leading-tight truncate">{agent.name}</h3>
+                      <p className="text-[13px] text-muted-foreground mt-0.5 truncate">{agent.tagline}</p>
+                      <Badge variant="secondary" className={`mt-1.5 text-[10px] ${statusBadge.className}`}>
+                        {isProvisioning && <Loader2 className="inline size-3 mr-1 animate-spin" />}
+                        {statusBadge.text}
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-[15px] font-semibold leading-tight truncate">{agent.name}</h3>
-                    <p className="text-[13px] text-muted-foreground mt-0.5 truncate">{agent.tagline}</p>
-                    <p className={`text-xs mt-1.5 font-medium ${statusInfo.color}`}>
-                      {isProvisioning && <Loader2 className="inline size-3 mr-1 animate-spin" />}
-                      {statusInfo.text}
-                    </p>
-                  </div>
-                </div>
 
-                {/* Actions */}
-                {chatPath && !isProvisioning && (
-                  <Link
-                    href={chatPath}
-                    className="flex items-center justify-center gap-2 rounded-xl bg-primary/15 py-2.5 text-sm font-semibold text-primary transition-colors hover:bg-primary/25"
-                  >
-                    <MessageSquare className="size-4" />
-                    Open Chat
-                  </Link>
-                )}
-                {isProvisioning && (
-                  <div className="flex items-center justify-center gap-2 rounded-xl bg-secondary py-2.5 text-sm font-medium text-muted-foreground">
-                    <Loader2 className="size-4 animate-spin" />
-                    Setting up your agent...
+                  {/* Actions */}
+                  {chatPath && !isProvisioning && !isDestroying && agent.status !== 'error' && (
+                    <Button variant="secondary" asChild className="w-full bg-primary/15 text-primary hover:bg-primary/25">
+                      <Link href={chatPath}>
+                        <MessageSquare className="size-4 mr-2" />
+                        Open Chat
+                      </Link>
+                    </Button>
+                  )}
+                  {isProvisioning && (
+                    <Button variant="secondary" disabled className="w-full">
+                      <Loader2 className="size-4 mr-2 animate-spin" />
+                      Setting up your agent...
+                    </Button>
+                  )}
+                  {agent.status === 'error' && (
+                    <Alert variant="destructive" className="border-0 bg-red-500/10 py-2">
+                      <AlertDescription className="text-center text-red-400 text-sm">
+                        Setup failed — remove and try again
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {/* Remove */}
+                  <div className={`flex justify-end mt-2 transition-opacity ${agent.status === 'error' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                    <RemoveAgentButton instanceId={agent.instanceId} agentName={agent.name} />
                   </div>
-                )}
-              </div>
+                </CardContent>
+              </Card>
             )
           })}
         </div>
