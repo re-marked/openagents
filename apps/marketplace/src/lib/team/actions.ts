@@ -2,7 +2,7 @@
 
 import { createServiceClient } from '@openagents/db/server'
 import { getUser } from '@/lib/auth/get-user'
-import { triggerProvision, triggerDestroy } from '@/lib/trigger'
+import { triggerDestroy } from '@/lib/trigger'
 import { AGENT_ROLES } from '@/lib/agent-roles'
 import { revalidatePath } from 'next/cache'
 
@@ -31,7 +31,8 @@ export async function addSubAgent({ teamId, projectId, roleId }: AddSubAgentPara
 
   if (!agent) throw new Error(`Agent definition not found for role: ${roleId}`)
 
-  // Create agent_instances row (status: provisioning, placeholder fly fields)
+  // Sub-agents share the master's Fly machine — they're routed by the gateway
+  // based on role context, not separate machines. Mark running immediately.
   const { data: instance, error: instanceErr } = await service
     .from('agent_instances')
     .insert({
@@ -39,9 +40,9 @@ export async function addSubAgent({ teamId, projectId, roleId }: AddSubAgentPara
       agent_id: agent.id,
       team_id: teamId,
       display_name: roleId,
-      fly_app_name: `oa-${roleId}-${user.id.slice(0, 8)}`,
-      fly_machine_id: 'provisioning',
-      status: 'provisioning',
+      fly_app_name: 'oa-test-agent',
+      fly_machine_id: '2861050fe63548',
+      status: 'running',
     })
     .select('id')
     .single()
@@ -54,14 +55,6 @@ export async function addSubAgent({ teamId, projectId, roleId }: AddSubAgentPara
   await service.from('team_agents').insert({
     team_id: teamId,
     instance_id: instance.id,
-  })
-
-  // Trigger provisioning with role
-  await triggerProvision({
-    userId: user.id,
-    agentId: agent.id,
-    instanceId: instance.id,
-    role: roleId,
   })
 
   revalidatePath(`/workspace/p/${projectId}/t/${teamId}/settings`)

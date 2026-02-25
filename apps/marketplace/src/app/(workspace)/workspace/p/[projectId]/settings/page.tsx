@@ -1,5 +1,5 @@
 export default function ProjectSettingsPage({
-  params,
+  params: _params,
 }: {
   params: { projectId: string }
 }) {

@@ -1,5 +1,5 @@
 export default function AgentSettingsPage({
-  params,
+  params: _params,
 }: {
   params: { projectId: string; teamId: string; agentId: string }
 }) {

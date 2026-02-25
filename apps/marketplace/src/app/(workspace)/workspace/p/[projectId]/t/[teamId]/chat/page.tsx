@@ -29,6 +29,7 @@ export default async function TeamChatPage({
     .select('id, status')
     .eq('team_id', teamId)
     .eq('user_id', user.id)
+    .in('status', ['running', 'suspended'])
     .limit(1)
     .single()
 

@@ -1,5 +1,5 @@
 export default function AgentStatusPage({
-  params,
+  params: _params,
 }: {
   params: { projectId: string; teamId: string; agentId: string }
 }) {
