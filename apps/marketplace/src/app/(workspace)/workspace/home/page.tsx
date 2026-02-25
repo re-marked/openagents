@@ -5,12 +5,18 @@ import Link from 'next/link'
 import { Plus, MessageSquare, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ProvisioningPoller } from '@/components/function/provisioning-poller'
+import { OnboardingWizard } from '@/components/function/onboarding-wizard'
+import { getApiKeys } from '@/lib/settings/actions'
 
 export default async function HomePage() {
   const user = await getUser()
   if (!user) redirect('/login')
 
   const service = createServiceClient()
+
+  // Check if user has API keys configured
+  const apiKeys = await getApiKeys()
+  const hasApiKeys = apiKeys.length > 0
 
   // Load user's agents
   const { data: instances } = await service
@@ -94,8 +100,10 @@ export default async function HomePage() {
         </Button>
       </div>
 
-      {/* Agent grid */}
-      {agents.length === 0 ? (
+      {/* Onboarding / Empty state / Agent grid */}
+      {!hasApiKeys && agents.length === 0 ? (
+        <OnboardingWizard />
+      ) : agents.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-32 text-center">
           <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-card mb-5">
             <Plus className="h-9 w-9 text-muted-foreground" />
