@@ -6,7 +6,7 @@ export const runtime = 'nodejs'
 
 type AgentInstance = Pick<
   Tables<'agent_instances'>,
-  'id' | 'fly_app_name' | 'status' | 'user_id' | 'agent_id' | 'team_id'
+  'id' | 'fly_app_name' | 'status' | 'user_id' | 'agent_id' | 'team_id' | 'gateway_token'
 >
 
 export async function POST(request: Request) {
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
   // 3. Load agent instance — verify ownership and running status
   const { data: instanceData, error: instanceError } = await supabase
     .from('agent_instances')
-    .select('id, fly_app_name, status, user_id, agent_id, team_id')
+    .select('id, fly_app_name, status, user_id, agent_id, team_id, gateway_token')
     .eq('id', agentInstanceId)
     .single()
 
@@ -155,7 +155,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Gateway not configured' }, { status: 500 })
   }
 
-  const agentToken = process.env.TEST_AGENT_GATEWAY_TOKEN
+  const agentToken = instance.gateway_token ?? process.env.TEST_AGENT_GATEWAY_TOKEN
 
   const gatewayResponse = await fetch(`${gatewayUrl}/v1/chat`, {
     method: 'POST',

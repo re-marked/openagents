@@ -134,7 +134,7 @@ function ThreadView({ thread }: { thread: Thread }) {
   )
 }
 
-function MessageGroupView({ group }: { group: MessageGroup }) {
+function MessageGroupView({ group, agentName, botBg, botText }: { group: MessageGroup; agentName: string; botBg: string; botText: string }) {
   const isMaster = group.role === 'master'
   const first = group.messages[0]
 
@@ -146,11 +146,11 @@ function MessageGroupView({ group }: { group: MessageGroup }) {
           <AvatarFallback
             className={
               isMaster
-                ? 'bg-indigo-600 text-white text-xs font-semibold'
+                ? `${botBg} text-white text-xs font-semibold`
                 : 'bg-zinc-600 text-white text-xs font-semibold'
             }
           >
-            {isMaster ? 'M' : 'Y'}
+            {isMaster ? agentName[0] : 'Y'}
           </AvatarFallback>
         </Avatar>
       </div>
@@ -160,12 +160,12 @@ function MessageGroupView({ group }: { group: MessageGroup }) {
         {/* Header */}
         <div className="flex items-baseline gap-2">
           <span
-            className={`text-sm font-semibold ${isMaster ? 'text-indigo-400' : 'text-foreground'}`}
+            className={`text-sm font-semibold ${isMaster ? botText : 'text-foreground'}`}
           >
-            {isMaster ? 'Master' : 'You'}
+            {isMaster ? agentName : 'You'}
           </span>
           {isMaster && (
-            <Badge className="bg-indigo-600/20 text-indigo-400 border-0 px-1.5 py-0 text-[10px] font-medium rounded">
+            <Badge className={`${botBg}/20 ${botText} border-0 px-1.5 py-0 text-[10px] font-medium rounded`}>
               BOT
             </Badge>
           )}
@@ -186,7 +186,26 @@ function MessageGroupView({ group }: { group: MessageGroup }) {
   )
 }
 
-export function DiscordMessageList({ messages }: { messages: DiscordMessage[] }) {
+interface DiscordMessageListProps {
+  messages: DiscordMessage[]
+  agentName?: string
+  agentCategory?: string
+}
+
+const CATEGORY_AVATAR: Record<string, { bg: string; text: string }> = {
+  productivity: { bg: 'bg-blue-600', text: 'text-blue-400' },
+  research: { bg: 'bg-emerald-600', text: 'text-emerald-400' },
+  writing: { bg: 'bg-purple-600', text: 'text-purple-400' },
+  coding: { bg: 'bg-amber-600', text: 'text-amber-400' },
+  business: { bg: 'bg-rose-600', text: 'text-rose-400' },
+  creative: { bg: 'bg-pink-600', text: 'text-pink-400' },
+  personal: { bg: 'bg-cyan-600', text: 'text-cyan-400' },
+}
+
+export function DiscordMessageList({ messages, agentName = 'Agent', agentCategory }: DiscordMessageListProps) {
+  const agentColor = agentCategory ? CATEGORY_AVATAR[agentCategory] : undefined
+  const botBg = agentColor?.bg ?? 'bg-primary'
+  const botText = agentColor?.text ?? 'text-primary'
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -196,13 +215,13 @@ export function DiscordMessageList({ messages }: { messages: DiscordMessage[] })
   if (messages.length === 0) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-indigo-600">
-          <span className="text-2xl font-bold text-white">M</span>
+        <div className={`flex h-16 w-16 items-center justify-center rounded-full ${botBg}`}>
+          <span className="text-2xl font-bold text-white">{agentName[0]}</span>
         </div>
         <div className="text-center">
-          <h3 className="text-lg font-semibold">Welcome to #team-chat</h3>
+          <h3 className="text-lg font-semibold">Welcome</h3>
           <p className="text-muted-foreground text-sm">
-            This is the beginning of your conversation with Master.
+            This is the beginning of your conversation with {agentName}.
           </p>
         </div>
       </div>
@@ -215,7 +234,7 @@ export function DiscordMessageList({ messages }: { messages: DiscordMessage[] })
     <ScrollArea className="h-0 flex-1">
       <div className="flex flex-col gap-1 py-4">
         {groups.map((group, i) => (
-          <MessageGroupView key={`${group.role}-${group.messages[0].id}-${i}`} group={group} />
+          <MessageGroupView key={`${group.role}-${group.messages[0].id}-${i}`} group={group} agentName={agentName} botBg={botBg} botText={botText} />
         ))}
         <div ref={bottomRef} />
       </div>

@@ -26,7 +26,7 @@ export default async function TeamChatPage({
   // Find the agent instance linked to this team
   const { data: instance } = await service
     .from('agent_instances')
-    .select('id, status')
+    .select('id, status, display_name, agents!inner(name, category)')
     .eq('team_id', teamId)
     .eq('user_id', user.id)
     .in('status', ['running', 'suspended'])
@@ -35,9 +35,14 @@ export default async function TeamChatPage({
 
   if (!instance) redirect('/workspace/home')
 
+  const agent = (instance as Record<string, unknown>).agents as {
+    name: string; category: string
+  }
+  const agentName = instance.display_name ?? agent.name
+
   return (
     <div className="flex h-screen flex-col">
-      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+      <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border/40 px-4">
         <SidebarTrigger className="-ml-1" />
         <Separator
           orientation="vertical"
@@ -50,13 +55,17 @@ export default async function TeamChatPage({
             </BreadcrumbItem>
             <BreadcrumbSeparator className="hidden md:block" />
             <BreadcrumbItem>
-              <BreadcrumbPage>team-chat</BreadcrumbPage>
+              <BreadcrumbPage>{agentName}</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
       </header>
 
-      <DiscordChatPanel agentInstanceId={instance.id} />
+      <DiscordChatPanel
+        agentInstanceId={instance.id}
+        agentName={agentName}
+        agentCategory={agent.category}
+      />
     </div>
   )
 }
