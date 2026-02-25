@@ -1,6 +1,8 @@
 "use client"
 
-import { Star, Rocket, Users, Zap, X } from "lucide-react"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Star, Rocket, Users, Zap, X, Loader2 } from "lucide-react"
 import {
   Drawer,
   DrawerClose,
@@ -12,6 +14,7 @@ import {
 } from "@/components/ui/drawer"
 import { Button } from "@/components/ui/button"
 import { AgentInitial, CATEGORY_COLORS, type AgentListItem } from "@/lib/agents"
+import { hireAgent, checkInstanceStatus } from "@/lib/hire/actions"
 
 function formatCount(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
@@ -23,7 +26,6 @@ function RatingStarsLarge({ rating, count }: { rating: number | null; count: num
   if (!rating || count === 0) {
     return <span className="text-sm text-muted-foreground">No reviews yet</span>
   }
-
   return (
     <span className="flex items-center gap-2">
       <span className="flex gap-0.5">
@@ -52,6 +54,10 @@ interface AgentDetailSheetProps {
 }
 
 export function AgentDetailSheet({ agent, open, onOpenChange }: AgentDetailSheetProps) {
+  const router = useRouter()
+  const [deploying, setDeploying] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
   if (!agent) return null
 
   const price =
@@ -59,16 +65,60 @@ export function AgentDetailSheet({ agent, open, onOpenChange }: AgentDetailSheet
       ? "Free"
       : `${agent.credits_per_session} credits per session`
 
+  async function handleDeploy() {
+    if (!agent) return
+    setDeploying(true)
+    setError(null)
+
+    try {
+      const result = await hireAgent({ agentSlug: agent.slug })
+
+      if (result.alreadyHired && result.status === "running") {
+        // Already running — go straight to workspace
+        router.push("/workspace/home")
+        return
+      }
+
+      // Poll for provisioning completion
+      const poll = async () => {
+        for (let i = 0; i < 60; i++) {
+          await new Promise((r) => setTimeout(r, 3000))
+          const status = await checkInstanceStatus(result.instanceId)
+          if (!status) continue
+          if (status.status === "running" || status.status === "suspended") {
+            router.push("/workspace/home")
+            return
+          }
+          if (status.status === "error") {
+            setError("Provisioning failed. Please try again.")
+            setDeploying(false)
+            return
+          }
+        }
+        setError("Provisioning timed out. Check your workspace.")
+        setDeploying(false)
+      }
+
+      if (result.status === "provisioning") {
+        // Redirect to workspace immediately, it shows provisioning state
+        router.push("/workspace/home")
+      } else {
+        await poll()
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong")
+      setDeploying(false)
+    }
+  }
+
   return (
     <Drawer direction="right" open={open} onOpenChange={onOpenChange}>
       <DrawerContent className="!w-[540px] !max-w-[90vw] !sm:max-w-none bg-sidebar border-l border-border/40 overflow-y-auto">
-        {/* Close button */}
         <DrawerClose className="absolute top-5 right-5 z-10 rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-card transition-colors">
           <X className="size-5" />
           <span className="sr-only">Close</span>
         </DrawerClose>
 
-        {/* Header with icon + name */}
         <DrawerHeader className="p-8 pb-0">
           <div className="flex items-start gap-5">
             <AgentInitial name={agent.name} category={agent.category} size="lg" />
@@ -83,7 +133,7 @@ export function AgentDetailSheet({ agent, open, onOpenChange }: AgentDetailSheet
           </div>
         </DrawerHeader>
 
-        {/* Stats row */}
+        {/* Stats */}
         <div className="px-8 py-6">
           <div className="flex gap-8">
             <div className="flex flex-col items-center gap-1.5">
@@ -103,12 +153,10 @@ export function AgentDetailSheet({ agent, open, onOpenChange }: AgentDetailSheet
           </div>
         </div>
 
-        {/* Rating stars */}
         <div className="px-8 pb-5">
           <RatingStarsLarge rating={agent.avg_rating} count={agent.total_reviews} />
         </div>
 
-        {/* Category + tags */}
         <div className="flex gap-2 px-8 pb-6 flex-wrap">
           <span className={`rounded-full px-3.5 py-1.5 text-xs font-medium ${CATEGORY_COLORS[agent.category] ?? "bg-secondary text-secondary-foreground"}`}>
             {agent.category}
@@ -124,10 +172,8 @@ export function AgentDetailSheet({ agent, open, onOpenChange }: AgentDetailSheet
           )}
         </div>
 
-        {/* Divider */}
         <div className="mx-8 border-t border-border/40" />
 
-        {/* Description */}
         <div className="px-8 py-6">
           <h3 className="text-sm font-semibold mb-3 text-foreground">About</h3>
           <p className="text-[15px] text-muted-foreground leading-relaxed">
@@ -135,10 +181,8 @@ export function AgentDetailSheet({ agent, open, onOpenChange }: AgentDetailSheet
           </p>
         </div>
 
-        {/* Divider */}
         <div className="mx-8 border-t border-border/40" />
 
-        {/* Capabilities */}
         <div className="px-8 py-6">
           <h3 className="text-sm font-semibold mb-4 text-foreground">Capabilities</h3>
           <div className="grid grid-cols-2 gap-4">
@@ -159,15 +203,26 @@ export function AgentDetailSheet({ agent, open, onOpenChange }: AgentDetailSheet
 
         {/* Deploy CTA */}
         <DrawerFooter className="sticky bottom-0 bg-sidebar/95 backdrop-blur-sm border-t border-border/40 p-8">
+          {error && (
+            <p className="text-sm text-red-400 mb-3 text-center">{error}</p>
+          )}
           <Button
             size="lg"
-            className="w-full rounded-xl bg-primary text-primary-foreground font-semibold text-base h-13 hover:bg-primary/90 transition-colors duration-200"
-            asChild
+            disabled={deploying}
+            onClick={handleDeploy}
+            className="w-full rounded-xl bg-primary text-primary-foreground font-semibold text-base h-13 hover:bg-primary/90 transition-colors duration-200 disabled:opacity-50"
           >
-            <a href={`/workspace/home?hire=${encodeURIComponent(agent.slug)}`}>
-              <Rocket className="size-4 mr-2" />
-              Deploy this Assistant
-            </a>
+            {deploying ? (
+              <>
+                <Loader2 className="size-4 mr-2 animate-spin" />
+                Deploying...
+              </>
+            ) : (
+              <>
+                <Rocket className="size-4 mr-2" />
+                Deploy this Assistant
+              </>
+            )}
           </Button>
         </DrawerFooter>
       </DrawerContent>

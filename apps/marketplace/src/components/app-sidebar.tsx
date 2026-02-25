@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Hash, Home, Settings, Users } from "lucide-react"
+import { Home, Settings, Plus } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
@@ -21,55 +21,62 @@ import {
 } from "@/components/ui/sidebar"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
-interface TeamMemberInfo {
+interface AgentInfo {
+  instanceId: string
   name: string
+  slug: string
+  category: string
+  tagline: string
   status: string
-  color: string
+  teamId: string | null
 }
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   projectId?: string
-  teamId?: string
-  teamName?: string
   userEmail?: string
-  teamMembers?: TeamMemberInfo[]
+  agents?: AgentInfo[]
 }
 
-const STATUS_DOT_COLORS: Record<string, string> = {
+const STATUS_DOT: Record<string, string> = {
   running: "bg-green-500",
   suspended: "bg-yellow-500",
   provisioning: "bg-blue-500 animate-pulse",
   error: "bg-red-500",
 }
 
+const CATEGORY_COLOR: Record<string, string> = {
+  productivity: "bg-blue-500",
+  research: "bg-emerald-500",
+  writing: "bg-purple-500",
+  coding: "bg-amber-500",
+  business: "bg-rose-500",
+  creative: "bg-pink-500",
+  personal: "bg-cyan-500",
+}
+
 export function AppSidebar({
   projectId,
-  teamId,
-  teamName = "team-chat",
   userEmail,
-  teamMembers = [],
+  agents = [],
   ...props
 }: AppSidebarProps) {
   const pathname = usePathname()
-  const chatPath =
-    projectId && teamId
-      ? `/workspace/p/${projectId}/t/${teamId}/chat`
-      : null
 
   return (
     <Sidebar {...props}>
       <SidebarHeader>
         <WorkspaceSwitcher />
       </SidebarHeader>
+
       <SidebarContent>
+        {/* General */}
         <SidebarGroup>
-          <SidebarGroupLabel>General</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={pathname === "/workspace/home"}>
                   <Link href="/workspace/home">
-                    <Home />
+                    <Home className="size-4" />
                     <span>Home</span>
                   </Link>
                 </SidebarMenuButton>
@@ -78,53 +85,65 @@ export function AppSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {chatPath && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Channels</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname === chatPath}>
-                    <Link href={chatPath}>
-                      <Hash />
-                      <span>{teamName}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
+        {/* Agents */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Your Agents</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {agents.map((agent) => {
+                const chatPath = agent.teamId && projectId
+                  ? `/workspace/p/${projectId}/t/${agent.teamId}/chat`
+                  : null
+                const isActive = chatPath ? pathname === chatPath : false
+                const bg = CATEGORY_COLOR[agent.category] ?? "bg-zinc-500"
 
-        {teamMembers.length > 0 && projectId && teamId && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Team</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {teamMembers.map((member) => (
-                  <SidebarMenuItem key={member.name}>
-                    <SidebarMenuButton asChild={false} className="cursor-default">
-                      <span className={`inline-block h-2 w-2 rounded-full ${STATUS_DOT_COLORS[member.status] ?? "bg-zinc-400"}`} />
-                      <span>{member.name}</span>
+                return (
+                  <SidebarMenuItem key={agent.instanceId}>
+                    <SidebarMenuButton
+                      asChild={!!chatPath}
+                      isActive={isActive}
+                      className="gap-2.5"
+                    >
+                      {chatPath ? (
+                        <Link href={chatPath}>
+                          <span className="relative flex shrink-0">
+                            <span className={`flex h-5 w-5 items-center justify-center rounded-md ${bg} text-[10px] font-bold text-white`}>
+                              {agent.name[0]}
+                            </span>
+                            <span className={`absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-sidebar ${STATUS_DOT[agent.status] ?? "bg-zinc-400"}`} />
+                          </span>
+                          <span className="truncate">{agent.name}</span>
+                        </Link>
+                      ) : (
+                        <>
+                          <span className="relative flex shrink-0">
+                            <span className={`flex h-5 w-5 items-center justify-center rounded-md ${bg} text-[10px] font-bold text-white`}>
+                              {agent.name[0]}
+                            </span>
+                            <span className={`absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-sidebar ${STATUS_DOT[agent.status] ?? "bg-zinc-400"}`} />
+                          </span>
+                          <span className="truncate">{agent.name}</span>
+                        </>
+                      )}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                ))}
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={pathname === `/workspace/p/${projectId}/t/${teamId}/settings`}
-                  >
-                    <Link href={`/workspace/p/${projectId}/t/${teamId}/settings`}>
-                      <Users className="h-4 w-4" />
-                      <span>Manage team</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
+                )
+              })}
 
+              {/* Hire new agent */}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link href="/discover" className="text-muted-foreground">
+                    <Plus className="size-4" />
+                    <span>Hire an Agent</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Account */}
         <SidebarGroup>
           <SidebarGroupLabel>Account</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -132,7 +151,7 @@ export function AppSidebar({
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={pathname === "/workspace/settings"}>
                   <Link href="/workspace/settings">
-                    <Settings />
+                    <Settings className="size-4" />
                     <span>Settings</span>
                   </Link>
                 </SidebarMenuButton>
