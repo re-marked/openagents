@@ -35,7 +35,7 @@ export function DiscoverDialog({ open, onOpenChange, agents }: DiscoverDialogPro
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="!fixed !translate-x-0 !translate-y-0 !max-w-none !rounded-2xl p-0 flex flex-col gap-0 overflow-hidden !duration-0 !animate-none bg-[hsl(220,14%,10%)]"
+        className="!fixed !translate-x-0 !translate-y-0 !max-w-none !rounded-2xl p-0 flex flex-col gap-0 overflow-hidden !duration-0 !animate-none bg-background"
         style={{
           top: '1rem',
           left: 'calc(16rem + 1rem)',
@@ -86,7 +86,7 @@ export function DiscoverDialog({ open, onOpenChange, agents }: DiscoverDialogPro
               {filtered.map((agent) => (
                 <div
                   key={agent.id}
-                  className="group flex items-center gap-3 rounded-xl bg-card p-3 transition-all duration-200 hover:bg-[hsl(220,13%,17%)] cursor-pointer"
+                  className="group flex items-center gap-3 rounded-xl bg-card p-3 transition-all duration-200 hover:bg-accent cursor-pointer"
                 >
                   <AgentInitial name={agent.name} category={agent.category} size="sm" />
                   <div className="flex-1 min-w-0">

@@ -40,7 +40,7 @@ export function AgentCardLarge({ agent }: { agent: AgentListItem }) {
   return (
     <Link
       href={`/agents/${agent.slug}`}
-      className="group block rounded-2xl bg-card transition-all duration-300 ease-out hover:bg-[hsl(220,13%,17%)] hover:scale-[1.01]"
+      className="group block rounded-2xl bg-card transition-all duration-300 ease-out hover:bg-accent hover:scale-[1.01]"
     >
       {/* Header row: icon + info + CTA */}
       <div className="flex items-center gap-4 p-5 pb-4">
@@ -98,7 +98,7 @@ export function AgentCard({ agent }: { agent: AgentListItem }) {
   return (
     <Link
       href={`/agents/${agent.slug}`}
-      className="group flex items-center gap-3 rounded-xl bg-card p-3 transition-all duration-200 hover:bg-[hsl(220,13%,17%)]"
+      className="group flex items-center gap-3 rounded-xl bg-card p-3 transition-all duration-200 hover:bg-accent"
     >
       <AgentInitial name={agent.name} category={agent.category} size="sm" />
       <div className="flex-1 min-w-0">
