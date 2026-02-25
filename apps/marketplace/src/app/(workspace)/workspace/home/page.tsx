@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, MessageSquare, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ProvisioningPoller } from '@/components/function/provisioning-poller'
 
 export default async function HomePage() {
   const user = await getUser()
@@ -160,6 +161,11 @@ export default async function HomePage() {
           })}
         </div>
       )}
+
+      {/* Poll provisioning agents */}
+      <ProvisioningPoller
+        instanceIds={agents.filter((a) => a.status === "provisioning").map((a) => a.instanceId)}
+      />
     </div>
   )
 }

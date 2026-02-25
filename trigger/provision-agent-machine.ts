@@ -42,7 +42,7 @@ export const provisionAgentMachine = task({
     if (roleId && !role) throw new Error(`Unknown role: ${roleId}`)
 
     // ── 2. Load user's API keys (BYOK) ──────────────────────────────────
-    const { data: apiKeys } = await db
+    const { data: apiKeys } = await (db as any)
       .from('user_api_keys')
       .select('provider, api_key')
       .eq('user_id', userId)

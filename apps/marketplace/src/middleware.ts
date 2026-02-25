@@ -2,7 +2,7 @@ import { updateSession } from '@openagents/db/middleware'
 import type { NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  return updateSession(request)
+  return updateSession(request as any)
 }
 
 export const config = {
