@@ -62,6 +62,30 @@ export class FlyClient {
     }
   }
 
+  // ── IPs ─────────────────────────────────────────────────────────────────
+
+  /** Allocate a shared IPv4 address for an app (needed for public .fly.dev access). */
+  async allocateSharedIpv4(appName: string): Promise<void> {
+    try {
+      await this.request<unknown>('POST', `/apps/${appName}/ips`, {
+        type: 'shared_v4',
+      })
+    } catch {
+      // May already exist — ignore
+    }
+  }
+
+  /** Allocate a dedicated IPv6 address for an app. */
+  async allocateIpv6(appName: string): Promise<void> {
+    try {
+      await this.request<unknown>('POST', `/apps/${appName}/ips`, {
+        type: 'v6',
+      })
+    } catch {
+      // May already exist — ignore
+    }
+  }
+
   // ── Machines ──────────────────────────────────────────────────────────────
 
   async createMachine(appName: string, opts: CreateMachineOptions): Promise<FlyMachine> {
