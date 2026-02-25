@@ -67,9 +67,11 @@ export const provisionAgentMachine = task({
 
     logger.info('Provisioning agent machine', { appName, userId, agentId })
 
-    // ── 3. Upsert Fly app ────────────────────────────────────────────────
+    // ── 3. Upsert Fly app + allocate public IPs ──────────────────────────
     const app = await fly.upsertApp(appName, FLY_ORG)
-    logger.info('Fly app ready', { appName: app.name })
+    await fly.allocateSharedIpv4(appName)
+    await fly.allocateIpv6(appName)
+    logger.info('Fly app ready with IPs', { appName: app.name })
 
     // ── 4. Create volume ─────────────────────────────────────────────────
     const volume = await fly.createVolume(appName, {
@@ -106,6 +108,10 @@ export const provisionAgentMachine = task({
           {
             protocol: 'tcp',
             internal_port: 18789,
+            ports: [
+              { port: 443, handlers: ['tls', 'http'] },
+              { port: 80, handlers: ['http'] },
+            ],
             autostop: 'suspend',
             autostart: true,
             min_machines_running: 0,
