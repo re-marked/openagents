@@ -33,14 +33,22 @@ function RatingStars({ rating, count }: { rating: number | null; count: number }
 }
 
 /**
- * Large App Store-style card used on the Discover page.
- * No borders — uses subtle background elevation and hover lift.
+ * Large App Store-style card. Clicking "View" opens the detail sheet.
  */
-export function AgentCardLarge({ agent }: { agent: AgentListItem }) {
+export function AgentCardLarge({
+  agent,
+  onSelect,
+}: {
+  agent: AgentListItem
+  onSelect: (agent: AgentListItem) => void
+}) {
   return (
-    <Link
-      href={`/agents/${agent.slug}`}
-      className="group block rounded-2xl bg-card transition-all duration-300 ease-out hover:bg-accent hover:scale-[1.01]"
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onSelect(agent)}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onSelect(agent) }}
+      className="group block rounded-2xl bg-card transition-all duration-300 ease-out hover:bg-accent hover:scale-[1.01] cursor-pointer select-none"
     >
       {/* Header row: icon + info + CTA */}
       <div className="flex items-center gap-4 p-5 pb-4">
@@ -56,18 +64,12 @@ export function AgentCardLarge({ agent }: { agent: AgentListItem }) {
             <RatingStars rating={agent.avg_rating} count={agent.total_reviews} />
           </div>
         </div>
-        <button
-          className="shrink-0 rounded-full bg-primary/15 px-5 py-1.5 text-sm font-semibold text-primary transition-colors duration-200 hover:bg-primary/25"
-          onClick={(e) => {
-            // Let the link handle navigation; this is just visual
-            e.stopPropagation()
-          }}
-        >
+        <span className="shrink-0 rounded-full bg-primary/15 px-5 py-1.5 text-sm font-semibold text-primary transition-colors duration-200 group-hover:bg-primary/25">
           View
-        </button>
+        </span>
       </div>
 
-      {/* Feature tags — horizontal scroll, styled like screenshot previews area */}
+      {/* Feature tags */}
       <div className="flex gap-2 px-5 pb-5 overflow-x-auto no-scrollbar">
         {agent.pricing_model === "free" ? (
           <span className="shrink-0 rounded-lg bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-400">
@@ -87,7 +89,7 @@ export function AgentCardLarge({ agent }: { agent: AgentListItem }) {
           </span>
         )}
       </div>
-    </Link>
+    </div>
   )
 }
 

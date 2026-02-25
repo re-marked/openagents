@@ -22,7 +22,7 @@ async function fetchAgents(searchParams: {
   let query = supabase
     .from("agents")
     .select(
-      "id, slug, name, tagline, category, avg_rating, total_hires, total_reviews, pricing_model, credits_per_session, icon_url, creator_id",
+      "id, slug, name, tagline, description, category, avg_rating, total_hires, total_reviews, pricing_model, credits_per_session, icon_url, creator_id",
     )
     .eq("status", "published")
 
@@ -67,6 +67,7 @@ async function fetchAgents(searchParams: {
     slug: a.slug,
     name: a.name,
     tagline: a.tagline,
+    description: a.description,
     category: a.category,
     avg_rating: a.avg_rating,
     total_hires: a.total_hires,
