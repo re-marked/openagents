@@ -172,8 +172,9 @@ app.post('/v1/chat', async (c) => {
       // but OpenClaw takes ~50s to initialize. Fly's proxy returns
       // ECONNREFUSED fast when the port isn't ready, so retries cycle
       // quickly and the total budget (~90s) covers the startup window.
-      const MAX_ATTEMPTS = 5
-      const RETRY_DELAYS_MS = [0, 2_000, 5_000, 10_000, 15_000]
+      const MAX_ATTEMPTS = 8
+      const RETRY_DELAYS_MS = [0, 2_000, 5_000, 10_000, 15_000, 20_000, 25_000, 30_000]
+      let lastConnectError: string | null = null
 
       for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
         if (attempt > 0) {
@@ -187,11 +188,12 @@ app.post('/v1/chat', async (c) => {
           break
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err)
+          lastConnectError = msg
           console.warn(`[chat] Attempt ${attempt + 1} failed: ${msg}`)
 
           if (attempt === MAX_ATTEMPTS - 1) {
             throw new Error(
-              `Agent unavailable after ${MAX_ATTEMPTS} connection attempts — it may still be starting up. Please try again in a moment.`,
+              `Agent unavailable after ${MAX_ATTEMPTS} connection attempts — it may still be starting up. Last error: ${lastConnectError ?? 'Unknown error'}`,
             )
           }
         }
@@ -238,6 +240,8 @@ app.post('/v1/chat', async (c) => {
           let lifecycleEnded = false
           let doneSent = false
           let resolved = false
+          let deltaBuffer = ''
+          let lastDoneText: string | null = null
 
           const onTimeout = () => {
             console.error('[chat] Turn timed out — no agent response received')
@@ -283,12 +287,13 @@ app.post('/v1/chat', async (c) => {
 
               // Agent events — assistant deltas, tool calls, lifecycle
               if (msg.type === 'event' && msg.event === 'agent') {
-                resetTurnTimer() // Agent is actively working
                 const payload = msg.payload
 
                 if (payload?.stream === 'assistant') {
                   const delta = payload.data?.delta ?? ''
                   if (delta) {
+                    resetTurnTimer()
+                    deltaBuffer += delta
                     await stream.writeSSE({
                       event: 'delta',
                       data: JSON.stringify({ content: delta }),
@@ -301,6 +306,27 @@ app.post('/v1/chat', async (c) => {
                   })
                 } else if (payload?.stream === 'lifecycle' && payload.data?.phase === 'end') {
                   lifecycleEnded = true
+                  resetTurnTimer()
+                  if (doneSent) {
+                    finalize(lastDoneText ?? deltaBuffer ?? null)
+                    return
+                  }
+                  if (deltaBuffer) {
+                    doneSent = true
+                    lastDoneText = deltaBuffer
+                    await stream.writeSSE({
+                      event: 'done',
+                      data: JSON.stringify({ content: deltaBuffer }),
+                    })
+                    finalize(deltaBuffer)
+                    return
+                  }
+                  await stream.writeSSE({
+                    event: 'error',
+                    data: JSON.stringify({ error: 'Agent finished without producing output' }),
+                  })
+                  finalize(null)
+                  return
                 }
               }
 
@@ -314,16 +340,18 @@ app.post('/v1/chat', async (c) => {
                   .map((p: { text: string }) => p.text)
                   .join('')
 
-                if (payload.state === 'final') {
+                if (payload.state === 'final' || payload.state === 'done' || payload.state === 'completed') {
                   doneSent = true
+                  const doneText = text || deltaBuffer
+                  lastDoneText = doneText || null
                   await stream.writeSSE({
                     event: 'done',
-                    data: JSON.stringify({ content: text }),
+                    data: JSON.stringify({ content: doneText }),
                   })
 
                   if (lifecycleEnded) {
                     // This is the last turn in this agent response cycle.
-                    finalize(text)
+                    finalize(doneText || null)
                   }
                   // If lifecycle hasn't ended, there may be more turns
                   // (e.g. tool calls). Keep listening.

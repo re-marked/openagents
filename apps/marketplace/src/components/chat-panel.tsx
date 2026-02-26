@@ -50,10 +50,15 @@ export function ChatPanel({ agentInstanceId }: { agentInstanceId: string }) {
         { id: assistantMsgId, role: 'assistant', content: '', isStreaming: true },
       ])
 
+      let timeoutId: ReturnType<typeof setTimeout> | null = null
       try {
+        const controller = new AbortController()
+        timeoutId = setTimeout(() => controller.abort(), 6 * 60 * 1000)
+
         const res = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
           body: JSON.stringify({ agentInstanceId, message }),
         })
 
@@ -67,6 +72,10 @@ export function ChatPanel({ agentInstanceId }: { agentInstanceId: string }) {
             ),
           )
           setIsStreaming(false)
+          if (timeoutId) {
+            clearTimeout(timeoutId)
+            timeoutId = null
+          }
           return
         }
 
@@ -79,6 +88,10 @@ export function ChatPanel({ agentInstanceId }: { agentInstanceId: string }) {
             ),
           )
           setIsStreaming(false)
+          if (timeoutId) {
+            clearTimeout(timeoutId)
+            timeoutId = null
+          }
           return
         }
 
@@ -176,16 +189,28 @@ export function ChatPanel({ agentInstanceId }: { agentInstanceId: string }) {
         setMessages((prev) =>
           prev.map((m) => (m.id === activeMsgId ? { ...m, isStreaming: false } : m)),
         )
+        if (timeoutId) {
+          clearTimeout(timeoutId)
+          timeoutId = null
+        }
       } catch (err) {
         console.error('Chat error:', err)
+        if (timeoutId) {
+          clearTimeout(timeoutId)
+          timeoutId = null
+        }
+        const timedOut = err instanceof DOMException && err.name === 'AbortError'
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantMsgId
-              ? { ...m, content: 'Error: Connection failed', isStreaming: false }
+              ? { ...m, content: timedOut ? 'Error: Request timed out' : 'Error: Connection failed', isStreaming: false }
               : m,
           ),
         )
       } finally {
+        if (timeoutId) {
+          clearTimeout(timeoutId)
+        }
         setIsStreaming(false)
       }
     },

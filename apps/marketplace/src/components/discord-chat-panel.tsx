@@ -70,16 +70,25 @@ export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCa
     setIsTyping(true)
 
     const message = queueRef.current.shift()!
+    let timeoutId: ReturnType<typeof setTimeout> | null = null
 
     try {
+      const controller = new AbortController()
+      timeoutId = setTimeout(() => controller.abort(), 6 * 60 * 1000)
+
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({ agentInstanceId, message }),
       })
 
       if (!res.ok || !res.body) {
         const err = await res.json().catch(() => ({ error: 'Request failed' }))
+        if (timeoutId) {
+          clearTimeout(timeoutId)
+          timeoutId = null
+        }
         setMessages((prev) => [
           ...prev,
           {
@@ -230,14 +239,24 @@ export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCa
           },
         ])
       }
+
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+        timeoutId = null
+      }
     } catch (err) {
       console.error('Chat error:', err)
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+        timeoutId = null
+      }
+      const timedOut = err instanceof DOMException && err.name === 'AbortError'
       setMessages((prev) => [
         ...prev,
         {
           id: `error-${Date.now()}`,
           role: 'master',
-          content: 'Connection failed. Please try again.',
+          content: timedOut ? 'Request timed out. Please try again.' : 'Connection failed. Please try again.',
           timestamp: new Date(),
         },
       ])
