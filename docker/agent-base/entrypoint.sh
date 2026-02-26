@@ -35,11 +35,31 @@ if [ -n "$AGENT_OPENCLAW_OVERRIDES" ]; then
   "
 fi
 
-# ── 5. Ensure OpenClaw picks up API keys via env vars
-# OpenClaw reads GEMINI_API_KEY (not GOOGLE_API_KEY), OPENAI_API_KEY, ANTHROPIC_API_KEY
-# Normalize Google key name for OpenClaw compatibility
+# ── 5. Normalize Google key name for OpenClaw compatibility
 if [ -n "$GOOGLE_API_KEY" ] && [ -z "$GEMINI_API_KEY" ]; then
   export GEMINI_API_KEY="$GOOGLE_API_KEY"
 fi
+
+# ── 6. Write auth-profiles.json from env vars
+# OpenClaw does NOT read API keys from env vars — it reads them from
+# /data/agents/main/agent/auth-profiles.json. We must generate this file
+# from the env vars that the provisioning task passes to the machine.
+AUTH_DIR="/data/agents/main/agent"
+AUTH_FILE="$AUTH_DIR/auth-profiles.json"
+mkdir -p "$AUTH_DIR"
+
+node -e "\
+  const fs = require('fs');\
+  const profiles = {};\
+  if (process.env.GEMINI_API_KEY) profiles.google = { type: 'api-key', apiKey: process.env.GEMINI_API_KEY };\
+  if (process.env.ANTHROPIC_API_KEY) profiles.anthropic = { type: 'api-key', apiKey: process.env.ANTHROPIC_API_KEY };\
+  if (process.env.OPENAI_API_KEY) profiles.openai = { type: 'api-key', apiKey: process.env.OPENAI_API_KEY };\
+  if (Object.keys(profiles).length > 0) {\
+    fs.writeFileSync('$AUTH_FILE', JSON.stringify({ profiles }, null, 2));\
+    console.log('auth-profiles.json written with providers:', Object.keys(profiles).join(', '));\
+  } else {\
+    console.warn('WARNING: No API keys found in env vars — auth-profiles.json not written');\
+  }\
+"
 
 exec "$@"

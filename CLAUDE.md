@@ -131,6 +131,30 @@ User hires → agent_instances INSERT (status=provisioning)
 
 Suspend/resume is handled automatically by Fly.io (`autostop: suspend`). ~200-500ms resume.
 
+## OpenClaw API Key Storage
+
+**CRITICAL**: OpenClaw does NOT read API keys from environment variables. It reads them from `auth-profiles.json` on the volume:
+
+```
+/data/agents/main/agent/auth-profiles.json
+```
+
+This file must exist on the agent's volume for the agent to call any LLM provider. Format:
+
+```json
+{
+  "profiles": {
+    "google": { "type": "api-key", "apiKey": "<GEMINI_API_KEY>" },
+    "anthropic": { "type": "api-key", "apiKey": "<ANTHROPIC_API_KEY>" },
+    "openai": { "type": "api-key", "apiKey": "<OPENAI_API_KEY>" }
+  }
+}
+```
+
+The provisioning task (`trigger/provision-agent-machine.ts`) passes API keys as env vars (`GEMINI_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`). The Docker entrypoint (`docker/agent-base/entrypoint.sh`) must convert these env vars into `auth-profiles.json` at boot so OpenClaw can find them.
+
+If a machine has a fresh volume with no `auth-profiles.json`, the agent will silently fail — it logs "No API key found for provider" but does NOT send an error over WebSocket, causing the gateway to hang.
+
 ## Trigger.dev Tasks
 
 | File | ID | Trigger |
