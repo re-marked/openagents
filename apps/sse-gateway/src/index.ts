@@ -168,77 +168,7 @@ app.post('/v1/chat', async (c) => {
     }, 5 * 60 * 1000)
 
     try {
-      // Set Origin header to match the target host — required for the
-      // browser origin check when connecting as control-ui client.
-      ws = new WebSocket(wsUrl, {
-        origin: `https://${targetApp}.fly.dev`,
-      })
-
-      await new Promise<void>((resolve, reject) => {
-        const connectTimeout = setTimeout(() => {
-          reject(new Error('WebSocket connection timeout'))
-        }, 30_000)
-
-        ws!.on('error', (err) => {
-          clearTimeout(connectTimeout)
-          reject(err)
-        })
-
-        ws!.on('open', () => {
-          clearTimeout(connectTimeout)
-          console.log('[chat] WebSocket connected')
-          resolve()
-        })
-      })
-
-      // --- OpenClaw protocol v3 handshake ---
-      // Step 1: Wait for connect.challenge event
-      const challengeMsg = await waitForMessage(ws, 10_000)
-      const challenge = JSON.parse(challengeMsg)
-
-      if (challenge.type !== 'event' || challenge.event !== 'connect.challenge') {
-        throw new Error(`Expected connect.challenge, got: ${challengeMsg}`)
-      }
-
-      console.log('[chat] Received connect.challenge')
-
-      // Step 2: Send connect request (protocol v3 frame format)
-      const connectParams: Record<string, unknown> = {
-        minProtocol: 3,
-        maxProtocol: 3,
-        client: {
-          id: 'openclaw-control-ui',
-          version: '1.0.0',
-          platform: 'node',
-          mode: 'backend',
-        },
-        role: 'operator',
-        scopes: ['operator.admin'],
-      }
-
-      if (agentToken) {
-        connectParams.auth = { token: agentToken }
-      }
-
-      const connectRequest = {
-        type: 'req',
-        id: generateId(),
-        method: 'connect',
-        params: connectParams,
-      }
-
-      ws.send(JSON.stringify(connectRequest))
-      console.log('[chat] Sent connect request')
-
-      // Step 3: Wait for hello-ok response
-      const helloMsg = await waitForMessage(ws, 10_000)
-      const hello = JSON.parse(helloMsg)
-
-      if (hello.type === 'res' && hello.ok === false) {
-        throw new Error(`Connect failed: ${JSON.stringify(hello.error)}`)
-      }
-
-      console.log('[chat] Handshake complete')
+      ws = await connectAndHandshake(wsUrl, targetApp, agentToken)
 
       // --- Send initial chat.send ---
       const chatRequest = {
@@ -521,6 +451,97 @@ app.post('/v1/chat', async (c) => {
     }
   })
 })
+
+/**
+ * Open a WebSocket to an OpenClaw agent and complete the v3 handshake.
+ * Returns a connected, authenticated WebSocket ready for chat.send.
+ *
+ * Steps: TCP open → wait for connect.challenge → send connect → wait for hello-ok.
+ * Throws on any failure so callers can retry the entire sequence atomically.
+ */
+async function connectAndHandshake(
+  wsUrl: string,
+  targetApp: string,
+  agentToken: string | undefined,
+  timeoutMs: number = 30_000,
+): Promise<WebSocket> {
+  const ws = new WebSocket(wsUrl, {
+    origin: `https://${targetApp}.fly.dev`,
+  })
+
+  // Step 0: Wait for TCP connection
+  await new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      ws.removeAllListeners()
+      ws.terminate()
+      reject(new Error('WebSocket connection timeout'))
+    }, timeoutMs)
+
+    ws.on('error', (err) => {
+      clearTimeout(timer)
+      reject(err)
+    })
+
+    ws.on('open', () => {
+      clearTimeout(timer)
+      resolve()
+    })
+  })
+
+  console.log('[chat] WebSocket connected')
+
+  // Step 1: Wait for connect.challenge
+  const challengeMsg = await waitForMessage(ws, 10_000)
+  const challenge = JSON.parse(challengeMsg)
+
+  if (challenge.type !== 'event' || challenge.event !== 'connect.challenge') {
+    ws.close()
+    throw new Error(`Expected connect.challenge, got: ${challengeMsg}`)
+  }
+
+  console.log('[chat] Received connect.challenge')
+
+  // Step 2: Send connect request
+  const connectParams: Record<string, unknown> = {
+    minProtocol: 3,
+    maxProtocol: 3,
+    client: {
+      id: 'openclaw-control-ui',
+      version: '1.0.0',
+      platform: 'node',
+      mode: 'backend',
+    },
+    role: 'operator',
+    scopes: ['operator.admin'],
+  }
+
+  if (agentToken) {
+    connectParams.auth = { token: agentToken }
+  }
+
+  ws.send(
+    JSON.stringify({
+      type: 'req',
+      id: generateId(),
+      method: 'connect',
+      params: connectParams,
+    }),
+  )
+
+  console.log('[chat] Sent connect request')
+
+  // Step 3: Wait for hello-ok
+  const helloMsg = await waitForMessage(ws, 10_000)
+  const hello = JSON.parse(helloMsg)
+
+  if (hello.type === 'res' && hello.ok === false) {
+    ws.close()
+    throw new Error(`Connect rejected: ${JSON.stringify(hello.error)}`)
+  }
+
+  console.log('[chat] Handshake complete')
+  return ws
+}
 
 /** Wait for the next WebSocket message within a timeout. */
 function waitForMessage(ws: WebSocket, timeoutMs: number): Promise<string> {
