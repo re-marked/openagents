@@ -503,7 +503,9 @@ async function connectAndHandshake(
   // Step 0: Wait for TCP connection
   await new Promise<void>((resolve, reject) => {
     const timer = setTimeout(() => {
+      // Swallow the error that terminate() emits — we're already rejecting.
       ws.removeAllListeners()
+      ws.on('error', () => {})
       ws.terminate()
       reject(new Error('WebSocket connection timeout'))
     }, timeoutMs)
