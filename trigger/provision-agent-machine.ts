@@ -181,7 +181,7 @@ export const provisionAgentMachine = task({
           guest: {
             cpu_kind: 'shared',
             cpus: 2,
-            memory_mb: agent.fly_machine_memory_mb ?? 2048,
+            memory_mb: Math.max(agent.fly_machine_memory_mb ?? 2048, 2048),
           },
           restart: { policy: 'on-failure' },
         },
