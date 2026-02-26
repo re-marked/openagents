@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { DiscordMessageList, type DiscordMessage } from './discord-message-list'
+import type { ToolUse } from './tool-use-block'
 import { DiscordChatInput } from './discord-chat-input'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -33,25 +34,41 @@ export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCa
             messages: { agent: string; content: string }[]
             complete: boolean
           }
+          type RawToolUse = {
+            id: string
+            tool: string
+            args?: string
+            output?: string
+            status: 'running' | 'done' | 'error'
+          }
+          type RawToolUseJson = RawThread & { tools?: RawToolUse[] }
           setMessages(
-            data.messages.map((m: { id: string; role: string; content: string; created_at?: string; tool_use?: RawThread | null }) => ({
-              id: m.id,
-              role: m.role === 'assistant' ? 'master' : 'user',
-              content: m.content,
-              timestamp: m.created_at ? new Date(m.created_at) : new Date(),
-              thread: m.tool_use
-                ? {
-                    id: String((m.tool_use as RawThread).id),
-                    participants: (m.tool_use as RawThread).participants ?? [],
-                    messages: ((m.tool_use as RawThread).messages ?? []).map((tm) => ({
-                      agent: tm.agent,
-                      content: tm.content,
-                      timestamp: m.created_at ? new Date(m.created_at) : new Date(),
-                    })),
-                    complete: true,
-                  }
-                : undefined,
-            })),
+            data.messages.map((m: { id: string; role: string; content: string; created_at?: string; tool_use?: RawToolUseJson | null }) => {
+              const tu = m.tool_use as RawToolUseJson | null
+              // Thread data: present if tool_use has participants (backward compat)
+              const hasThread = tu && tu.participants && tu.participants.length > 0
+              // Tool uses: present if tool_use has tools array
+              const rawTools = tu?.tools ?? []
+              return {
+                id: m.id,
+                role: m.role === 'assistant' ? 'master' : 'user',
+                content: m.content,
+                timestamp: m.created_at ? new Date(m.created_at) : new Date(),
+                thread: hasThread
+                  ? {
+                      id: String(tu!.id),
+                      participants: tu!.participants ?? [],
+                      messages: (tu!.messages ?? []).map((tm) => ({
+                        agent: tm.agent,
+                        content: tm.content,
+                        timestamp: m.created_at ? new Date(m.created_at) : new Date(),
+                      })),
+                      complete: true,
+                    }
+                  : undefined,
+                toolUses: rawTools.length > 0 ? rawTools : undefined,
+              }
+            }),
           )
         }
       } catch (err) {
@@ -104,7 +121,7 @@ export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCa
         return
       }
 
-      // Read SSE — buffer deltas, only show on "done"
+      // Read SSE — buffer text, show tool blocks live, drop full message on "done"
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
       let sseBuffer = ''
@@ -112,6 +129,9 @@ export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCa
       let contentBuffer = ''
       let turnCount = 0
       let streamDone = false
+      // Track a placeholder message for tool-use blocks (before text arrives)
+      let toolMsgId = ''
+      const toolAccum: ToolUse[] = []
 
       while (!streamDone) {
         const { done, value } = await reader.read()
@@ -134,11 +154,102 @@ export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCa
               const data = JSON.parse(line.slice(5).trim())
 
               if (currentEvent === 'delta' && data.content !== undefined) {
+                // Buffer silently — text appears all at once on "done"
                 contentBuffer += data.content
+              } else if (currentEvent === 'tool') {
+                // Tool use event — show blocks in real-time
+                const toolPayload = data.data ?? data
+                const toolId = toolPayload.id ?? `tool-${Date.now()}`
+                const toolName = toolPayload.tool ?? toolPayload.name ?? 'unknown'
+                const state = data.state ?? toolPayload.state ?? ''
+
+                let args = ''
+                if (toolPayload.args) {
+                  if (typeof toolPayload.args === 'string') {
+                    args = toolPayload.args
+                  } else if (toolPayload.args.command) {
+                    args = toolPayload.args.command
+                  } else if (toolPayload.args.path || toolPayload.args.file) {
+                    args = toolPayload.args.path ?? toolPayload.args.file
+                  } else if (toolPayload.args.query) {
+                    args = toolPayload.args.query
+                  } else {
+                    args = JSON.stringify(toolPayload.args)
+                  }
+                }
+
+                // Create a placeholder message for tool blocks if none exists
+                if (!toolMsgId) {
+                  toolMsgId = `master-tools-${Date.now()}-${turnCount}`
+                  setMessages((prev) => [
+                    ...prev,
+                    {
+                      id: toolMsgId,
+                      role: 'master',
+                      content: '',
+                      timestamp: new Date(),
+                      toolUses: [],
+                    },
+                  ])
+                }
+
+                if (state === 'start' || state === 'running' || !state) {
+                  const newTool: ToolUse = {
+                    id: toolId,
+                    tool: toolName,
+                    args: args || undefined,
+                    status: 'running',
+                  }
+                  toolAccum.push(newTool)
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === toolMsgId
+                        ? { ...m, toolUses: [...toolAccum] }
+                        : m,
+                    ),
+                  )
+                } else if (state === 'end' || state === 'done' || state === 'completed') {
+                  const output = toolPayload.output ?? toolPayload.result ?? ''
+                  const existing = toolAccum.find((t) => t.id === toolId)
+                  if (existing) {
+                    existing.status = 'done'
+                    existing.output = typeof output === 'string' ? output : JSON.stringify(output)
+                  }
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === toolMsgId
+                        ? { ...m, toolUses: [...toolAccum] }
+                        : m,
+                    ),
+                  )
+                } else if (state === 'error') {
+                  const existing = toolAccum.find((t) => t.id === toolId)
+                  if (existing) {
+                    existing.status = 'error'
+                    existing.output = toolPayload.error ?? 'Tool error'
+                  }
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === toolMsgId
+                        ? { ...m, toolUses: [...toolAccum] }
+                        : m,
+                    ),
+                  )
+                }
               } else if (currentEvent === 'done') {
-                // A turn is complete — show the whole message at once
+                // Turn complete — drop the full message at once
                 const fullContent = contentBuffer || data.content || ''
-                if (fullContent) {
+                if (toolMsgId && fullContent) {
+                  // Merge text into the existing tool-use message
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === toolMsgId
+                        ? { ...m, content: fullContent }
+                        : m,
+                    ),
+                  )
+                } else if (fullContent) {
+                  // No tools this turn — just add the message
                   setMessages((prev) => [
                     ...prev,
                     {
@@ -150,6 +261,8 @@ export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCa
                   ])
                 }
                 contentBuffer = ''
+                toolMsgId = ''
+                toolAccum.length = 0
                 turnCount++
               } else if (currentEvent === 'thread_start') {
                 // Attach thread to the last master message (immutable)
@@ -227,17 +340,27 @@ export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCa
         }
       }
 
-      // If there's remaining buffered content (stream ended without done event)
+      // If stream ended without a done event but there's buffered content
       if (contentBuffer) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `master-${Date.now()}-final`,
-            role: 'master',
-            content: contentBuffer,
-            timestamp: new Date(),
-          },
-        ])
+        if (toolMsgId) {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === toolMsgId
+                ? { ...m, content: contentBuffer }
+                : m,
+            ),
+          )
+        } else {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `master-${Date.now()}-final`,
+              role: 'master',
+              content: contentBuffer,
+              timestamp: new Date(),
+            },
+          ])
+        }
       }
 
       if (timeoutId) {

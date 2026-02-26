@@ -5,6 +5,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { MarkdownContent } from '@/components/markdown-content'
+import { ToolUseBlockList } from '@/components/tool-use-block'
+import type { ToolUse } from '@/components/tool-use-block'
 
 export interface ThreadMessage {
   agent: string
@@ -25,6 +27,7 @@ export interface DiscordMessage {
   content: string
   timestamp: Date
   thread?: Thread
+  toolUses?: ToolUse[]
 }
 
 interface MessageGroup {
@@ -64,8 +67,9 @@ function formatTime(date: Date): string {
 function groupMessages(messages: DiscordMessage[]): MessageGroup[] {
   return messages.reduce<MessageGroup[]>((groups, msg) => {
     const last = groups[groups.length - 1]
-    // Don't group messages that have threads — they should stand alone
-    if (last && last.role === msg.role && !msg.thread && !last.messages[last.messages.length - 1]?.thread) {
+    // Don't group messages that have threads, tool uses, or are streaming — they should stand alone
+    const lastMsg = last?.messages[last.messages.length - 1]
+    if (last && last.role === msg.role && !msg.thread && !lastMsg?.thread && !msg.toolUses?.length && !lastMsg?.toolUses?.length) {
       last.messages.push(msg)
     } else {
       groups.push({ role: msg.role, messages: [msg] })
@@ -174,6 +178,9 @@ function MessageGroupView({ group, agentName, botBg, botText }: { group: Message
         {/* Messages */}
         {group.messages.map((msg) => (
           <div key={msg.id}>
+            {msg.toolUses && msg.toolUses.length > 0 && (
+              <ToolUseBlockList toolUses={msg.toolUses} />
+            )}
             <MarkdownContent content={msg.content} className="text-foreground/90 text-[15px] break-words" />
             {msg.thread && <ThreadView thread={msg.thread} />}
           </div>
@@ -205,9 +212,10 @@ export function DiscordMessageList({ messages, agentName = 'Agent', agentCategor
   const botText = agentColor?.text ?? 'text-primary'
   const bottomRef = useRef<HTMLDivElement>(null)
 
+  const lastMsg = messages[messages.length - 1]
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages.length, messages[messages.length - 1]?.content])
+  }, [messages.length, lastMsg?.content, lastMsg?.toolUses?.length])
 
   if (messages.length === 0) {
     return (

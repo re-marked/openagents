@@ -207,6 +207,16 @@ export async function POST(request: Request) {
   const threadsByTurnIndex = new Map<number, ThreadData>()
   let activeThreadTurnIdx = -1
 
+  // Tool use tracking — keyed by turn index
+  type ToolUseData = {
+    id: string
+    tool: string
+    args?: string
+    output?: string
+    status: 'running' | 'done' | 'error'
+  }
+  const toolsByTurnIndex = new Map<number, ToolUseData[]>()
+
   // currentEvent must be closure-scoped so it survives across chunk boundaries
   let currentEvent = ''
 
@@ -223,6 +233,55 @@ export async function POST(request: Request) {
             const data = JSON.parse(line.slice(5).trim())
             if (currentEvent === 'delta' && data.content) {
               currentTurnContent += data.content
+            } else if (currentEvent === 'tool') {
+              // Accumulate tool use data for the current turn
+              const toolPayload = data.data ?? data
+              const toolId = toolPayload.id ?? `tool-${Date.now()}`
+              const toolName = toolPayload.tool ?? toolPayload.name ?? 'unknown'
+              const state = data.state ?? toolPayload.state ?? ''
+              const turnIdx = assistantMessages.length // current (not-yet-completed) turn
+
+              let args = ''
+              if (toolPayload.args) {
+                if (typeof toolPayload.args === 'string') {
+                  args = toolPayload.args
+                } else if (toolPayload.args.command) {
+                  args = toolPayload.args.command
+                } else if (toolPayload.args.path || toolPayload.args.file) {
+                  args = toolPayload.args.path ?? toolPayload.args.file
+                } else if (toolPayload.args.query) {
+                  args = toolPayload.args.query
+                } else {
+                  args = JSON.stringify(toolPayload.args)
+                }
+              }
+
+              if (!toolsByTurnIndex.has(turnIdx)) {
+                toolsByTurnIndex.set(turnIdx, [])
+              }
+              const turnTools = toolsByTurnIndex.get(turnIdx)!
+
+              if (state === 'start' || state === 'running' || !state) {
+                turnTools.push({
+                  id: toolId,
+                  tool: toolName,
+                  args: args || undefined,
+                  status: 'running',
+                })
+              } else if (state === 'end' || state === 'done' || state === 'completed') {
+                const existing = turnTools.find((t) => t.id === toolId)
+                if (existing) {
+                  existing.status = 'done'
+                  existing.output = toolPayload.output ?? toolPayload.result ?? ''
+                  if (typeof existing.output !== 'string') existing.output = JSON.stringify(existing.output)
+                }
+              } else if (state === 'error') {
+                const existing = turnTools.find((t) => t.id === toolId)
+                if (existing) {
+                  existing.status = 'error'
+                  existing.output = toolPayload.error ?? 'Tool error'
+                }
+              }
             } else if (currentEvent === 'done') {
               // Turn complete — flush accumulated content
               if (currentTurnContent) {
@@ -270,12 +329,28 @@ export async function POST(request: Request) {
         const { data: savedMessages } = await supabase
           .from('messages')
           .insert(
-            assistantMessages.map((content, idx) => ({
-              session_id: sessionId,
-              role: 'assistant' as const,
-              content,
-              tool_use: (threadsByTurnIndex.get(idx) ?? null) as never,
-            })),
+            assistantMessages.map((content, idx) => {
+              const thread = threadsByTurnIndex.get(idx) ?? null
+              const tools = toolsByTurnIndex.get(idx) ?? null
+              // Combine thread and tool data into tool_use JSON
+              let toolUseJson: Record<string, unknown> | null = null
+              if (thread || (tools && tools.length > 0)) {
+                toolUseJson = {}
+                if (thread) {
+                  // Preserve thread data at top level for backward compatibility
+                  Object.assign(toolUseJson, thread)
+                }
+                if (tools && tools.length > 0) {
+                  toolUseJson.tools = tools
+                }
+              }
+              return {
+                session_id: sessionId,
+                role: 'assistant' as const,
+                content,
+                tool_use: (toolUseJson ?? null) as never,
+              }
+            }),
           )
           .select('id')
 
