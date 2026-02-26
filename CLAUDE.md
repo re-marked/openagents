@@ -202,3 +202,60 @@ You have full access to run infrastructure commands directly — never ask the u
 - **When the dev branch sees no bugs**: Merge dev into main via rebase with a proper documented PR and delete the branch
 - **Prioritize committing more frequently**: Commit often, with small, focused changes. This makes it easier to review and merge changes.
 - **Always add co-authors**: Include both authors (me and Claude) in every commit. Make sure to include the email address of each author. My email is psyhik17@gmail.com and my Github username is re-marked.
+
+## Parallel Development with Git Worktrees
+
+Worktrees let multiple Claude Code sessions work on different features at the same time without conflicts. Each worktree is a separate checkout of the repo on its own branch, sharing the same `.git` history.
+
+### Directory layout
+
+```
+openagents/                          ← main worktree (main or dev branch)
+openagents/.claude/worktrees/
+  feature-auth/                      ← worktree on feature/auth
+  feature-billing/                   ← worktree on feature/billing
+```
+
+### Creating a worktree
+
+**Option A — Claude Code built-in**: type `/worktree` at the start of a session. Claude Code creates one in `.claude/worktrees/`, assigns a branch, and cleans up on exit.
+
+**Option B — Manual** (more control over branch name and base):
+
+```bash
+# Branch off dev for a new feature
+git worktree add .claude/worktrees/feature-auth -b feature/auth dev
+
+# Open a Claude Code session in that worktree
+cd .claude/worktrees/feature-auth
+claude
+```
+
+### Workflow per session
+
+1. Create or enter a worktree branched off `dev`
+2. Work on the feature, commit frequently to `feature/xyz`
+3. Push the feature branch: `git push -u origin feature/xyz`
+4. Create a PR to merge `feature/xyz` → `dev` via rebase
+5. After merge, remove the worktree: `git worktree remove .claude/worktrees/feature-xyz`
+
+### Rules
+
+- **Never have two worktrees on the same branch** — git enforces this, but don't try to work around it
+- **Always branch off `dev`**, not `main` — main is only updated from dev via PR
+- **Each session pushes its own feature branch** — no two sessions push to the same branch
+- **Don't run `pnpm install` in worktrees** — `node_modules` is resolved from the repo root via pnpm's monorepo hoisting. If a worktree needs dependencies, run `pnpm install` from the worktree root
+- **Remove worktrees when done** — stale worktrees clutter the repo and can block branch deletion
+
+### Cleanup
+
+```bash
+# List all worktrees
+git worktree list
+
+# Remove a specific worktree
+git worktree remove .claude/worktrees/feature-xyz
+
+# Prune stale worktree references (if directory was manually deleted)
+git worktree prune
+```
