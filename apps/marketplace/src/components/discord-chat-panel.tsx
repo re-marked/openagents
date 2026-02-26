@@ -154,8 +154,24 @@ export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCa
               const data = JSON.parse(line.slice(5).trim())
 
               if (currentEvent === 'delta' && data.content !== undefined) {
-                // Buffer silently — text appears all at once on "done"
+                // Buffer silently — text appears as a block on text_block or done
                 contentBuffer += data.content
+              } else if (currentEvent === 'text_block') {
+                // Gateway flushed text before a tool call — show as a separate message
+                const blockContent = contentBuffer || data.content || ''
+                if (blockContent) {
+                  const blockId = `master-${Date.now()}-${turnCount}-blk-${Math.random().toString(36).slice(2, 6)}`
+                  setMessages((prev) => [
+                    ...prev,
+                    {
+                      id: blockId,
+                      role: 'master',
+                      content: blockContent,
+                      timestamp: new Date(),
+                    },
+                  ])
+                }
+                contentBuffer = ''
               } else if (currentEvent === 'tool') {
                 // Tool use event — show blocks in real-time
                 const toolPayload = data.data ?? data

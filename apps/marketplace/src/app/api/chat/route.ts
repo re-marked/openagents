@@ -233,6 +233,12 @@ export async function POST(request: Request) {
             const data = JSON.parse(line.slice(5).trim())
             if (currentEvent === 'delta' && data.content) {
               currentTurnContent += data.content
+            } else if (currentEvent === 'text_block') {
+              // Text flushed before a tool call — save as a separate message
+              if (currentTurnContent) {
+                assistantMessages.push(currentTurnContent)
+                currentTurnContent = ''
+              }
             } else if (currentEvent === 'tool') {
               // Accumulate tool use data for the current turn
               const toolPayload = data.data ?? data

@@ -300,6 +300,16 @@ app.post('/v1/chat', async (c) => {
                     })
                   }
                 } else if (payload?.stream === 'tool') {
+                  // Flush any buffered text as a text_block before tool events
+                  // so the frontend can render them as separate messages
+                  if (deltaBuffer) {
+                    await stream.writeSSE({
+                      event: 'text_block',
+                      data: JSON.stringify({ content: deltaBuffer }),
+                    })
+                    deltaBuffer = ''
+                  }
+                  resetTurnTimer()
                   await stream.writeSSE({
                     event: 'tool',
                     data: JSON.stringify(payload),
