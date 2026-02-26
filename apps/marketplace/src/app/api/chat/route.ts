@@ -1,6 +1,8 @@
 import { createClient, createServiceClient } from '@openagents/db/server'
 import { NextResponse } from 'next/server'
 import type { Tables } from '@openagents/db'
+import { getUserCredits } from '@/lib/usage/credit-check'
+import { estimateTokens, calculateCredits, estimateCostUsd } from '@/lib/usage/token-estimator'
 
 export const runtime = 'nodejs'
 
@@ -60,6 +62,15 @@ export async function POST(request: Request) {
 
   if (!instance.fly_app_name) {
     return NextResponse.json({ error: 'Agent has no Fly app configured' }, { status: 500 })
+  }
+
+  // 3b. Credit pre-check — block if zero credits
+  const userCredits = await getUserCredits(user.id)
+  if (userCredits <= 0) {
+    return NextResponse.json(
+      { error: 'No credits remaining. Please add credits to continue.' },
+      { status: 402 },
+    )
   }
 
   // 4. Find or create session for this user + instance
@@ -157,6 +168,8 @@ export async function POST(request: Request) {
 
   const agentToken = instance.gateway_token ?? process.env.TEST_AGENT_GATEWAY_TOKEN
 
+  const streamStartTime = Date.now()
+
   const gatewayResponse = await fetch(`${gatewayUrl}/v1/chat`, {
     method: 'POST',
     headers: {
@@ -253,14 +266,51 @@ export async function POST(request: Request) {
         assistantMessages.push(currentTurnContent)
       }
       if (assistantMessages.length > 0) {
-        await supabase.from('messages').insert(
-          assistantMessages.map((content, idx) => ({
-            session_id: sessionId,
-            role: 'assistant' as const,
-            content,
-            tool_use: (threadsByTurnIndex.get(idx) ?? null) as never,
-          })),
+        // Save messages and get IDs back for token update
+        const { data: savedMessages } = await supabase
+          .from('messages')
+          .insert(
+            assistantMessages.map((content, idx) => ({
+              session_id: sessionId,
+              role: 'assistant' as const,
+              content,
+              tool_use: (threadsByTurnIndex.get(idx) ?? null) as never,
+            })),
+          )
+          .select('id')
+
+        // 10. Record usage — estimate tokens, deduct credits
+        const inputTokens = estimateTokens(message)
+        const outputTokens = assistantMessages.reduce(
+          (sum, msg) => sum + estimateTokens(msg),
+          0,
         )
+        const computeSeconds = Math.round((Date.now() - streamStartTime) / 1000 * 100) / 100
+        const creditsConsumed = calculateCredits(inputTokens, outputTokens)
+        const costUsd = estimateCostUsd(creditsConsumed)
+
+        const serviceClient = createServiceClient()
+        await serviceClient.rpc('record_usage_event', {
+          p_session_id: sessionId,
+          p_user_id: user.id,
+          p_instance_id: agentInstanceId,
+          p_input_tokens: inputTokens,
+          p_output_tokens: outputTokens,
+          p_compute_seconds: computeSeconds,
+          p_credits_consumed: creditsConsumed,
+          p_cost_usd: costUsd,
+        })
+
+        // Update tokens_used on each saved assistant message
+        if (savedMessages && savedMessages.length > 0) {
+          for (let i = 0; i < savedMessages.length; i++) {
+            const msgTokens = estimateTokens(assistantMessages[i])
+            await supabase
+              .from('messages')
+              .update({ tokens_used: msgTokens })
+              .eq('id', (savedMessages[i] as { id: string }).id)
+          }
+        }
       }
     },
   })

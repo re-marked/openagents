@@ -822,6 +822,19 @@ export type Database = {
     }
     Functions: {
       custom_access_token_hook: { Args: { event: Json }; Returns: Json }
+      record_usage_event: {
+        Args: {
+          p_session_id: string
+          p_user_id: string
+          p_instance_id: string
+          p_input_tokens: number
+          p_output_tokens: number
+          p_compute_seconds: number
+          p_credits_consumed: number
+          p_cost_usd: number
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

@@ -1,5 +1,7 @@
 import { Bot, Plus } from 'lucide-react'
 import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 
 export default function AgentsPage() {
   return (
@@ -11,17 +13,16 @@ export default function AgentsPage() {
             Manage your published agents.
           </p>
         </div>
-        <Link
-          href="/agents/new"
-          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-        >
-          <Plus className="size-4" />
-          Import from GitHub
-        </Link>
+        <Button asChild>
+          <Link href="/agents/new">
+            <Plus className="mr-2 size-4" />
+            Import from GitHub
+          </Link>
+        </Button>
       </div>
 
       {/* Empty state */}
-      <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed p-12">
+      <Card className="flex flex-1 items-center justify-center border-dashed p-12">
         <div className="text-center">
           <Bot className="mx-auto size-10 text-muted-foreground/50" />
           <h3 className="mt-4 text-lg font-medium">No agents published</h3>
@@ -29,7 +30,7 @@ export default function AgentsPage() {
             Import a GitHub repo containing an agent.yaml to get started.
           </p>
         </div>
-      </div>
+      </Card>
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { Settings } from 'lucide-react'
+import { Card } from '@/components/ui/card'
 
 export default function SettingsPage() {
   return (
@@ -10,7 +11,7 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed p-12">
+      <Card className="flex flex-1 items-center justify-center border-dashed p-12">
         <div className="text-center">
           <Settings className="mx-auto size-10 text-muted-foreground/50" />
           <h3 className="mt-4 text-lg font-medium">Settings coming soon</h3>
@@ -18,7 +19,7 @@ export default function SettingsPage() {
             Profile, Stripe Connect, and GitHub integration settings.
           </p>
         </div>
-      </div>
+      </Card>
     </div>
   )
 }

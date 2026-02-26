@@ -64,3 +64,11 @@ apps/docs/
 bash.exe.stackdump
 .trigger
 
+# supabase
+supabase/.temp/gotrue-version
+supabase/.temp/pooler-url
+supabase/.temp/postgres-version
+supabase/.temp/project-ref
+supabase/.temp/storage-migration
+supabase/.temp/storage-version
+supabase/.temp/rest-version

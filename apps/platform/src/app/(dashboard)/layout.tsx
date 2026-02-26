@@ -15,14 +15,29 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .eq('id', user.id)
     .single()
 
+  // Load creator's published agents for sidebar
+  const { data: agentRows } = await service
+    .from('agents')
+    .select('id, name, category, slug')
+    .eq('creator_id', user.id)
+    .order('created_at', { ascending: true })
+
+  const agents = (agentRows ?? []).map((a) => ({
+    id: a.id,
+    name: a.name,
+    category: a.category ?? 'productivity',
+    status: 'published',
+  }))
+
   return (
-    <SidebarProvider>
+    <SidebarProvider className="h-svh !min-h-0">
       <PlatformSidebar
         userEmail={profile?.email ?? user.email ?? ''}
-        userName={profile?.display_name ?? undefined}
-        avatarUrl={profile?.avatar_url ?? undefined}
+        agents={agents}
       />
-      <SidebarInset>{children}</SidebarInset>
+      <SidebarInset className="overflow-y-auto">
+        {children}
+      </SidebarInset>
     </SidebarProvider>
   )
 }

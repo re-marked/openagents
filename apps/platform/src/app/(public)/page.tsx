@@ -1,83 +1,55 @@
 import Link from 'next/link'
-import { Terminal, Github, ArrowRight, Code2, Eye, Zap, DollarSign } from 'lucide-react'
+import { ArrowRight, ArrowDown, Github, Code2, Eye, DollarSign } from 'lucide-react'
+import { SierpinskiLogo } from '@/components/sierpinski-logo'
+import { Button } from '@/components/ui/button'
 
 export default function LandingPage() {
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      {/* Nav */}
-      <header className="sticky top-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur-xl">
-        <nav className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Terminal className="size-3.5" />
-            </div>
-            <span className="text-sm font-semibold">OpenAgents Platform</span>
-          </Link>
-          <div className="flex items-center gap-3">
-            <Link
-              href={process.env.NEXT_PUBLIC_MARKETPLACE_URL ?? 'https://openagents.com'}
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
-              Marketplace
-            </Link>
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-2 rounded-lg bg-foreground px-3.5 py-1.5 text-sm font-medium text-background hover:bg-foreground/90"
-            >
-              <Github className="size-3.5" />
-              Sign in
-            </Link>
-          </div>
-        </nav>
-      </header>
-
+    <main>
       {/* Hero */}
-      <section className="mx-auto flex w-full max-w-5xl flex-1 flex-col items-center justify-center px-6 py-24 text-center">
-        <div className="inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1 text-xs text-muted-foreground">
-          <span className="size-1.5 rounded-full bg-primary animate-pulse" />
-          Now accepting creators
-        </div>
-
-        <h1 className="mt-6 max-w-2xl text-4xl font-bold tracking-tight sm:text-5xl">
-          Build AI agents.{' '}
+      <section className="relative flex min-h-[calc(100vh-3.5rem)] flex-col items-center justify-center px-6 py-24">
+        <SierpinskiLogo className="mb-10 size-32 text-foreground" />
+        <h1 className="mb-6 text-center text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
+          Build AI agents.<br />
           <span className="text-primary">Earn when they&apos;re used.</span>
         </h1>
-
-        <p className="mt-4 max-w-lg text-base text-muted-foreground">
+        <p className="mb-10 max-w-xl text-center text-lg text-muted-foreground">
           Import your agent from GitHub, configure it visually, and publish to
           the OpenAgents marketplace. You earn credits every time someone hires
           your agent.
         </p>
 
-        <div className="mt-8 flex items-center gap-3">
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            <Github className="size-4" />
-            Start publishing
-          </Link>
-          <Link
-            href={process.env.NEXT_PUBLIC_MARKETPLACE_URL ?? 'https://openagents.com'}
-            className="inline-flex items-center gap-1 px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground"
-          >
-            Browse marketplace
-            <ArrowRight className="size-3.5" />
-          </Link>
+        <div className="flex items-center gap-3">
+          <Button size="lg" asChild>
+            <Link href="/login">
+              <Github className="mr-2 size-4" />
+              Start publishing
+            </Link>
+          </Button>
+          <Button variant="ghost" size="lg" className="text-muted-foreground" asChild>
+            <a href={process.env.NEXT_PUBLIC_MARKETPLACE_URL ?? 'https://openagents.com'}>
+              Browse marketplace
+              <ArrowRight className="ml-2 size-3.5" />
+            </a>
+          </Button>
         </div>
+
+        <a href="#how-it-works" className="mt-8 flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
+          or learn more <ArrowDown className="size-4" />
+        </a>
       </section>
 
       {/* How it works */}
-      <section className="border-t bg-card/50">
-        <div className="mx-auto max-w-5xl px-6 py-20">
-          <h2 className="text-center text-2xl font-semibold tracking-tight">
+      <section id="how-it-works" className="bg-card/50 px-6 py-24">
+        <div className="mx-auto max-w-6xl">
+          <h2 className="mb-4 text-center text-3xl font-bold tracking-tight sm:text-4xl">
             Ship in minutes, not weeks
           </h2>
-          <p className="mt-2 text-center text-sm text-muted-foreground">
+          <p className="mx-auto mb-16 max-w-2xl text-center text-muted-foreground">
             Four steps from repo to marketplace.
           </p>
 
-          <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             <Step
               number="1"
               icon={Github}
@@ -107,73 +79,68 @@ export default function LandingPage() {
       </section>
 
       {/* Repo structure */}
-      <section className="border-t">
-        <div className="mx-auto max-w-5xl px-6 py-20">
-          <div className="grid gap-12 lg:grid-cols-2">
-            <div>
-              <h2 className="text-2xl font-semibold tracking-tight">
-                Your repo, your rules
-              </h2>
-              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                OpenAgents uses two config files. <code className="rounded bg-muted px-1.5 py-0.5 text-xs">agent.yaml</code> is
-                the platform-agnostic standard that defines what your agent can
-                do. <code className="rounded bg-muted px-1.5 py-0.5 text-xs">openagents.yaml</code> defines how it appears on the marketplace.
-              </p>
-              <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
-                You provide the configuration. We provide the runtime. No Docker
-                setup, no infrastructure, no billing integration.
-              </p>
-              <Link
-                href="/login"
-                className="mt-6 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-              >
+      <section className="mx-auto max-w-6xl px-6 py-24">
+        <div className="grid gap-16 lg:grid-cols-2">
+          <div>
+            <h2 className="mb-6 text-3xl font-bold tracking-tight">
+              Your repo, your rules
+            </h2>
+            <p className="mb-4 text-muted-foreground">
+              OpenAgents uses two config files. <code className="rounded bg-muted px-1.5 py-0.5 text-xs">agent.yaml</code> is
+              the platform-agnostic standard that defines what your agent can
+              do. <code className="rounded bg-muted px-1.5 py-0.5 text-xs">openagents.yaml</code> defines how it appears on the marketplace.
+            </p>
+            <p className="mb-6 text-muted-foreground">
+              You provide the configuration. We provide the runtime. No Docker
+              setup, no infrastructure, no billing integration.
+            </p>
+            <Button asChild>
+              <Link href="/login">
                 Get started
-                <ArrowRight className="size-3.5" />
+                <ArrowRight className="ml-2 size-3.5" />
               </Link>
-            </div>
+            </Button>
+          </div>
 
-            <div className="rounded-xl border bg-card p-5 font-mono text-sm">
-              <div className="text-muted-foreground">
-                <FileTree />
-              </div>
-            </div>
+          <div className="rounded-2xl bg-card p-6 font-mono text-sm">
+            <FileTree />
           </div>
         </div>
       </section>
 
       {/* CTA */}
-      <section className="border-t bg-card/50">
-        <div className="mx-auto flex max-w-5xl flex-col items-center px-6 py-16 text-center">
-          <Zap className="size-8 text-primary" />
-          <h2 className="mt-4 text-2xl font-semibold tracking-tight">
+      <section className="bg-card px-6 py-24">
+        <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
+          <Github className="mb-4 size-10 text-foreground" />
+          <h2 className="mb-6 text-3xl font-bold tracking-tight sm:text-4xl">
             Ready to publish?
           </h2>
-          <p className="mt-2 max-w-md text-sm text-muted-foreground">
+          <p className="mb-10 text-lg text-muted-foreground">
             Sign in with GitHub and import your first agent in under five minutes.
           </p>
-          <Link
-            href="/login"
-            className="mt-6 inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            <Github className="size-4" />
-            Sign in with GitHub
-          </Link>
+          <Button size="lg" asChild>
+            <Link href="/login">
+              <Github className="mr-2 size-4" />
+              Sign in with GitHub
+            </Link>
+          </Button>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t py-6">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 text-xs text-muted-foreground">
-          <span>OpenAgents</span>
-          <Link
-            href={process.env.NEXT_PUBLIC_MARKETPLACE_URL ?? 'https://openagents.com'}
-            className="hover:text-foreground"
-          >
-            Marketplace
-          </Link>
+      <footer className="px-6 py-16">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-12 flex items-center gap-3">
+            <SierpinskiLogo className="size-8 text-foreground" />
+            <span className="text-3xl font-bold tracking-tight">OPENAGENTS</span>
+          </div>
+
+          <div className="mt-12 border-t border-border/40 pt-8 text-center text-xs text-muted-foreground">
+            &copy; {new Date().getFullYear()} OpenAgents. All rights reserved.
+          </div>
         </div>
       </footer>
-    </div>
+    </main>
   )
 }
 
@@ -189,7 +156,7 @@ function Step({
   description: string
 }) {
   return (
-    <div className="flex flex-col items-start">
+    <div className="group rounded-2xl bg-card p-6 transition-colors hover:bg-accent">
       <div className="flex items-center gap-2">
         <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
           {number}

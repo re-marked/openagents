@@ -32,7 +32,10 @@
       "Bash(git commit:*)",
       "Bash(git merge:*)",
       "Bash(git stash:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "WebFetch(domain:www.namecheap.com)",
+      "Bash(echo:*)",
+      "Bash(head:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

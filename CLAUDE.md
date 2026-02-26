@@ -206,4 +206,4 @@ You have full access to run infrastructure commands directly — never ask the u
 - **Service client for admin ops**: use `createServiceClient()` from `@openagents/db/server` in Trigger.dev tasks — bypasses RLS
 - **Regular client for user ops**: use `createClient()` from `@openagents/db/server` in route handlers/Server Components
 - **shadcn components**: go in `src/components/ui/` — don't edit these manually
-- **New functions**: create a branch named function/foo and push changes on that branch
+- **New functions**: create a git branch named feature/foo and commit & push changes on that branch

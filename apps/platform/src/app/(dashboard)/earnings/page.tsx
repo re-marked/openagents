@@ -1,4 +1,5 @@
 import { DollarSign } from 'lucide-react'
+import { Card } from '@/components/ui/card'
 
 export default function EarningsPage() {
   return (
@@ -10,7 +11,7 @@ export default function EarningsPage() {
         </p>
       </div>
 
-      <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed p-12">
+      <Card className="flex flex-1 items-center justify-center border-dashed p-12">
         <div className="text-center">
           <DollarSign className="mx-auto size-10 text-muted-foreground/50" />
           <h3 className="mt-4 text-lg font-medium">No earnings yet</h3>
@@ -18,7 +19,7 @@ export default function EarningsPage() {
             Publish an agent and start earning when users hire it.
           </p>
         </div>
-      </div>
+      </Card>
     </div>
   )
 }

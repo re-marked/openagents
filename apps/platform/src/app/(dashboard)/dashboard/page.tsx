@@ -1,4 +1,5 @@
 import { Bot, Users, DollarSign, TrendingUp } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
 
 export default function DashboardPage() {
   return (
@@ -39,7 +40,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Empty state */}
-      <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed p-12">
+      <Card className="flex flex-1 items-center justify-center border-dashed p-12">
         <div className="text-center">
           <Bot className="mx-auto size-10 text-muted-foreground/50" />
           <h3 className="mt-4 text-lg font-medium">No agents yet</h3>
@@ -53,7 +54,7 @@ export default function DashboardPage() {
             Import from GitHub
           </a>
         </div>
-      </div>
+      </Card>
     </div>
   )
 }
@@ -70,13 +71,15 @@ function StatCard({
   icon: React.ComponentType<{ className?: string }>
 }) {
   return (
-    <div className="rounded-lg border bg-card p-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{title}</p>
-        <Icon className="size-4 text-muted-foreground" />
-      </div>
-      <p className="mt-2 text-2xl font-bold">{value}</p>
-      <p className="mt-1 text-xs text-muted-foreground">{description}</p>
-    </div>
+    <Card className="py-4">
+      <CardContent className="pt-0">
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">{title}</p>
+          <Icon className="size-4 text-muted-foreground" />
+        </div>
+        <p className="mt-2 text-2xl font-bold">{value}</p>
+        <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+      </CardContent>
+    </Card>
   )
 }
