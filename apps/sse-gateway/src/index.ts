@@ -227,14 +227,49 @@ app.post('/v1/chat', async (c) => {
       /**
        * Listen for one full agent turn (deltas → done, or lifecycle end + done).
        * Returns the completed text from the "done" event, or null on error/close.
+       *
+       * Includes a per-turn inactivity timeout: if no meaningful agent/chat
+       * events arrive within TURN_TIMEOUT_MS, we assume the agent silently
+       * failed (e.g., missing API key) and resolve with null + error event.
        */
+      const TURN_TIMEOUT_MS = 90_000
       const listenForTurn = (): Promise<string | null> => {
         return new Promise<string | null>((resolve) => {
           let lifecycleEnded = false
           let doneSent = false
+          let resolved = false
+
+          const onTimeout = () => {
+            console.error('[chat] Turn timed out — no agent response received')
+            if (!closed) {
+              stream.writeSSE({
+                event: 'error',
+                data: JSON.stringify({ error: 'Agent did not respond — it may have encountered an internal error. Please try again.' }),
+              })
+            }
+            finalize(null)
+          }
+
+          // Inactivity timer — reset on every meaningful event
+          let turnTimer = setTimeout(onTimeout, TURN_TIMEOUT_MS)
+
+          const resetTurnTimer = () => {
+            clearTimeout(turnTimer)
+            turnTimer = setTimeout(onTimeout, TURN_TIMEOUT_MS)
+          }
+
+          const finalize = (result: string | null) => {
+            if (resolved) return
+            resolved = true
+            clearTimeout(turnTimer)
+            connectedWs.removeListener('message', onMessage)
+            connectedWs.removeListener('close', onClose)
+            connectedWs.removeListener('error', onError)
+            resolve(result)
+          }
 
           const onMessage = async (data: WebSocket.Data) => {
-            if (closed) return
+            if (closed || resolved) return
 
             try {
               const raw = data.toString()
@@ -248,6 +283,7 @@ app.post('/v1/chat', async (c) => {
 
               // Agent events — assistant deltas, tool calls, lifecycle
               if (msg.type === 'event' && msg.event === 'agent') {
+                resetTurnTimer() // Agent is actively working
                 const payload = msg.payload
 
                 if (payload?.stream === 'assistant') {
@@ -270,6 +306,7 @@ app.post('/v1/chat', async (c) => {
 
               // Chat events — "final" signals one turn's completion.
               if (msg.type === 'event' && msg.event === 'chat') {
+                resetTurnTimer() // Chat state change
                 const payload = msg.payload
                 const parts = payload.message?.content ?? []
                 const text = parts
@@ -286,8 +323,7 @@ app.post('/v1/chat', async (c) => {
 
                   if (lifecycleEnded) {
                     // This is the last turn in this agent response cycle.
-                    connectedWs.removeListener('message', onMessage)
-                    resolve(text)
+                    finalize(text)
                   }
                   // If lifecycle hasn't ended, there may be more turns
                   // (e.g. tool calls). Keep listening.
@@ -296,8 +332,7 @@ app.post('/v1/chat', async (c) => {
                     event: 'error',
                     data: JSON.stringify({ error: payload.error ?? 'Agent error' }),
                   })
-                  connectedWs.removeListener('message', onMessage)
-                  resolve(null)
+                  finalize(null)
                 }
               }
 
@@ -307,8 +342,7 @@ app.post('/v1/chat', async (c) => {
                   event: 'error',
                   data: JSON.stringify({ error: msg.error?.message ?? 'Request error' }),
                 })
-                connectedWs.removeListener('message', onMessage)
-                resolve(null)
+                finalize(null)
               }
             } catch (err) {
               console.error('[chat] Failed to parse WS message:', err)
@@ -325,10 +359,7 @@ app.post('/v1/chat', async (c) => {
                 data: JSON.stringify({ error: 'Connection closed unexpectedly' }),
               })
             }
-            connectedWs.removeListener('message', onMessage)
-            connectedWs.removeListener('close', onClose)
-            connectedWs.removeListener('error', onError)
-            resolve(null)
+            finalize(null)
           }
 
           const onError = (err: Error) => {
@@ -339,11 +370,8 @@ app.post('/v1/chat', async (c) => {
                 data: JSON.stringify({ error: 'WebSocket error' }),
               })
             }
-            connectedWs.removeListener('message', onMessage)
-            connectedWs.removeListener('close', onClose)
-            connectedWs.removeListener('error', onError)
             cleanup()
-            resolve(null)
+            finalize(null)
           }
 
           connectedWs.on('message', onMessage)
