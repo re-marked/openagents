@@ -17,7 +17,7 @@
   "dependencies": {
     "@openagents/db": "workspace:*",
     "@openagents/fly": "workspace:*",
-    "@trigger.dev/sdk": "4.4.1"
+    "@trigger.dev/sdk": "3.3.17"
   },
   "devDependencies": {
     "prettier": "^3",

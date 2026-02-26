@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { MarkdownContent } from '@/components/markdown-content'
 
 export interface ThreadMessage {
   agent: string
@@ -110,9 +111,7 @@ function ThreadView({ thread }: { thread: Thread }) {
                 <span className={`text-xs font-semibold ${colors.text} capitalize`}>
                   {msg.agent}
                 </span>
-                <p className="text-foreground/90 text-sm leading-relaxed whitespace-pre-wrap break-words">
-                  {msg.content}
-                </p>
+                <MarkdownContent content={msg.content} className="text-foreground/90 text-[15px] break-words" />
               </div>
             </div>
           )
@@ -175,9 +174,7 @@ function MessageGroupView({ group, agentName, botBg, botText }: { group: Message
         {/* Messages */}
         {group.messages.map((msg) => (
           <div key={msg.id}>
-            <p className="text-foreground/90 text-sm leading-relaxed whitespace-pre-wrap break-words">
-              {msg.content}
-            </p>
+            <MarkdownContent content={msg.content} className="text-foreground/90 text-[15px] break-words" />
             {msg.thread && <ThreadView thread={msg.thread} />}
           </div>
         ))}
