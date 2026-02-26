@@ -168,7 +168,38 @@ app.post('/v1/chat', async (c) => {
     }, 5 * 60 * 1000)
 
     try {
-      ws = await connectAndHandshake(wsUrl, targetApp, agentToken)
+      // Retry the full handshake — suspended Fly.io machines auto-resume
+      // but OpenClaw takes ~50s to initialize. Fly's proxy returns
+      // ECONNREFUSED fast when the port isn't ready, so retries cycle
+      // quickly and the total budget (~90s) covers the startup window.
+      const MAX_ATTEMPTS = 5
+      const RETRY_DELAYS_MS = [0, 2_000, 5_000, 10_000, 15_000]
+
+      for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+        if (attempt > 0) {
+          const delay = RETRY_DELAYS_MS[attempt]
+          console.log(`[chat] Retrying connection (${attempt}/${MAX_ATTEMPTS - 1}) after ${delay}ms...`)
+          await sleep(delay)
+        }
+
+        try {
+          ws = await connectAndHandshake(wsUrl, targetApp, agentToken)
+          break
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err)
+          console.warn(`[chat] Attempt ${attempt + 1} failed: ${msg}`)
+
+          if (attempt === MAX_ATTEMPTS - 1) {
+            throw new Error(
+              `Agent unavailable after ${MAX_ATTEMPTS} connection attempts — it may still be starting up. Please try again in a moment.`,
+            )
+          }
+        }
+      }
+
+      // TypeScript can't narrow ws after the retry loop — assert non-null
+      // since we either break with a connected ws or throw.
+      const connectedWs = ws!
 
       // --- Send initial chat.send ---
       const chatRequest = {
@@ -182,7 +213,7 @@ app.post('/v1/chat', async (c) => {
         },
       }
 
-      ws.send(JSON.stringify(chatRequest))
+      connectedWs.send(JSON.stringify(chatRequest))
       console.log('[chat] Sent chat.send')
 
       // --- Multi-turn @mention loop ---
@@ -255,7 +286,7 @@ app.post('/v1/chat', async (c) => {
 
                   if (lifecycleEnded) {
                     // This is the last turn in this agent response cycle.
-                    ws!.removeListener('message', onMessage)
+                    connectedWs.removeListener('message', onMessage)
                     resolve(text)
                   }
                   // If lifecycle hasn't ended, there may be more turns
@@ -265,7 +296,7 @@ app.post('/v1/chat', async (c) => {
                     event: 'error',
                     data: JSON.stringify({ error: payload.error ?? 'Agent error' }),
                   })
-                  ws!.removeListener('message', onMessage)
+                  connectedWs.removeListener('message', onMessage)
                   resolve(null)
                 }
               }
@@ -276,7 +307,7 @@ app.post('/v1/chat', async (c) => {
                   event: 'error',
                   data: JSON.stringify({ error: msg.error?.message ?? 'Request error' }),
                 })
-                ws!.removeListener('message', onMessage)
+                connectedWs.removeListener('message', onMessage)
                 resolve(null)
               }
             } catch (err) {
@@ -294,9 +325,9 @@ app.post('/v1/chat', async (c) => {
                 data: JSON.stringify({ error: 'Connection closed unexpectedly' }),
               })
             }
-            ws!.removeListener('message', onMessage)
-            ws!.removeListener('close', onClose)
-            ws!.removeListener('error', onError)
+            connectedWs.removeListener('message', onMessage)
+            connectedWs.removeListener('close', onClose)
+            connectedWs.removeListener('error', onError)
             resolve(null)
           }
 
@@ -308,16 +339,16 @@ app.post('/v1/chat', async (c) => {
                 data: JSON.stringify({ error: 'WebSocket error' }),
               })
             }
-            ws!.removeListener('message', onMessage)
-            ws!.removeListener('close', onClose)
-            ws!.removeListener('error', onError)
+            connectedWs.removeListener('message', onMessage)
+            connectedWs.removeListener('close', onClose)
+            connectedWs.removeListener('error', onError)
             cleanup()
             resolve(null)
           }
 
-          ws!.on('message', onMessage)
-          ws!.on('close', onClose)
-          ws!.on('error', onError)
+          connectedWs.on('message', onMessage)
+          connectedWs.on('close', onClose)
+          connectedWs.on('error', onError)
         })
       }
 
@@ -420,7 +451,7 @@ app.post('/v1/chat', async (c) => {
           },
         }
 
-        ws.send(JSON.stringify(followUpRequest))
+        connectedWs.send(JSON.stringify(followUpRequest))
         console.log(`[chat] Sent follow-up chat.send for synthesis (depth=${mentionDepth})`)
 
         // Listen for the agent's synthesis turn
