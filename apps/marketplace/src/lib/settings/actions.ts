@@ -118,7 +118,7 @@ export async function getDefaultModel(): Promise<string> {
     .eq('id', user.id)
     .single()
 
-  return (data as { default_model: string } | null)?.default_model ?? 'google/gemini-2.0-flash'
+  return (data as { default_model: string } | null)?.default_model ?? 'google/gemini-2.5-flash'
 }
 
 function maskKey(key: string): string {

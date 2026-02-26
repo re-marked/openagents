@@ -9,7 +9,7 @@
     ],
     "defaults": {
       "model": {
-        "primary": "google/gemini-3-flash-preview"
+        "primary": "google/gemini-2.5-flash"
       },
       "sandbox": {
         "mode": "off"

@@ -90,7 +90,7 @@ export const provisionAgentMachine = task({
         .eq('id', userId)
         .single()
 
-      const defaultModel = (userRow as { default_model: string } | null)?.default_model ?? 'google/gemini-2.0-flash'
+      const defaultModel = (userRow as { default_model: string } | null)?.default_model ?? 'google/gemini-2.5-flash'
 
       const keyEnv: Record<string, string> = {}
       for (const row of apiKeys ?? []) {

@@ -9,8 +9,8 @@ import { saveDefaultModel } from '@/lib/settings/actions'
 
 const MODELS = [
   {
-    id: 'google/gemini-2.0-flash',
-    name: 'Gemini 2.0 Flash',
+    id: 'google/gemini-2.5-flash',
+    name: 'Gemini 2.5 Flash',
     provider: 'google' as const,
     description: 'Fast, capable, great for most tasks',
   },
