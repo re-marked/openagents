@@ -1,7 +1,7 @@
 import { getUser } from '@/lib/auth/get-user'
 import { createServiceClient } from '@openagents/db/server'
 import { redirect } from 'next/navigation'
-import { TeamSettings } from '@/components/function/team-settings'
+import { TeamSettings } from '@/components/team-settings'
 import { AGENT_ROLES } from '@/lib/agent-roles'
 
 interface Props {

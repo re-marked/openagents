@@ -65,9 +65,8 @@ src/
     (platform)/layout.tsx         # Platform layout — auth guard
     auth/callback/route.ts        # OAuth callback handler
   components/
-    ui/                           # shadcn components
-    function/                     # Feature components (not generic UI)
-      public-site-header.tsx      # Nav with search bar (/ shortcut)
+    ui/                           # shadcn components (don't edit manually)
+    public-site-header.tsx        # Nav with search bar (/ shortcut)
     sierpinski-logo.tsx           # SVG logo
     providers.tsx                 # Theme provider
   lib/
@@ -206,4 +205,6 @@ You have full access to run infrastructure commands directly — never ask the u
 - **Service client for admin ops**: use `createServiceClient()` from `@openagents/db/server` in Trigger.dev tasks — bypasses RLS
 - **Regular client for user ops**: use `createClient()` from `@openagents/db/server` in route handlers/Server Components
 - **shadcn components**: go in `src/components/ui/` — don't edit these manually
-- **New functions**: create a git branch named feature/foo and commit & push changes on that branch
+- **When working on a new feature**: create a git branch named feature/feature-name and commit & push changes on that branch
+- **When feature is ready**: merge the branch into dev via rebase and delete the branch
+- **When the dev branch sees no bugs**: Merge dev into main via rebase with a proper documented PR and delete the branch

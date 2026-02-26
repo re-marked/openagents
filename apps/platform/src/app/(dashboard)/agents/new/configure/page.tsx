@@ -1,5 +1,5 @@
 import { getRepoFile } from '@/lib/github/actions'
-import { AgentEditor } from '@/components/function/agent-editor'
+import { AgentEditor } from '@/components/agent-editor'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 

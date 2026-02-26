@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { ArrowLeft, Rocket, Loader2 } from 'lucide-react'
 import Link from 'next/link'
-import { AgentPreview } from '@/components/function/agent-preview'
-import { SecurityScan } from '@/components/function/security-scan'
+import { AgentPreview } from '@/components/agent-preview'
+import { SecurityScan } from '@/components/security-scan'
 import { publishAgent } from '@/lib/publish/actions'
 
 export default function ReviewPage() {

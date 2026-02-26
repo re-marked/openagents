@@ -63,9 +63,7 @@ apps/docs/
 # bash.exe.stackdump
 bash.exe.stackdump
 .trigger
-
-# supabase
-supabase/.temp/gotrue-version
+# supabasesupabase/.temp/gotrue-version
 supabase/.temp/pooler-url
 supabase/.temp/postgres-version
 supabase/.temp/project-ref

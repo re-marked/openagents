@@ -1,7 +1,7 @@
 import { getUser } from '@/lib/auth/get-user'
 import { createServiceClient } from '@openagents/db/server'
 import { redirect } from 'next/navigation'
-import { DiscordChatPanel } from '@/components/function/discord-chat-panel'
+import { DiscordChatPanel } from '@/components/discord-chat-panel'
 import {
   Breadcrumb,
   BreadcrumbItem,

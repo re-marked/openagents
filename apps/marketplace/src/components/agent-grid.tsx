@@ -1,5 +1,5 @@
 import { Search } from "lucide-react"
-import { AgentCard } from "@/components/function/agent-card"
+import { AgentCard } from "@/components/agent-card"
 import type { AgentListItem } from "@/lib/agents"
 
 export function AgentGrid({ agents }: { agents: AgentListItem[] }) {

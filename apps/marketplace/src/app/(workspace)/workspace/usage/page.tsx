@@ -35,7 +35,7 @@ import {
   TokenPieChart,
   AgentBarChart,
   ComputeAreaChart,
-} from '@/components/function/usage-charts'
+} from '@/components/usage-charts'
 import { MOCK_DATA } from '@/lib/usage/mock-data'
 
 function formatNumber(n: number): string {

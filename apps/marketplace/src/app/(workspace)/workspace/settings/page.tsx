@@ -1,8 +1,8 @@
 import { getUser } from '@/lib/auth/get-user'
 import { redirect } from 'next/navigation'
 import { getApiKeys, getDefaultModel } from '@/lib/settings/actions'
-import { ApiKeysSettings } from '@/components/function/api-keys-settings'
-import { ModelSelector } from '@/components/function/model-selector'
+import { ApiKeysSettings } from '@/components/api-keys-settings'
+import { ModelSelector } from '@/components/model-selector'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Separator } from '@/components/ui/separator'
 import {

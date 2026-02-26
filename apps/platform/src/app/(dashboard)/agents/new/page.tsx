@@ -1,5 +1,5 @@
 import { listRepos } from '@/lib/github/actions'
-import { ImportFlow } from '@/components/function/import-flow'
+import { ImportFlow } from '@/components/import-flow'
 
 export default async function NewAgentPage() {
   let initialRepos: Awaited<ReturnType<typeof listRepos>> = { repos: [], hasMore: false }

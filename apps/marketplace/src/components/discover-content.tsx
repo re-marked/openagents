@@ -3,8 +3,8 @@
 import { useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { Search } from "lucide-react"
-import { AgentCardLarge } from "@/components/function/agent-card"
-import { AgentDetailSheet } from "@/components/function/agent-detail-sheet"
+import { AgentCardLarge } from "@/components/agent-card"
+import { AgentDetailSheet } from "@/components/agent-detail-sheet"
 import type { AgentListItem } from "@/lib/agents"
 
 export function DiscoverContent({ agents }: { agents: AgentListItem[] }) {

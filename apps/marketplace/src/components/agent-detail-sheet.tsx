@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AgentInitial, CATEGORY_COLORS, type AgentListItem } from "@/lib/agents"
-import { RatingStars } from "@/components/function/agent-card"
+import { RatingStars } from "@/components/agent-card"
 import { hireAgent, checkInstanceStatus } from "@/lib/hire/actions"
 
 function formatCount(n: number): string {
