@@ -31,6 +31,7 @@
     "mode": "local",
     "port": 18789,
     "bind": "lan",
+    "trustedProxies": ["172.16.0.0/12", "fdaa::/16"],
     "auth": {
       "mode": "token"
     },
