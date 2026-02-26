@@ -179,14 +179,6 @@ SSE_GATEWAY_SECRET=     # Random string, set on both sides
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-## Git Commits
-
-Always include both authors in every commit:
-
-```
-Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
-Co-Authored-By: psyhik17 <psyhik17@gmail.com>
-```
 
 ## Operational Tasks
 
@@ -206,5 +198,7 @@ You have full access to run infrastructure commands directly — never ask the u
 - **Regular client for user ops**: use `createClient()` from `@openagents/db/server` in route handlers/Server Components
 - **shadcn components**: go in `src/components/ui/` — don't edit these manually
 - **When working on a new feature**: create a git branch named feature/feature-name and commit & push changes on that branch
-- **When feature is ready**: merge the branch into dev via rebase and delete the branch
+- **When feature is ready**: merge the branch into dev via rebase with a proper documented PR  and delete the feature branch
 - **When the dev branch sees no bugs**: Merge dev into main via rebase with a proper documented PR and delete the branch
+- **Prioritize committing more frequently**: Commit often, with small, focused changes. This makes it easier to review and merge changes.
+- **Always add co-authors**: Include both authors (me and Claude) in every commit. Make sure to include the email address of each author. My email is psyhik17@gmail.com and my Github username is re-marked.
