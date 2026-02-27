@@ -201,8 +201,8 @@ export function KnowledgeGraph({ instanceId }: KnowledgeGraphProps) {
         'link',
         forceLink<GraphNode, GraphLink>(linksRef.current)
           .id((d) => d.id)
-          .distance(55)
-          .strength(0.3)
+          .distance(70)
+          .strength(0.12)
       )
       .force('charge', forceManyBody().strength(-400))
       .force('center', forceCenter(0, 0).strength(0.02))
