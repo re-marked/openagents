@@ -1,7 +1,8 @@
 import { Star } from "lucide-react"
-import { AgentInitial, type AgentListItem } from "@/lib/agents"
+import { AgentAvatar, type AgentListItem } from "@/lib/agents"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 
 function formatCount(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
@@ -55,30 +56,27 @@ export function AgentCardLarge({
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onSelect(agent) }}
       className="group border-0 gap-0 py-0 cursor-pointer select-none"
     >
-      {/* Header row: icon + info + CTA */}
-      <CardContent className="flex items-center gap-4 p-6 pb-4">
-        <AgentInitial name={agent.name} category={agent.category} size="md" />
-        <div className="flex-1 min-w-0">
-          <h3 className="text-[15px] font-semibold leading-tight text-foreground truncate">
-            {agent.name}
-          </h3>
-          <p className="text-[13px] text-muted-foreground mt-1 line-clamp-2">
-            {agent.tagline}
-          </p>
-          <p className="text-[12px] text-muted-foreground/70 mt-1.5 line-clamp-2">
-            {agent.description}
-          </p>
-          <div className="mt-2.5">
-            <RatingStars rating={agent.avg_rating} count={agent.total_reviews} />
+      <CardContent className="flex flex-col gap-3 p-6">
+        <div className="flex items-start gap-4">
+          <AgentAvatar name={agent.name} category={agent.category} iconUrl={agent.icon_url} size="md" />
+          <div className="flex-1 min-w-0">
+            <h3 className="text-[15px] font-semibold leading-tight text-foreground truncate">
+              {agent.name}
+            </h3>
+            <p className="text-[13px] text-muted-foreground mt-1 line-clamp-2">
+              {agent.tagline}
+            </p>
+            <p className="text-[12px] text-muted-foreground/70 mt-1.5 line-clamp-2">
+              {agent.description}
+            </p>
+            <div className="mt-2.5">
+              <RatingStars rating={agent.avg_rating} count={agent.total_reviews} />
+            </div>
           </div>
+          <Button size="sm" className="shrink-0">Learn more</Button>
         </div>
-        <Badge className="shrink-0 px-4 py-1.5 text-sm font-semibold">
-          View
-        </Badge>
-      </CardContent>
 
-      {/* Feature tags */}
-      <CardContent className="flex gap-2 px-6 pb-6 pt-0 overflow-x-auto no-scrollbar">
+        <div className="flex gap-2 overflow-x-auto no-scrollbar">
         {agent.pricing_model === "free" ? (
           <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-400 border-0">
             Free
@@ -88,10 +86,11 @@ export function AgentCardLarge({
             {agent.credits_per_session} credits
           </Badge>
         )}
-        <Badge variant="secondary">{agent.category}</Badge>
-        {agent.total_hires > 0 && (
-          <Badge variant="secondary">{formatCount(agent.total_hires)} hires</Badge>
-        )}
+            <Badge variant="secondary">{agent.category}</Badge>
+            {agent.total_hires > 0 && (
+              <Badge variant="secondary">{formatCount(agent.total_hires)} hires</Badge>
+            )}
+        </div>
       </CardContent>
     </Card>
   )
@@ -106,7 +105,7 @@ export function AgentCard({ agent }: { agent: AgentListItem }) {
       className="group border-0 gap-0 py-0"
     >
       <a href={`/agents/${agent.slug}`} className="flex items-center gap-3 p-3">
-        <AgentInitial name={agent.name} category={agent.category} size="sm" />
+        <AgentAvatar name={agent.name} category={agent.category} iconUrl={agent.icon_url} size="sm" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium leading-snug truncate">{agent.name}</p>
           <p className="text-xs text-muted-foreground truncate">{agent.tagline}</p>

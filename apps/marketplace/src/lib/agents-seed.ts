@@ -8,6 +8,7 @@ const DEMO_AGENTS = [
     description: "Nova reads papers, articles, and documentation to give you thorough, well-cited answers. Perfect for literature reviews, competitive analysis, and fact-checking.",
     category: "research",
     pricing_model: "free",
+    icon_url: "\u{1F52C}",
     tags: ["research", "summarization", "citations"],
   },
   {
@@ -17,6 +18,7 @@ const DEMO_AGENTS = [
     description: "Scribe adapts to your voice and tone. From punchy social posts to detailed whitepapers, it writes drafts you actually want to use.",
     category: "writing",
     pricing_model: "free",
+    icon_url: "\u270D\uFE0F",
     tags: ["writing", "copywriting", "editing"],
   },
   {
@@ -27,6 +29,7 @@ const DEMO_AGENTS = [
     category: "coding",
     pricing_model: "per_session",
     credits_per_session: 5,
+    icon_url: "\u{1F4BB}",
     tags: ["coding", "debugging", "code-review"],
   },
   {
@@ -36,6 +39,7 @@ const DEMO_AGENTS = [
     description: "Tell Planner what you want to achieve and it breaks it down into concrete steps. Integrates with your calendar and task manager.",
     category: "productivity",
     pricing_model: "free",
+    icon_url: "\u{1F4CB}",
     tags: ["planning", "project-management", "goals"],
   },
   {
@@ -46,6 +50,7 @@ const DEMO_AGENTS = [
     category: "business",
     pricing_model: "per_session",
     credits_per_session: 10,
+    icon_url: "\u{1F4CA}",
     tags: ["finance", "analytics", "reporting"],
   },
   {
@@ -55,6 +60,7 @@ const DEMO_AGENTS = [
     description: "Muse helps you break through creative blocks. Whether you're designing a brand, writing fiction, or brainstorming product ideas, Muse keeps the ideas flowing.",
     category: "creative",
     pricing_model: "free",
+    icon_url: "\u{1F3A8}",
     tags: ["brainstorming", "ideation", "storytelling"],
   },
   {
@@ -64,6 +70,7 @@ const DEMO_AGENTS = [
     description: "Coach provides accountability, tracks your progress, and offers evidence-based advice for health, productivity, and mindset.",
     category: "personal",
     pricing_model: "free",
+    icon_url: "\u{1F9E0}",
     tags: ["coaching", "habits", "self-improvement"],
   },
   {
@@ -74,6 +81,7 @@ const DEMO_AGENTS = [
     category: "productivity",
     pricing_model: "per_session",
     credits_per_session: 3,
+    icon_url: "\u26A1",
     tags: ["automation", "workflows", "integration"],
   },
   {
@@ -84,6 +92,7 @@ const DEMO_AGENTS = [
     category: "coding",
     pricing_model: "per_session",
     credits_per_session: 8,
+    icon_url: "\u{1F6E1}\uFE0F",
     tags: ["security", "audit", "vulnerabilities"],
   },
   {
@@ -94,6 +103,7 @@ const DEMO_AGENTS = [
     category: "creative",
     pricing_model: "per_session",
     credits_per_session: 4,
+    icon_url: "\u{1F3AF}",
     tags: ["design", "ui-ux", "accessibility"],
   },
   {
@@ -104,6 +114,7 @@ const DEMO_AGENTS = [
     category: "research",
     pricing_model: "per_session",
     credits_per_session: 6,
+    icon_url: "\u{1F5FA}\uFE0F",
     tags: ["market-research", "competitors", "trends"],
   },
   {
@@ -114,6 +125,7 @@ const DEMO_AGENTS = [
     category: "writing",
     pricing_model: "per_session",
     credits_per_session: 4,
+    icon_url: "\u{1F4D6}",
     tags: ["documentation", "technical-writing", "api-docs"],
   },
   {
@@ -124,6 +136,7 @@ const DEMO_AGENTS = [
     category: "business",
     pricing_model: "per_session",
     credits_per_session: 12,
+    icon_url: "\u{1F9EE}",
     tags: ["pricing", "revenue", "strategy"],
   },
   {
@@ -133,6 +146,7 @@ const DEMO_AGENTS = [
     description: "Zen crafts personalized breathing exercises, journaling prompts, and micro-meditations based on your mood and schedule. No fluff, just calm.",
     category: "personal",
     pricing_model: "free",
+    icon_url: "\u{1FAB7}",
     tags: ["meditation", "mindfulness", "wellness"],
   },
   {
@@ -143,6 +157,7 @@ const DEMO_AGENTS = [
     category: "productivity",
     pricing_model: "per_session",
     credits_per_session: 5,
+    icon_url: "\u{1F4EC}",
     tags: ["email", "triage", "communication"],
   },
   {
@@ -152,6 +167,7 @@ const DEMO_AGENTS = [
     description: "From haikus to hip-hop verses, Sonnet composes original poetry tailored to your theme, mood, and formal constraints. Rhyme schemes on demand.",
     category: "creative",
     pricing_model: "free",
+    icon_url: "\u{1F3AD}",
     tags: ["poetry", "lyrics", "creative-writing"],
   },
   {
@@ -162,6 +178,7 @@ const DEMO_AGENTS = [
     category: "coding",
     pricing_model: "per_session",
     credits_per_session: 6,
+    icon_url: "\u{1F5C4}\uFE0F",
     tags: ["database", "sql", "schema-design"],
   },
   {
@@ -172,6 +189,7 @@ const DEMO_AGENTS = [
     category: "business",
     pricing_model: "per_session",
     credits_per_session: 7,
+    icon_url: "\u{1F4E3}",
     tags: ["pr", "communications", "media"],
   },
   {
@@ -182,6 +200,7 @@ const DEMO_AGENTS = [
     category: "research",
     pricing_model: "per_session",
     credits_per_session: 5,
+    icon_url: "\u{1F393}",
     tags: ["academic", "peer-review", "methodology"],
   },
   {
@@ -191,6 +210,7 @@ const DEMO_AGENTS = [
     description: "Compass analyzes your experience, identifies skill gaps, and generates tailored interview prep. From resume rewrites to salary negotiation scripts.",
     category: "personal",
     pricing_model: "free",
+    icon_url: "\u{1F9ED}",
     tags: ["career", "interviews", "resume"],
   },
 ]
