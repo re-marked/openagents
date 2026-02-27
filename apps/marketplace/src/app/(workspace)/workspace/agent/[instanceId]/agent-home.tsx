@@ -83,6 +83,10 @@ export function AgentHomePage(props: AgentHomeProps) {
   const requiresRunning = ['model', 'personality', 'skills', 'memory']
   const sectionNeedsWake = requiresRunning.includes(activeSection) && !isRunning
 
+  // Sections that manage their own scroll (editor sections with inner ScrollArea)
+  const fullHeightSections: Section[] = ['personality', 'memory']
+  const isFullHeight = fullHeightSections.includes(activeSection)
+
   function renderSection() {
     if (sectionNeedsWake) {
       return (
@@ -174,11 +178,21 @@ export function AgentHomePage(props: AgentHomeProps) {
         </div>
 
         {/* Content area */}
-        <ScrollArea className="flex-1 min-w-0">
-          <div className="flex-1 p-6 flex flex-col min-h-0">
-            {renderSection()}
-          </div>
-        </ScrollArea>
+        <div className="flex-1 min-w-0 min-h-0 flex flex-col">
+          {isFullHeight ? (
+            /* Editor sections (personality, memory) manage their own inner scroll */
+            <div className="flex-1 min-h-0 p-6 flex flex-col">
+              {renderSection()}
+            </div>
+          ) : (
+            /* Non-editor sections scroll via outer ScrollArea */
+            <ScrollArea className="flex-1 min-h-0">
+              <div className="p-6">
+                {renderSection()}
+              </div>
+            </ScrollArea>
+          )}
+        </div>
       </div>
 
       {/* Persistent bottom bar */}

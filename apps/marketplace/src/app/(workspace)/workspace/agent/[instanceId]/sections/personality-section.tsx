@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Loader2, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ScrollArea } from '@/components/ui/scroll-area'
 
 const SOUL_PATH = '/data/workspace/SOUL.md'
 
@@ -31,14 +32,6 @@ export function PersonalitySection({ instanceId }: PersonalitySectionProps) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-
-  const autoResize = useCallback(() => {
-    const el = textareaRef.current
-    if (!el) return
-    el.style.height = 'auto'
-    el.style.height = `${Math.max(el.scrollHeight, 300)}px`
-  }, [])
 
   useEffect(() => {
     async function load() {
@@ -59,10 +52,6 @@ export function PersonalitySection({ instanceId }: PersonalitySectionProps) {
     }
     load()
   }, [instanceId])
-
-  useEffect(() => {
-    autoResize()
-  }, [content, loading, autoResize])
 
   async function handleSave() {
     setSaving(true)
@@ -101,27 +90,31 @@ export function PersonalitySection({ instanceId }: PersonalitySectionProps) {
   const hasChanges = content !== originalContent
 
   return (
-    <div className="space-y-4">
-      <div>
+    <div className="flex flex-col h-full gap-4">
+      <div className="shrink-0">
         <h2 className="text-lg font-semibold tracking-tight">Personality</h2>
         <p className="text-sm text-muted-foreground mt-1">
           Edit your Agent&apos;s soul document.
         </p>
-        <p className="text-sm text-foregrou mt-1">
+        <p className="text-sm text-foreground mt-1">
           The soul document defines the Agent&apos;s personality, background, typical behavior and whatever makes the Agent unique.
         </p>
       </div>
 
-      <textarea
-        ref={textareaRef}
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        placeholder="Write your agent's personality here (Markdown supported)..."
-        className="w-full min-h-[300px] rounded-xl border border-border/40 bg-card/50 px-4 py-3 text-sm font-mono text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring resize-none overflow-hidden"
-        spellCheck={false}
-      />
+      <div className="flex-1 min-h-0 rounded-xl border border-border/40 bg-card/50 overflow-hidden">
+        <ScrollArea className="h-full">
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="Write your agent's personality here (Markdown supported)..."
+            className="w-full border-none bg-transparent px-4 py-3 text-sm font-mono text-foreground placeholder:text-muted-foreground/50 focus:outline-none resize-none"
+            style={{ fieldSizing: 'content' } as React.CSSProperties}
+            spellCheck={false}
+          />
+        </ScrollArea>
+      </div>
 
-      <div className="flex items-center gap-3">
+      <div className="shrink-0 flex items-center gap-3">
         <Button size="sm" onClick={handleSave} disabled={!hasChanges || saving}>
           {saving && <Loader2 className="size-3 mr-1.5 animate-spin" />}
           {saved ? 'Saved' : 'Save'}
