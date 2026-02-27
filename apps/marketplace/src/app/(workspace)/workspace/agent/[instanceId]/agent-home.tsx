@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import {
   LayoutDashboard,
-  Cpu,
+  SlidersHorizontal,
   Heart,
   Puzzle,
   Brain,
@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useAgentStatus } from '@/hooks/use-agent-status'
 import { OverviewSection } from './sections/overview-section'
-import { ModelSection } from './sections/model-section'
+import { ConfigSection } from './sections/config-section'
 import { PersonalitySection } from './sections/personality-section'
 import { SkillsSection } from './sections/skills-section'
 import { MemorySection } from './sections/memory-section'
@@ -29,7 +29,7 @@ export const STATUS_CONFIG: Record<string, { label: string; dot: string; bg: str
   error: { label: 'Error', dot: 'bg-red-500', bg: 'bg-red-500/10 text-red-400 ring-red-500/20' },
 }
 
-type Section = 'overview' | 'model' | 'personality' | 'skills' | 'memory' | 'actions'
+type Section = 'overview' | 'config' | 'personality' | 'skills' | 'memory' | 'actions'
 
 interface NavItem {
   id: Section
@@ -39,7 +39,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-  { id: 'model', label: 'Model', icon: Cpu },
+  { id: 'config', label: 'Config', icon: SlidersHorizontal },
   { id: 'personality', label: 'Personality', icon: Heart },
   { id: 'skills', label: 'Skills', icon: Puzzle },
   { id: 'memory', label: 'Memory', icon: Brain },
@@ -72,7 +72,7 @@ export function AgentHomePage(props: AgentHomeProps) {
   const isRunning = status === 'running'
 
   // Sections that require the machine to be running
-  const requiresRunning = ['model', 'personality', 'skills', 'memory']
+  const requiresRunning = ['config', 'personality', 'skills', 'memory']
   const sectionNeedsWake = requiresRunning.includes(activeSection) && !isRunning
 
   // Sections that manage their own scroll (editor sections with inner ScrollArea)
@@ -99,8 +99,8 @@ export function AgentHomePage(props: AgentHomeProps) {
             onNameChange={setCurrentName}
           />
         )
-      case 'model':
-        return <ModelSection instanceId={instanceId} />
+      case 'config':
+        return <ConfigSection instanceId={instanceId} />
       case 'personality':
         return <PersonalitySection instanceId={instanceId} />
       case 'skills':
