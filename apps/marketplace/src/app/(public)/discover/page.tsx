@@ -4,6 +4,7 @@ import { DiscoverSidebar } from "@/components/discover-sidebar"
 import { DiscoverContent } from "@/components/discover-content"
 import { seedDemoAgentsIfEmpty } from "@/lib/agents-seed"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import type { AgentListItem } from "@/lib/agents"
 
 interface Props {
@@ -85,14 +86,16 @@ export default async function DiscoverPage({ searchParams }: Props) {
   const agents = await fetchAgents(params)
 
   return (
-    <SidebarProvider>
+    <SidebarProvider className="h-full !min-h-0">
       <Suspense>
         <DiscoverSidebar />
       </Suspense>
-      <SidebarInset>
-        <Suspense>
-          <DiscoverContent agents={agents} />
-        </Suspense>
+      <SidebarInset className="overflow-hidden">
+        <ScrollArea className="flex-1">
+          <Suspense>
+            <DiscoverContent agents={agents} />
+          </Suspense>
+        </ScrollArea>
       </SidebarInset>
     </SidebarProvider>
   )
