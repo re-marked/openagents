@@ -3,7 +3,6 @@
 import { useEffect, useRef } from 'react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { MarkdownContent } from '@/components/markdown-content'
 import { ToolUseBlockList } from '@/components/tool-use-block'
 import type { ToolUse } from '@/components/tool-use-block'
@@ -210,16 +209,18 @@ export function DiscordMessageList({ messages, agentName = 'Agent', agentCategor
   const agentColor = agentCategory ? CATEGORY_AVATAR[agentCategory] : undefined
   const botBg = agentColor?.bg ?? 'bg-primary'
   const botText = agentColor?.text ?? 'text-primary'
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   const lastMsg = messages[messages.length - 1]
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }
   }, [messages.length, lastMsg?.content, lastMsg?.toolUses?.length])
 
   if (messages.length === 0) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-3">
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
         <div className={`flex h-16 w-16 items-center justify-center rounded-full ${botBg}`}>
           <span className="text-2xl font-bold text-white">{agentName[0]}</span>
         </div>
@@ -236,13 +237,12 @@ export function DiscordMessageList({ messages, agentName = 'Agent', agentCategor
   const groups = groupMessages(messages)
 
   return (
-    <ScrollArea className="h-0 flex-1">
+    <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto">
       <div className="flex flex-col gap-1 py-4">
         {groups.map((group, i) => (
           <MessageGroupView key={`${group.role}-${group.messages[0].id}-${i}`} group={group} agentName={agentName} botBg={botBg} botText={botText} />
         ))}
-        <div ref={bottomRef} />
       </div>
-    </ScrollArea>
+    </div>
   )
 }
