@@ -152,7 +152,7 @@ export default function LandingPage() {
           <div className="mx-auto grid max-w-5xl gap-6 sm:grid-cols-3">
             {ROLES.map((role, i) => (
               <ScrollReveal key={role.title} delay={i * 0.1}>
-                <div className="rounded-2xl border border-white/[0.06] bg-card/40 p-8 backdrop-blur-sm">
+                <div className="rounded-2xl border border-white/[0.06] bg-card/40 p-8 backdrop-blur-sm transition-[transform,border-color] duration-300 ease-out hover:scale-[1.02] hover:border-white/[0.12]">
                   <role.icon className="mb-5 size-5 text-muted-foreground" strokeWidth={1.5} />
                   <h3 className="mb-3 text-lg font-medium text-foreground">{role.title}</h3>
                   <p className="text-[15px] leading-relaxed text-muted-foreground">
@@ -173,7 +173,7 @@ export default function LandingPage() {
                 AgentBay is coming.
               </h2>
               <p className="text-lg text-muted-foreground">
-                The marketplace where you hire your AI team.
+                The place where you hire your first agentic team.
               </p>
             </div>
             <WaitlistForm />
