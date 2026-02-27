@@ -4,15 +4,16 @@ import { redirect } from 'next/navigation'
 import {
   Breadcrumb,
   BreadcrumbItem,
+  BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
-import { AgentStatusPanel } from './agent-status-panel'
+import { AgentHomePage } from './agent-home'
 
-export default async function AgentStatusPage({
+export default async function AgentPage({
   params,
 }: {
   params: Promise<{ instanceId: string }>
@@ -25,7 +26,9 @@ export default async function AgentStatusPage({
 
   const { data: instance } = await service
     .from('agent_instances')
-    .select('id, status, display_name, agents!inner(name, category)')
+    .select(
+      'id, status, display_name, fly_app_name, fly_machine_id, created_at, agents!inner(name, slug, category, tagline, icon_url)'
+    )
     .eq('id', instanceId)
     .eq('user_id', user.id)
     .limit(1)
@@ -34,13 +37,17 @@ export default async function AgentStatusPage({
   if (!instance) redirect('/workspace/home')
 
   const agent = (instance as Record<string, unknown>).agents as {
-    name: string; category: string
+    name: string
+    slug: string
+    category: string
+    tagline: string | null
+    icon_url: string | null
   }
   const agentName = instance.display_name ?? agent.name
 
   return (
     <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
-      <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b border-border/40 bg-background px-4 rounded-t-xl">
+      <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b border-border/40 bg-background px-4">
         <SidebarTrigger className="-ml-1" />
         <Separator
           orientation="vertical"
@@ -49,7 +56,7 @@ export default async function AgentStatusPage({
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem className="hidden md:block">
-              <span className="text-muted-foreground">Status</span>
+              <BreadcrumbLink href="/workspace/home">Agents</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator className="hidden md:block" />
             <BreadcrumbItem>
@@ -59,11 +66,18 @@ export default async function AgentStatusPage({
         </Breadcrumb>
       </header>
 
-      <AgentStatusPanel
+      <AgentHomePage
         instanceId={instance.id}
-        agentName={agentName}
-        agentCategory={agent.category}
         initialStatus={instance.status}
+        displayName={agentName}
+        agentName={agent.name}
+        agentSlug={agent.slug}
+        agentCategory={agent.category}
+        agentTagline={agent.tagline}
+        agentIconUrl={agent.icon_url}
+        flyAppName={instance.fly_app_name}
+        flyMachineId={instance.fly_machine_id}
+        createdAt={instance.created_at}
       />
     </div>
   )
