@@ -97,7 +97,7 @@ export interface ValidationResult {
 
 const REQUIRED_FILES = [
   { path: 'agent.yaml', label: 'agent.yaml', required: true },
-  { path: 'openagents.yaml', label: 'openagents.yaml', required: true },
+  { path: 'agentbay.yaml', label: 'agentbay.yaml', required: true },
   { path: 'README.md', label: 'README.md', required: true },
 ]
 
