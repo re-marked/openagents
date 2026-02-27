@@ -122,7 +122,7 @@ export default function LandingPage() {
         </section>
 
         {/* ─── Section 2: The Shift ─── */}
-        <section className="flex min-h-[70vh] w-full flex-col items-center justify-center px-6 py-32">
+        <section className="flex min-h-[70vh] w-full flex-col items-center justify-center px-6 py-20">
           <ScrollReveal className="max-w-3xl text-center">
             <h2 className="mb-6 text-4xl font-medium tracking-tight sm:text-5xl lg:text-6xl">
               <span className="text-secondary-foreground">You used to need a company</span>
@@ -136,13 +136,13 @@ export default function LandingPage() {
           </ScrollReveal>
           <ScrollReveal delay={0.15} className="max-w-xl text-center">
             <p className="text-lg leading-relaxed text-muted-foreground">
-              AI agents that research, write, analyze, and build — working alongside you, around the clock. What used to take ten people now takes one person and the right agents.
+              AI agents that research, write, analyze, and build — working alongside you, around the clock. What used to take ten people now takes one person and <span className="bg-gradient-to-r from-[hsl(46,69%,63%)] to-[hsl(209,50%,49%)] bg-clip-text text-transparent">the right platform.</span>
             </p>
           </ScrollReveal>
         </section>
 
         {/* ─── Section 3: Three Roles ─── */}
-        <section className="w-full px-6 py-24">
+        <section className="w-full px-6 py-12">
           <ScrollReveal className="mx-auto mb-16 max-w-lg text-center">
             <p className="text-sm font-medium uppercase tracking-widest text-muted-foreground">
               Your first hires
