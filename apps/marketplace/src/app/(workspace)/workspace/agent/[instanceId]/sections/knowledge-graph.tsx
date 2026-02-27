@@ -102,6 +102,72 @@ function buildGraph(files: FileData[]): { nodes: GraphNode[]; links: GraphLink[]
   return { nodes: Array.from(nodeMap.values()), links }
 }
 
+// ── Wikilink preprocessing ────────────────────────────────────────────────
+
+// Convert [[slug]] to markdown links with a special wikilink: protocol
+// so we can intercept clicks in the <a> component
+function wikilinkify(content: string): string {
+  return content.replace(/\[\[([^\]]+)\]\]/g, '[$1](wikilink:$1)')
+}
+
+// ── Markdown components (no @tailwindcss/typography needed) ──────────────
+
+function makeMdComponents(onNavigate: (slug: string) => void) {
+  return {
+    h1: ({ children }: { children?: React.ReactNode }) => (
+      <h1 className="text-base font-bold text-foreground mt-4 mb-2 first:mt-0">{children}</h1>
+    ),
+    h2: ({ children }: { children?: React.ReactNode }) => (
+      <h2 className="text-sm font-semibold text-foreground mt-3 mb-1.5">{children}</h2>
+    ),
+    h3: ({ children }: { children?: React.ReactNode }) => (
+      <h3 className="text-xs font-semibold text-foreground mt-2.5 mb-1">{children}</h3>
+    ),
+    p: ({ children }: { children?: React.ReactNode }) => (
+      <p className="my-1.5 leading-relaxed">{children}</p>
+    ),
+    ul: ({ children }: { children?: React.ReactNode }) => (
+      <ul className="my-1.5 ml-4 list-disc space-y-0.5">{children}</ul>
+    ),
+    ol: ({ children }: { children?: React.ReactNode }) => (
+      <ol className="my-1.5 ml-4 list-decimal space-y-0.5">{children}</ol>
+    ),
+    li: ({ children }: { children?: React.ReactNode }) => (
+      <li className="leading-relaxed">{children}</li>
+    ),
+    strong: ({ children }: { children?: React.ReactNode }) => (
+      <strong className="font-semibold text-foreground">{children}</strong>
+    ),
+    code: ({ children }: { children?: React.ReactNode }) => (
+      <code className="text-[11px] bg-muted/60 px-1 py-0.5 rounded font-mono">{children}</code>
+    ),
+    a: ({ children, href }: { children?: React.ReactNode; href?: string }) => {
+      if (href?.startsWith('wikilink:')) {
+        const slug = href.replace('wikilink:', '').toLowerCase()
+        return (
+          <button
+            onClick={() => onNavigate(slug)}
+            className="text-blue-400 hover:underline cursor-pointer"
+          >
+            {children}
+          </button>
+        )
+      }
+      return <a href={href} className="text-blue-400 hover:underline">{children}</a>
+    },
+    table: ({ children }: { children?: React.ReactNode }) => (
+      <table className="my-2 w-full text-xs border-collapse">{children}</table>
+    ),
+    th: ({ children }: { children?: React.ReactNode }) => (
+      <th className="text-left font-semibold text-foreground border-b border-border/40 py-1 px-2">{children}</th>
+    ),
+    td: ({ children }: { children?: React.ReactNode }) => (
+      <td className="border-b border-border/20 py-1 px-2">{children}</td>
+    ),
+    hr: () => <hr className="my-3 border-border/30" />,
+  }
+}
+
 // ── Component ────────────────────────────────────────────────────────────
 
 interface KnowledgeGraphProps {
@@ -358,6 +424,15 @@ export function KnowledgeGraph({ instanceId }: KnowledgeGraphProps) {
     setSelectedNode((prev) => (prev?.id === node.id ? null : node))
   }, [])
 
+  // Navigate to a node by slug (from wikilink click)
+  const navigateToNode = useCallback((slug: string) => {
+    const target = nodesRef.current.find((n) => n.id === slug)
+    if (target) setSelectedNode(target)
+  }, [])
+
+  // Memoize md components so they don't recreate on every render
+  const mdComponents = useMemo(() => makeMdComponents(navigateToNode), [navigateToNode])
+
   // ── Render ─────────────────────────────────────────────────────────────
 
   if (loading) {
@@ -520,9 +595,12 @@ export function KnowledgeGraph({ instanceId }: KnowledgeGraphProps) {
                   <X className="size-3.5" />
                 </button>
               </div>
-              <div className="mt-3 text-xs text-muted-foreground overflow-y-auto flex-1 min-h-0 prose prose-invert prose-xs max-w-none prose-headings:text-foreground prose-headings:text-xs prose-headings:font-semibold prose-headings:mt-3 prose-headings:mb-1 prose-p:my-1 prose-ul:my-1 prose-li:my-0 prose-table:text-xs prose-td:py-1 prose-td:px-2 prose-th:py-1 prose-th:px-2 prose-strong:text-foreground prose-code:text-[11px] prose-code:bg-muted prose-code:px-1 prose-code:rounded prose-a:text-blue-400">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {selectedNode.content.trim()}
+              <div className="mt-3 text-xs text-muted-foreground overflow-y-auto flex-1 min-h-0">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={mdComponents}
+                >
+                  {wikilinkify(selectedNode.content.trim())}
                 </ReactMarkdown>
               </div>
             </div>
