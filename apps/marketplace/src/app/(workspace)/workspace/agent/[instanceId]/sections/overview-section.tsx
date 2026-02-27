@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Calendar, Globe, Power, RotateCcw, MessageSquare } from 'lucide-react'
+import { Calendar, Power, RotateCcw, MessageSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { AgentAvatar } from '@/lib/agents'
 import { STATUS_CONFIG } from '../agent-home'
@@ -16,8 +16,6 @@ interface OverviewSectionProps {
   agentCategory: string
   agentTagline: string | null
   agentIconUrl: string | null
-  flyAppName: string
-  flyMachineId: string
   createdAt: string
   onNameChange: (name: string) => void
 }
@@ -30,7 +28,6 @@ export function OverviewSection({
   agentCategory,
   agentTagline,
   agentIconUrl,
-  flyAppName,
   createdAt,
 }: OverviewSectionProps) {
   const router = useRouter()
@@ -133,17 +130,12 @@ export function OverviewSection({
         )}
       </div>
 
-      {/* Info grid */}
+      {/* Info */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <InfoCard
           icon={Calendar}
-          label="Created"
+          label="Hired"
           value={createdDate}
-        />
-        <InfoCard
-          icon={Globe}
-          label="Region"
-          value={flyAppName ? 'iad (Virginia)' : 'N/A'}
         />
       </div>
     </div>

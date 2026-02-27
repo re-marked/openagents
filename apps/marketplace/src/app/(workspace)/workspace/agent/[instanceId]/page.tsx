@@ -75,8 +75,6 @@ export default async function AgentPage({
         agentCategory={agent.category}
         agentTagline={agent.tagline}
         agentIconUrl={agent.icon_url}
-        flyAppName={instance.fly_app_name}
-        flyMachineId={instance.fly_machine_id}
         createdAt={instance.created_at}
       />
     </div>
