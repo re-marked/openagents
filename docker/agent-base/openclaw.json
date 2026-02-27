@@ -3,6 +3,7 @@
     "list": [
       {
         "id": "main",
+        "name": "Main Agent",
         "default": true,
         "workspace": "/data/workspace"
       }
@@ -11,8 +12,28 @@
       "model": {
         "primary": "google/gemini-2.5-flash"
       },
+      "models": {
+        "anthropic/claude-sonnet-4-5-20250929": {
+          "alias": "sonnet-4-5"
+        },
+        "anthropic/claude-3-5-haiku-20241022": {
+          "alias": "haiku-3-7"
+        },
+        "anthropic/claude-haiku-4-5": {
+          "alias": "haiku-4-5"
+        }
+      },
       "sandbox": {
         "mode": "off"
+      },
+      "compaction": {
+        "mode": "safeguard"
+      },
+      "verboseDefault": "on",
+      "blockStreamingDefault": "on",
+      "maxConcurrent": 4,
+      "subagents": {
+        "maxConcurrent": 8
       }
     }
   },
@@ -24,8 +45,34 @@
       "enabled": false
     }
   },
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto"
+  },
+  "hooks": {
+    "internal": {
+      "enabled": true,
+      "entries": {
+        "boot-md": {
+          "enabled": true
+        },
+        "command-logger": {
+          "enabled": true
+        },
+        "session-memory": {
+          "enabled": true
+        }
+      }
+    }
+  },
+  "messages": {
+    "ackReactionScope": "group-mentions"
+  },
   "skills": {
-    "allowBundled": []
+    "allowBundled": [],
+    "install": {
+      "nodeManager": "pnpm"
+    }
   },
   "gateway": {
     "mode": "local",
@@ -47,6 +94,16 @@
     },
     "controlUi": {
       "dangerouslyDisableDeviceAuth": true
+    },
+    "nodes": {
+      "denyCommands": [
+        "camera.snap",
+        "camera.clip",
+        "screen.record",
+        "calendar.add",
+        "contacts.add",
+        "reminders.add"
+      ]
     }
   }
 }

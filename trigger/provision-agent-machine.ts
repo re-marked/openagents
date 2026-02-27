@@ -59,6 +59,19 @@ export const provisionAgentMachine = task({
     minTimeoutInMs: 5_000,
   },
 
+  // Only mark as error after ALL retries are exhausted
+  onFailure: async (payload, error) => {
+    const db = createServiceClient()
+    logger.error('Provisioning failed permanently (all retries exhausted)', {
+      instanceId: (payload as ProvisionPayload).instanceId,
+      error: error instanceof Error ? error.message : String(error),
+    })
+    await db
+      .from('agent_instances')
+      .update({ status: 'error' })
+      .eq('id', (payload as ProvisionPayload).instanceId)
+  },
+
   run: async (payload: ProvisionPayload) => {
     const { userId, agentId, instanceId, role: roleId } = payload
     const db = createServiceClient()
@@ -193,6 +206,31 @@ export const provisionAgentMachine = task({
       await fly.waitForMachineState(appName, machine.id, 'started', 60)
       logger.info('Machine started', { machineId: machine.id })
 
+      // ── 6b. Wait for health check to pass ──────────────────────────────
+      // OpenClaw takes ~50s to initialize. Don't mark as running until
+      // the /health endpoint responds 200 so users can't chat too early.
+      const healthUrl = `https://${appName}.fly.dev/health`
+      const healthTimeout = 120_000 // 2 minutes max
+      const healthInterval = 5_000  // poll every 5s
+      const healthStart = Date.now()
+
+      while (Date.now() - healthStart < healthTimeout) {
+        try {
+          const res = await fetch(healthUrl, { signal: AbortSignal.timeout(5_000) })
+          if (res.ok) {
+            logger.info('Health check passed', { appName })
+            break
+          }
+        } catch {
+          // Not ready yet
+        }
+        await new Promise((r) => setTimeout(r, healthInterval))
+      }
+
+      if (Date.now() - healthStart >= healthTimeout) {
+        logger.warn('Health check did not pass within timeout, marking running anyway', { appName })
+      }
+
       // ── 7. Store machine info + gateway token in DB ──────────────────────
       await db
         .from('agent_instances')
@@ -215,16 +253,14 @@ export const provisionAgentMachine = task({
         region: FLY_REGION,
       }
     } catch (err) {
-      // Mark instance as error so the UI can show failure
-      logger.error('Provisioning failed', {
+      // Log but do NOT set status='error' here — onFailure handles that
+      // after all retries are exhausted. Setting error here causes the
+      // frontend poller to give up before retries can succeed.
+      logger.error('Provisioning attempt failed (will retry)', {
         instanceId,
         error: err instanceof Error ? err.message : String(err),
       })
-      await db
-        .from('agent_instances')
-        .update({ status: 'error' })
-        .eq('id', instanceId)
-      throw err // rethrow so Trigger.dev marks the run as failed
+      throw err // rethrow so Trigger.dev retries
     }
   },
 })

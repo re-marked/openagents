@@ -6,7 +6,7 @@ import { checkInstanceStatus } from "@/lib/hire/actions"
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
 
-const MAX_POLL_TIME_MS = 120_000 // 2 minutes
+const MAX_POLL_TIME_MS = 300_000 // 5 minutes
 
 /**
  * Polls provisioning agents and refreshes the page when any become running.

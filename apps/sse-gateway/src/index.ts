@@ -296,9 +296,18 @@ app.post('/v1/chat', async (c) => {
               const raw = data.toString()
               const msg = JSON.parse(raw)
 
+              const payload_summary = msg.payload
+                ? (() => {
+                    const p = msg.payload
+                    const parts = [`stream=${p.stream ?? ''}`, `state=${p.state ?? ''}`]
+                    if (p.data?.phase) parts.push(`phase=${p.data.phase}`)
+                    if (p.state === 'error') parts.push(`error=${JSON.stringify(p.error ?? p.message ?? 'none')}`)
+                    return parts.join(' ')
+                  })()
+                : ''
               const summary =
                 msg.type === 'event'
-                  ? `event=${msg.event} stream=${msg.payload?.stream ?? ''} state=${msg.payload?.state ?? ''}`
+                  ? `event=${msg.event} ${payload_summary}`
                   : `type=${msg.type} ok=${msg.ok}`
               console.log(`[chat] WS msg: ${summary}`)
 
@@ -409,9 +418,11 @@ app.post('/v1/chat', async (c) => {
                   // If lifecycle hasn't ended, there may be more turns
                   // (e.g. tool calls). Keep listening.
                 } else if (payload.state === 'error') {
+                  const errorDetail = payload.error ?? payload.message?.error ?? JSON.stringify(payload)
+                  console.error(`[chat] Chat error from agent:`, JSON.stringify(payload))
                   await stream.writeSSE({
                     event: 'error',
-                    data: JSON.stringify({ error: payload.error ?? 'Agent error' }),
+                    data: JSON.stringify({ error: errorDetail }),
                   })
                   finalize(null)
                 }
