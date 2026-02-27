@@ -81,14 +81,15 @@ export function AgentAvatar({
   name: string
   category: string
   iconUrl?: string | null
-  size?: "sm" | "md" | "lg"
+  size?: "xs" | "sm" | "md" | "lg"
 }) {
   const sizeClasses = {
+    xs: "h-5 w-5 rounded-md",
     sm: "h-10 w-10 rounded-xl",
     md: "h-12 w-12 rounded-[14px]",
     lg: "h-16 w-16 rounded-2xl",
   }
-  const imgSize = { sm: 24, md: 28, lg: 36 }
+  const imgSize = { xs: 14, sm: 24, md: 28, lg: 36 }
 
   if (iconUrl && isEmoji(iconUrl)) {
     return (
@@ -121,7 +122,7 @@ export function AgentAvatar({
 
   // Fallback: colored initial
   const gradient = CATEGORY_GRADIENT[category] ?? "from-zinc-500 to-zinc-600"
-  const textSize = { sm: "text-sm", md: "text-lg", lg: "text-2xl" }
+  const textSize = { xs: "text-[10px]", sm: "text-sm", md: "text-lg", lg: "text-2xl" }
   return (
     <div
       className={`flex items-center justify-center bg-gradient-to-br ${gradient} text-white font-semibold shrink-0 ${sizeClasses[size]} ${textSize[size]}`}

@@ -91,7 +91,7 @@ export function AppSidebar({
                     >
                       <Link href={chatPath}>
                         <span className="relative flex shrink-0">
-                          <AgentAvatar name={agent.name} category={agent.category} iconUrl={agent.iconUrl} size="sm" />
+                          <AgentAvatar name={agent.name} category={agent.category} iconUrl={agent.iconUrl} size="xs" />
                           <span className={`absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-sidebar ${STATUS_DOT[agent.status] ?? "bg-zinc-400"}`} />
                         </span>
                         <span className="truncate">{agent.name}</span>
