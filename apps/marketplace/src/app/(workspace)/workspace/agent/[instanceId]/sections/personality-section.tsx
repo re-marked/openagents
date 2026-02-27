@@ -89,8 +89,8 @@ export function PersonalitySection({ instanceId }: PersonalitySectionProps) {
   const hasChanges = content !== originalContent
 
   return (
-    <div className="space-y-6">
-      <div>
+    <div className="flex flex-col h-full gap-4">
+      <div className="shrink-0">
         <h2 className="text-lg font-semibold tracking-tight">Personality</h2>
         <p className="text-sm text-muted-foreground mt-1">
           Edit your agent&apos;s SOUL.md — its personality, background, and behavior rules.
@@ -101,11 +101,11 @@ export function PersonalitySection({ instanceId }: PersonalitySectionProps) {
         value={content}
         onChange={(e) => setContent(e.target.value)}
         placeholder="Write your agent's personality here (Markdown supported)..."
-        className="w-full min-h-[400px] rounded-xl border border-border/40 bg-card/50 px-4 py-3 text-sm font-mono text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring resize-y"
+        className="w-full flex-1 min-h-[300px] rounded-xl border border-border/40 bg-card/50 px-4 py-3 text-sm font-mono text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring resize-none"
         spellCheck={false}
       />
 
-      <div className="flex items-center gap-3">
+      <div className="shrink-0 flex items-center gap-3">
         <Button size="sm" onClick={handleSave} disabled={!hasChanges || saving}>
           {saving && <Loader2 className="size-3 mr-1.5 animate-spin" />}
           {saved ? 'Saved' : 'Save'}
