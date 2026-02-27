@@ -152,12 +152,17 @@ export default function LandingPage() {
           <div className="mx-auto grid max-w-5xl gap-6 sm:grid-cols-3">
             {ROLES.map((role, i) => (
               <ScrollReveal key={role.title} delay={i * 0.1}>
-                <div className="rounded-2xl border border-white/[0.06] bg-card/40 p-8 backdrop-blur-sm transition-[transform,border-color] duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1)] hover:scale-[1.015] hover:border-white/[0.12]">
-                  <role.icon className="mb-5 size-5 text-muted-foreground" strokeWidth={1.5} />
-                  <h3 className="mb-3 text-lg font-medium text-foreground">{role.title}</h3>
-                  <p className="text-[15px] leading-relaxed text-muted-foreground">
-                    {role.description}
-                  </p>
+                <div className="group relative rounded-2xl p-px transition-transform duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1)] hover:scale-[1.015]">
+                  {/* Animated gradient border — outline only, visible on hover */}
+                  <div className="absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-500 group-hover:opacity-60 animate-border-rotate" style={{ background: 'conic-gradient(from var(--border-angle, 0deg), hsl(215 90% 65%), hsl(30 80% 60%), hsl(215 90% 65%))', mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)', maskComposite: 'exclude', WebkitMaskComposite: 'xor', padding: '1px' }} />
+                  {/* Card content */}
+                  <div className="relative rounded-2xl border border-white/[0.06] bg-card/40 p-8 backdrop-blur-sm transition-[border-color] duration-500 group-hover:border-transparent">
+                    <role.icon className="mb-5 size-5 text-muted-foreground" strokeWidth={1.5} />
+                    <h3 className="mb-3 text-lg font-medium text-foreground">{role.title}</h3>
+                    <p className="text-[15px] leading-relaxed text-muted-foreground">
+                      {role.description}
+                    </p>
+                  </div>
                 </div>
               </ScrollReveal>
             ))}
