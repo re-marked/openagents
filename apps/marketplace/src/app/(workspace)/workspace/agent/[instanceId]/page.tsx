@@ -1,0 +1,70 @@
+import { getUser } from '@/lib/auth/get-user'
+import { createServiceClient } from '@agentbay/db/server'
+import { redirect } from 'next/navigation'
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb'
+import { Separator } from '@/components/ui/separator'
+import { SidebarTrigger } from '@/components/ui/sidebar'
+import { AgentStatusPanel } from './agent-status-panel'
+
+export default async function AgentStatusPage({
+  params,
+}: {
+  params: Promise<{ instanceId: string }>
+}) {
+  const user = await getUser()
+  if (!user) redirect('/login')
+
+  const { instanceId } = await params
+  const service = createServiceClient()
+
+  const { data: instance } = await service
+    .from('agent_instances')
+    .select('id, status, display_name, agents!inner(name, category)')
+    .eq('id', instanceId)
+    .eq('user_id', user.id)
+    .limit(1)
+    .single()
+
+  if (!instance) redirect('/workspace/home')
+
+  const agent = (instance as Record<string, unknown>).agents as {
+    name: string; category: string
+  }
+  const agentName = instance.display_name ?? agent.name
+
+  return (
+    <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
+      <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b border-border/40 bg-background px-4 rounded-t-xl">
+        <SidebarTrigger className="-ml-1" />
+        <Separator
+          orientation="vertical"
+          className="mr-2 data-[orientation=vertical]:h-4"
+        />
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem className="hidden md:block">
+              <span className="text-muted-foreground">Status</span>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator className="hidden md:block" />
+            <BreadcrumbItem>
+              <BreadcrumbPage>{agentName}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+      </header>
+
+      <AgentStatusPanel
+        instanceId={instance.id}
+        agentName={agentName}
+        agentCategory={agent.category}
+        initialStatus={instance.status}
+      />
+    </div>
+  )
+}

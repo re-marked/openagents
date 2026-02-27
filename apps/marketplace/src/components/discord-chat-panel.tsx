@@ -1,21 +1,35 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { DiscordMessageList, type DiscordMessage } from './discord-message-list'
 import type { ToolUse } from './tool-use-block'
 import { DiscordChatInput } from './discord-chat-input'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 interface DiscordChatPanelProps {
   agentInstanceId: string
   agentName?: string
   agentCategory?: string
+  agentStatus?: string
 }
 
-export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCategory }: DiscordChatPanelProps) {
+export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCategory, agentStatus }: DiscordChatPanelProps) {
+  const router = useRouter()
   const [messages, setMessages] = useState<DiscordMessage[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isTyping, setIsTyping] = useState(false)
+  const [showSleepingAlert, setShowSleepingAlert] = useState(agentStatus === 'suspended' || agentStatus === 'stopped')
 
   // Queue for non-blocking sends
   const queueRef = useRef<string[]>([])
@@ -519,6 +533,30 @@ export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCa
       )}
 
       <DiscordChatInput onSend={handleSend} />
+
+      {/* Sleeping/stopped agent alert */}
+      <AlertDialog open={showSleepingAlert} onOpenChange={setShowSleepingAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {agentStatus === 'stopped' ? 'Agent is shut down' : 'Agent is sleeping'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {agentStatus === 'stopped'
+                ? 'This agent was shut down. Start it up to begin chatting — this may take a moment.'
+                : 'This agent was suspended after 30 minutes of inactivity. Wake it up to start chatting.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => router.push('/workspace/home')}>
+              Go Back
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => router.push(`/workspace/agent/${agentInstanceId}`)}>
+              Wake Up
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
