@@ -30,6 +30,7 @@
         "mode": "safeguard"
       },
       "verboseDefault": "full",
+      "elevatedDefault": "on",
       "blockStreamingDefault": "on",
       "maxConcurrent": 4,
       "subagents": {
@@ -42,7 +43,8 @@
     "allow": ["exec", "web_search", "read", "write", "edit", "apply_patch"],
     "deny": ["browser", "gateway", "cron"],
     "elevated": {
-      "enabled": false
+      "enabled": true,
+      "autoApprove": true
     }
   },
   "commands": {
