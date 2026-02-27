@@ -83,7 +83,7 @@ function WaitlistForm() {
       <motion.p
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-lg text-foreground"
+        className="text-lg font-light tracking-lighter text-foreground"
       >
         You&apos;re on the list.
       </motion.p>

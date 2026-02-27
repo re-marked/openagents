@@ -70,3 +70,5 @@ supabase/.temp/project-ref
 supabase/.temp/storage-migration
 supabase/.temp/storage-version
 supabase/.temp/rest-version
+supabase/supabase/.temp/cli-latest
+supabase/supabase/migrations/20260227230544_create_waitlist.sql
