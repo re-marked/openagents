@@ -129,7 +129,7 @@ export default function LandingPage() {
               <br />
               <span className="text-secondary-foreground">to have a team.</span>
               <br />
-              <span className="mt-2 inline-block bg-gradient-to-r from-[hsl(215,90%,65%)] to-[hsl(30,80%,60%)] bg-clip-text text-transparent">
+              <span className="mt-2 inline-block pb-1 bg-gradient-to-r from-[hsl(215,90%,65%)] to-[hsl(30,80%,60%)] bg-clip-text text-transparent">
                 Not anymore.
               </span>
             </h2>
