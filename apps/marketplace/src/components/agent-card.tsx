@@ -56,16 +56,19 @@ export function AgentCardLarge({
       className="group border-0 gap-0 py-0 cursor-pointer select-none"
     >
       {/* Header row: icon + info + CTA */}
-      <CardContent className="flex items-center gap-4 p-5 pb-4">
-        <AgentInitial name={agent.name} category={agent.category} size="lg" />
+      <CardContent className="flex items-center gap-4 p-6 pb-4">
+        <AgentInitial name={agent.name} category={agent.category} size="md" />
         <div className="flex-1 min-w-0">
           <h3 className="text-[15px] font-semibold leading-tight text-foreground truncate">
             {agent.name}
           </h3>
-          <p className="text-[13px] text-muted-foreground mt-0.5 truncate">
+          <p className="text-[13px] text-muted-foreground mt-1 line-clamp-2">
             {agent.tagline}
           </p>
-          <div className="mt-1.5">
+          <p className="text-[12px] text-muted-foreground/70 mt-1.5 line-clamp-2">
+            {agent.description}
+          </p>
+          <div className="mt-2.5">
             <RatingStars rating={agent.avg_rating} count={agent.total_reviews} />
           </div>
         </div>
@@ -75,7 +78,7 @@ export function AgentCardLarge({
       </CardContent>
 
       {/* Feature tags */}
-      <CardContent className="flex gap-2 px-5 pb-5 overflow-x-auto no-scrollbar">
+      <CardContent className="flex gap-2 px-6 pb-6 pt-0 overflow-x-auto no-scrollbar">
         {agent.pricing_model === "free" ? (
           <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-400 border-0">
             Free

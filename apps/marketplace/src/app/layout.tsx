@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from 'next'
 import { Geist_Mono } from 'next/font/google'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { Providers } from '@/components/providers'
-import { SmoothScroll } from '@/components/smooth-scroll'
 import './globals.css'
 
 const geistMono = Geist_Mono({
@@ -36,7 +35,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistMono.variable} antialiased`}>
-        <SmoothScroll />
         <Providers>
           <TooltipProvider>{children}</TooltipProvider>
         </Providers>
