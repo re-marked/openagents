@@ -14,6 +14,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { useAgentStatus } from '@/hooks/use-agent-status'
 import { OverviewSection } from './sections/overview-section'
 import { ModelSection } from './sections/model-section'
@@ -173,11 +174,11 @@ export function AgentHomePage(props: AgentHomeProps) {
         </div>
 
         {/* Content area */}
-        <div className="flex-1 min-w-0 flex flex-col overflow-y-auto">
+        <ScrollArea className="flex-1 min-w-0">
           <div className="flex-1 p-6 flex flex-col min-h-0">
             {renderSection()}
           </div>
-        </div>
+        </ScrollArea>
       </div>
 
       {/* Persistent bottom bar */}
