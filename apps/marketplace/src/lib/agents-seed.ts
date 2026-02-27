@@ -25,7 +25,7 @@ const DEMO_AGENTS = [
     tagline: "Full-stack coding partner that writes, reviews, and debugs code",
     description: "Archie understands your codebase context and writes production-ready code. Supports TypeScript, Python, Rust, Go, and more.",
     category: "coding",
-    pricing_model: "credits",
+    pricing_model: "per_session",
     credits_per_session: 5,
     tags: ["coding", "debugging", "code-review"],
   },
@@ -44,7 +44,7 @@ const DEMO_AGENTS = [
     tagline: "Financial analyst that reads spreadsheets and generates reports",
     description: "Upload your financials and Ledger will find trends, flag anomalies, and create executive-ready reports with charts.",
     category: "business",
-    pricing_model: "credits",
+    pricing_model: "per_session",
     credits_per_session: 10,
     tags: ["finance", "analytics", "reporting"],
   },
@@ -72,7 +72,7 @@ const DEMO_AGENTS = [
     tagline: "Automates repetitive workflows so you can focus on what matters",
     description: "Catalyst connects to your tools and automates the boring stuff — email triage, data entry, report generation, and more.",
     category: "productivity",
-    pricing_model: "credits",
+    pricing_model: "per_session",
     credits_per_session: 3,
     tags: ["automation", "workflows", "integration"],
   },
@@ -82,7 +82,7 @@ const DEMO_AGENTS = [
     tagline: "Security-focused code auditor that finds vulnerabilities before hackers do",
     description: "Cipher scans your codebase for OWASP top 10 vulnerabilities, insecure dependencies, and logic flaws. Get actionable fix suggestions with every finding.",
     category: "coding",
-    pricing_model: "credits",
+    pricing_model: "per_session",
     credits_per_session: 8,
     tags: ["security", "audit", "vulnerabilities"],
   },
@@ -92,7 +92,7 @@ const DEMO_AGENTS = [
     tagline: "UI/UX design consultant that critiques layouts and suggests improvements",
     description: "Send Pixel a screenshot or describe your interface and get detailed feedback on hierarchy, spacing, color, and accessibility. Outputs actionable design tokens.",
     category: "creative",
-    pricing_model: "credits",
+    pricing_model: "per_session",
     credits_per_session: 4,
     tags: ["design", "ui-ux", "accessibility"],
   },
@@ -102,7 +102,7 @@ const DEMO_AGENTS = [
     tagline: "Market research analyst that maps competitors and industry trends",
     description: "Atlas monitors market signals, analyzes competitor moves, and synthesizes industry reports into strategic insights you can act on today.",
     category: "research",
-    pricing_model: "credits",
+    pricing_model: "per_session",
     credits_per_session: 6,
     tags: ["market-research", "competitors", "trends"],
   },
@@ -112,7 +112,7 @@ const DEMO_AGENTS = [
     tagline: "Technical documentation writer that turns code into clear docs",
     description: "Quill reads your codebase and generates READMEs, API references, and onboarding guides. Keeps docs in sync as your code evolves.",
     category: "writing",
-    pricing_model: "credits",
+    pricing_model: "per_session",
     credits_per_session: 4,
     tags: ["documentation", "technical-writing", "api-docs"],
   },
@@ -122,7 +122,7 @@ const DEMO_AGENTS = [
     tagline: "Pricing strategist that models revenue scenarios and optimizes margins",
     description: "Feed Abacus your cost structure and customer data. It runs Monte Carlo simulations and recommends pricing tiers that maximize lifetime value.",
     category: "business",
-    pricing_model: "credits",
+    pricing_model: "per_session",
     credits_per_session: 12,
     tags: ["pricing", "revenue", "strategy"],
   },
@@ -141,7 +141,7 @@ const DEMO_AGENTS = [
     tagline: "Smart email triager that drafts replies and surfaces what matters",
     description: "Dispatch reads your inbox, categorizes messages by urgency, drafts context-aware replies, and flags threads that need your personal attention.",
     category: "productivity",
-    pricing_model: "credits",
+    pricing_model: "per_session",
     credits_per_session: 5,
     tags: ["email", "triage", "communication"],
   },
@@ -160,7 +160,7 @@ const DEMO_AGENTS = [
     tagline: "Database architect that designs schemas and optimizes queries",
     description: "Describe your data model and Vex generates migration files, indexes, and query plans. Supports Postgres, MySQL, SQLite, and MongoDB.",
     category: "coding",
-    pricing_model: "credits",
+    pricing_model: "per_session",
     credits_per_session: 6,
     tags: ["database", "sql", "schema-design"],
   },
@@ -170,7 +170,7 @@ const DEMO_AGENTS = [
     tagline: "PR and communications strategist that crafts press releases and pitches",
     description: "Herald helps you write compelling press releases, media pitches, and crisis communications. Trained on thousands of successful campaigns.",
     category: "business",
-    pricing_model: "credits",
+    pricing_model: "per_session",
     credits_per_session: 7,
     tags: ["pr", "communications", "media"],
   },
@@ -180,7 +180,7 @@ const DEMO_AGENTS = [
     tagline: "Academic paper reviewer that evaluates methodology and finds gaps",
     description: "Sage reads academic papers and returns structured reviews covering methodology, statistical rigor, novelty, and reproducibility. Perfect for peer review prep.",
     category: "research",
-    pricing_model: "credits",
+    pricing_model: "per_session",
     credits_per_session: 5,
     tags: ["academic", "peer-review", "methodology"],
   },
@@ -203,21 +203,32 @@ const DEMO_AGENTS = [
 export async function seedDemoAgentsIfEmpty() {
   const service = createServiceClient()
 
-  const { count } = await service
+  const { count, error: countError } = await service
     .from("agents")
     .select("*", { count: "exact", head: true })
     .eq("status", "published")
 
-  if (count && count >= DEMO_AGENTS.length) return
+  if (countError) {
+    console.error("[seed] count query failed:", countError.message)
+    return
+  }
+
+  console.log(`[seed] published agents count: ${count}, need: ${DEMO_AGENTS.length}`)
+  if (count !== null && count >= DEMO_AGENTS.length) return
 
   // We need a creator_id — use a placeholder or the first user
-  const { data: firstUser } = await service
+  const { data: firstUser, error: userError } = await service
     .from("users")
     .select("id")
     .limit(1)
     .single()
 
-  if (!firstUser) return // no users yet, can't seed
+  if (userError || !firstUser) {
+    console.error("[seed] no user found:", userError?.message)
+    return
+  }
+
+  console.log(`[seed] seeding ${DEMO_AGENTS.length} agents with creator_id: ${firstUser.id}`)
 
   const now = new Date().toISOString()
   const agents = DEMO_AGENTS.map((a) => ({
@@ -231,5 +242,10 @@ export async function seedDemoAgentsIfEmpty() {
     avg_rating: Math.round((3.5 + Math.random() * 1.5) * 10) / 10,
   }))
 
-  await service.from("agents").upsert(agents, { onConflict: "slug" })
+  const { error: upsertError } = await service.from("agents").upsert(agents, { onConflict: "slug" })
+  if (upsertError) {
+    console.error("[seed] upsert failed:", upsertError.message, upsertError.details)
+  } else {
+    console.log(`[seed] successfully seeded ${agents.length} agents`)
+  }
 }
