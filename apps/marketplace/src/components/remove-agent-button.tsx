@@ -21,9 +21,10 @@ import { removeAgent } from '@/lib/hire/actions'
 interface RemoveAgentButtonProps {
   instanceId: string
   agentName: string
+  onRemoved?: () => void
 }
 
-export function RemoveAgentButton({ instanceId, agentName }: RemoveAgentButtonProps) {
+export function RemoveAgentButton({ instanceId, agentName, onRemoved }: RemoveAgentButtonProps) {
   const router = useRouter()
   const [removing, setRemoving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -45,13 +46,18 @@ export function RemoveAgentButton({ instanceId, agentName }: RemoveAgentButtonPr
     setRemoving(true)
     setError(null)
 
+    // Optimistic: close dialog and hide the card immediately
+    setOpen(false)
+    onRemoved?.()
+
     try {
       await removeAgent(instanceId)
-      setOpen(false)
       router.refresh()
     } catch (e) {
+      // Re-open dialog with error if removal actually failed
       setError(e instanceof Error ? e.message : 'Failed to remove agent')
       setRemoving(false)
+      setOpen(true)
     }
   }
 
