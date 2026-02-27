@@ -12,6 +12,7 @@ import {
   Zap,
   DollarSign,
   Brain,
+  BarChart3,
 } from 'lucide-react'
 import { Bar, BarChart } from 'recharts'
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
@@ -254,13 +255,15 @@ export function OverviewSection({
         </div>
       </div>
 
-      {/* ── Stats header ────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-medium text-muted-foreground">Stats</h2>
-        <TimeframeToggle value={timeframe} onChange={setTimeframe} />
-      </div>
-
-      {/* ── Stats grid ──────────────────────────────────────────────── */}
+      {/* ── Stats ─────────────────────────────────────────────────── */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="size-4 text-muted-foreground/60" />
+            <h2 className="text-sm font-medium text-muted-foreground">Stats</h2>
+          </div>
+          <TimeframeToggle value={timeframe} onChange={setTimeframe} />
+        </div>
       {loading ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -323,6 +326,7 @@ export function OverviewSection({
           </div>
         </div>
       )}
+      </div>
 
       {/* ── Brain (Knowledge Graph) ─────────────────────────────────── */}
       <div>
