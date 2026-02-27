@@ -89,7 +89,7 @@ export function AgentDetailSheet({ agent, open, onOpenChange }: AgentDetailSheet
 
   return (
     <Drawer direction="right" open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="!w-[540px] !max-w-[90vw] !sm:max-w-none bg-sidebar border-l border-border/40 overflow-y-auto">
+      <DrawerContent className="!w-[540px] !max-w-[90vw] !sm:max-w-none bg-sidebar border-l border-border/40 overflow-x-hidden overflow-y-auto">
         <DrawerClose className="absolute top-5 right-5 z-10 rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-card transition-colors">
           <X className="size-5" />
           <span className="sr-only">Close</span>
