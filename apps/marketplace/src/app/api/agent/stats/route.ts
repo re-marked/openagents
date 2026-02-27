@@ -13,19 +13,36 @@ interface ActivityItem {
   durationMinutes: number
 }
 
+interface TimeSeriesEntry {
+  date: string        // YYYY-MM-DD
+  messages: number
+  minutes: number
+  cost: number        // credits
+}
+
 interface StatsResponse {
   relationship: {
     totalConversations: number
     totalMessages: number
     totalMinutes: number
+    totalCost: number
     longestSessionMinutes: number
     skillsCount: number
     memoriesCount: number
   }
   recentActivity: ActivityItem[]
+  timeSeries: TimeSeriesEntry[]
 }
 
 // ── Mock data ────────────────────────────────────────────────────────────
+
+function seededRandom(seed: number): () => number {
+  let s = seed
+  return () => {
+    s = (s * 16807 + 0) % 2147483647
+    return (s - 1) / 2147483646
+  }
+}
 
 function generateMockStats(): StatsResponse {
   const now = new Date()
@@ -113,16 +130,47 @@ function generateMockStats(): StatsResponse {
     },
   ]
 
+  // Generate 30 days of plausible time series data
+  const timeSeries: TimeSeriesEntry[] = []
+  const rand = seededRandom(42)
+  let totalCost = 0
+
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(now)
+    d.setDate(d.getDate() - i)
+    const dateStr = d.toISOString().slice(0, 10)
+
+    // Weekdays are busier than weekends
+    const dayOfWeek = d.getDay()
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
+    const activityMultiplier = isWeekend ? 0.4 : 1.0
+
+    // Some random variation + a slight upward trend for recent days
+    const recencyBoost = 1 + (30 - i) * 0.015
+    const noise = 0.3 + rand() * 1.4
+
+    const messages = Math.round(rand() * 28 * activityMultiplier * recencyBoost * noise)
+    const minutes = Math.round(rand() * 85 * activityMultiplier * recencyBoost * noise)
+    const cost = Math.round(rand() * 7.5 * activityMultiplier * recencyBoost * noise * 10) / 10
+
+    totalCost += cost
+    timeSeries.push({ date: dateStr, messages, minutes, cost })
+  }
+
+  totalCost = Math.round(totalCost * 10) / 10
+
   return {
     relationship: {
       totalConversations: 47,
       totalMessages: 312,
       totalMinutes: 720,
+      totalCost,
       longestSessionMinutes: 134,
       skillsCount: 3,
       memoriesCount: 23,
     },
     recentActivity: mockActivity,
+    timeSeries,
   }
 }
 
@@ -163,7 +211,7 @@ export async function GET(request: Request) {
     // 1. Aggregate session stats
     const { data: sessionStats } = await service
       .from('sessions')
-      .select('id, compute_seconds')
+      .select('id, compute_seconds, started_at')
       .eq('instance_id', instanceId)
       .eq('user_id', user.id)
 
@@ -229,16 +277,55 @@ export async function GET(request: Request) {
       }
     }
 
+    // 4. Build time series — group sessions by day for last 30 days
+    const timeSeries: TimeSeriesEntry[] = []
+    const now = new Date()
+
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(now)
+      d.setDate(d.getDate() - i)
+      const dateStr = d.toISOString().slice(0, 10)
+
+      // Find sessions that started on this date
+      const daySessions = sessionStats?.filter(s => {
+        const sessionDate = new Date(s.started_at).toISOString().slice(0, 10)
+        return sessionDate === dateStr
+      }) ?? []
+
+      let dayMessages = 0
+      if (daySessions.length > 0) {
+        const daySessionIds = daySessions.map(s => s.id)
+        const { count } = await service
+          .from('messages')
+          .select('*', { count: 'exact', head: true })
+          .in('session_id', daySessionIds)
+        dayMessages = count ?? 0
+      }
+
+      const dayMinutes = Math.round(
+        daySessions.reduce((sum, s) => sum + (s.compute_seconds ?? 0), 0) / 60
+      )
+
+      // TODO: Replace with real credit usage from usage_events/credit_transactions
+      const dayCost = 0
+
+      timeSeries.push({ date: dateStr, messages: dayMessages, minutes: dayMinutes, cost: dayCost })
+    }
+
+    const totalCost = timeSeries.reduce((sum, d) => sum + d.cost, 0)
+
     const response: StatsResponse = {
       relationship: {
         totalConversations,
         totalMessages,
         totalMinutes: Math.round(totalComputeSeconds / 60),
+        totalCost,
         longestSessionMinutes: Math.round(longestSessionSeconds / 60),
         skillsCount: 0,
         memoriesCount: 0,
       },
       recentActivity,
+      timeSeries,
     }
 
     return NextResponse.json(response)
