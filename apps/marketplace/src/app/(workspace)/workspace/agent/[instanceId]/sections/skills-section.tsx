@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Loader2, Plus, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -214,7 +214,7 @@ export function SkillsSection({ instanceId }: SkillsSectionProps) {
 
                 {isExpanded && (
                   <div className="border-t border-border/40 p-4 space-y-3">
-                    <textarea
+                    <AutoResizeTextarea
                       value={displayContent}
                       onChange={(e) =>
                         setEditingContent((prev) => ({
@@ -222,7 +222,7 @@ export function SkillsSection({ instanceId }: SkillsSectionProps) {
                           [skill.name]: e.target.value,
                         }))
                       }
-                      className="w-full min-h-[200px] rounded-lg border border-border/40 bg-background px-3 py-2 text-sm font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-y"
+                      className="w-full min-h-[200px] rounded-lg border border-border/40 bg-background px-3 py-2 text-sm font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-none overflow-hidden"
                       spellCheck={false}
                     />
                     <div className="flex items-center gap-2">
@@ -281,4 +281,21 @@ export function SkillsSection({ instanceId }: SkillsSectionProps) {
       </div>
     </div>
   )
+}
+
+function AutoResizeTextarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  const ref = useRef<HTMLTextAreaElement>(null)
+
+  const resize = useCallback(() => {
+    const el = ref.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.max(el.scrollHeight, 200)}px`
+  }, [])
+
+  useEffect(() => {
+    resize()
+  }, [props.value, resize])
+
+  return <textarea ref={ref} {...props} />
 }
