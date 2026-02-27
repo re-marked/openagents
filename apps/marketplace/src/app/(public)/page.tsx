@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { Search, ArrowRight, ChevronDown, Circle, Triangle, Square } from 'lucide-react'
 import { motion } from 'framer-motion'
@@ -10,6 +10,7 @@ import { ScrollReveal } from '@/components/scroll-reveal'
 import { SmoothScroll } from '@/components/smooth-scroll'
 import { SierpinskiLogo } from '@/components/sierpinski-logo'
 import { Button } from '@/components/ui/button'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { joinWaitlist } from '@/lib/waitlist/actions'
 
 const isLocked = process.env.NEXT_PUBLIC_LAUNCH_LOCKDOWN !== 'false'
@@ -90,9 +91,20 @@ export default function LandingPage() {
     return <UnlockedLandingPage />
   }
 
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const scrollAreaRef = useRef<HTMLDivElement>(null)
+
+  // Grab the Radix viewport element after mount
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      const viewport = scrollAreaRef.current.querySelector('[data-slot="scroll-area-viewport"]')
+      if (viewport) (viewportRef as React.MutableRefObject<HTMLElement | null>).current = viewport as HTMLDivElement
+    }
+  }, [])
+
   return (
-    <>
-      <SmoothScroll />
+    <ScrollArea ref={scrollAreaRef} className="h-svh">
+      <SmoothScroll wrapperRef={viewportRef} />
       <main className="w-full">
         {/* ─── Section 1: Hero ─── */}
         <section className="relative flex h-svh w-full flex-col items-center justify-center overflow-hidden px-6">
@@ -188,7 +200,7 @@ export default function LandingPage() {
           </ScrollReveal>
         </section>
       </main>
-    </>
+    </ScrollArea>
   )
 }
 
