@@ -5,8 +5,8 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // ── Launch lockdown: only the landing page is public ──
-  // Remove this block when ready to open the full app.
-  if (pathname !== '/') {
+  // Set NEXT_PUBLIC_LAUNCH_LOCKDOWN=false (or remove it) to open the full app.
+  if (process.env.NEXT_PUBLIC_LAUNCH_LOCKDOWN !== 'false' && pathname !== '/') {
     const url = request.nextUrl.clone()
     url.pathname = '/'
     return NextResponse.redirect(url)

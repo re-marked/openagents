@@ -1,7 +1,16 @@
+import { PublicSiteHeader } from '@/components/public-site-header'
+
+const isLocked = process.env.NEXT_PUBLIC_LAUNCH_LOCKDOWN !== 'false'
+
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-svh flex-col">
-      {children}
+      {!isLocked && <PublicSiteHeader />}
+      {isLocked ? children : (
+        <div className="min-h-0 flex-1 overflow-hidden">
+          {children}
+        </div>
+      )}
     </div>
   )
 }
