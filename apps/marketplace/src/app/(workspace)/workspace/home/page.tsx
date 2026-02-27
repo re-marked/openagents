@@ -26,7 +26,7 @@ export default async function HomePage() {
   // Load user's agents
   const { data: instances } = await service
     .from('agent_instances')
-    .select('id, display_name, status, team_id, created_at, agents!inner(name, slug, category, tagline)')
+    .select('id, display_name, status, created_at, agents!inner(name, slug, category, tagline)')
     .eq('user_id', user.id)
     .not('status', 'eq', 'destroyed')
     .order('created_at', { ascending: false })
@@ -38,7 +38,6 @@ export default async function HomePage() {
     category: string
     tagline: string
     status: string
-    teamId: string | null
   }
 
   const agents: HiredAgent[] = (instances ?? []).map((inst) => {
@@ -52,21 +51,8 @@ export default async function HomePage() {
       category: agent.category,
       tagline: agent.tagline,
       status: inst.status,
-      teamId: inst.team_id,
     }
   })
-
-  // Get project ID for chat links
-  let projectId: string | null = null
-  const firstTeamId = agents.find((a) => a.teamId)?.teamId
-  if (firstTeamId) {
-    const { data: team } = await service
-      .from('teams')
-      .select('project_id')
-      .eq('id', firstTeamId)
-      .single()
-    projectId = team?.project_id ?? null
-  }
 
   const STATUS_BADGE: Record<string, { text: string; className: string }> = {
     running: { text: "Running", className: "bg-green-500/10 text-green-400 border-0" },
@@ -118,9 +104,7 @@ export default async function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {agents.map((agent) => {
             const statusBadge = STATUS_BADGE[agent.status] ?? { text: agent.status, className: "bg-secondary" }
-            const chatPath = agent.teamId && projectId
-              ? `/workspace/p/${projectId}/t/${agent.teamId}/chat`
-              : null
+            const chatPath = `/workspace/agent/${agent.instanceId}/chat`
             const isProvisioning = agent.status === "provisioning"
             const isDestroying = agent.status === "destroying"
 
@@ -143,7 +127,7 @@ export default async function HomePage() {
                   </div>
 
                   {/* Actions */}
-                  {chatPath && !isProvisioning && !isDestroying && agent.status !== 'error' && (
+                  {!isProvisioning && !isDestroying && agent.status !== 'error' && (
                     <Button variant="secondary" asChild className="w-full bg-primary/15 text-primary hover:bg-primary/25">
                       <Link href={chatPath}>
                         <MessageSquare className="size-4 mr-2" />

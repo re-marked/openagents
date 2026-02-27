@@ -8,11 +8,10 @@ import { revalidatePath } from 'next/cache'
 
 interface AddSubAgentParams {
   teamId: string
-  projectId: string
   roleId: string
 }
 
-export async function addSubAgent({ teamId, projectId, roleId }: AddSubAgentParams) {
+export async function addSubAgent({ teamId, roleId }: AddSubAgentParams) {
   const user = await getUser()
   if (!user) throw new Error('Unauthorized')
 
@@ -57,7 +56,6 @@ export async function addSubAgent({ teamId, projectId, roleId }: AddSubAgentPara
     instance_id: instance.id,
   })
 
-  revalidatePath(`/workspace/p/${projectId}/t/${teamId}/settings`)
   revalidatePath(`/workspace`)
 
   return { instanceId: instance.id }
@@ -65,11 +63,10 @@ export async function addSubAgent({ teamId, projectId, roleId }: AddSubAgentPara
 
 interface RemoveSubAgentParams {
   instanceId: string
-  projectId: string
   teamId: string
 }
 
-export async function removeSubAgent({ instanceId, projectId, teamId }: RemoveSubAgentParams) {
+export async function removeSubAgent({ instanceId, teamId }: RemoveSubAgentParams) {
   const user = await getUser()
   if (!user) throw new Error('Unauthorized')
 
@@ -103,7 +100,6 @@ export async function removeSubAgent({ instanceId, projectId, teamId }: RemoveSu
       .eq('id', instanceId)
   }
 
-  revalidatePath(`/workspace/p/${projectId}/t/${teamId}/settings`)
   revalidatePath(`/workspace`)
 
   return { success: true }

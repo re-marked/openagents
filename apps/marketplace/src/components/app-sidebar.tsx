@@ -28,11 +28,9 @@ interface AgentInfo {
   category: string
   tagline: string
   status: string
-  teamId: string | null
 }
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
-  projectId?: string
   userEmail?: string
   agents?: AgentInfo[]
 }
@@ -55,7 +53,6 @@ const CATEGORY_COLOR: Record<string, string> = {
 }
 
 export function AppSidebar({
-  projectId,
   userEmail,
   agents = [],
   ...props
@@ -91,40 +88,26 @@ export function AppSidebar({
           <SidebarGroupContent>
             <SidebarMenu>
               {agents.map((agent) => {
-                const chatPath = agent.teamId && projectId
-                  ? `/workspace/p/${projectId}/t/${agent.teamId}/chat`
-                  : null
-                const isActive = chatPath ? pathname === chatPath : false
+                const chatPath = `/workspace/agent/${agent.instanceId}/chat`
+                const isActive = pathname === chatPath
                 const bg = CATEGORY_COLOR[agent.category] ?? "bg-zinc-500"
 
                 return (
                   <SidebarMenuItem key={agent.instanceId}>
                     <SidebarMenuButton
-                      asChild={!!chatPath}
+                      asChild
                       isActive={isActive}
                       className="gap-2.5"
                     >
-                      {chatPath ? (
-                        <Link href={chatPath}>
-                          <span className="relative flex shrink-0">
-                            <span className={`flex h-5 w-5 items-center justify-center rounded-md ${bg} text-[10px] font-bold text-white`}>
-                              {agent.name[0]}
-                            </span>
-                            <span className={`absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-sidebar ${STATUS_DOT[agent.status] ?? "bg-zinc-400"}`} />
+                      <Link href={chatPath}>
+                        <span className="relative flex shrink-0">
+                          <span className={`flex h-5 w-5 items-center justify-center rounded-md ${bg} text-[10px] font-bold text-white`}>
+                            {agent.name[0]}
                           </span>
-                          <span className="truncate">{agent.name}</span>
-                        </Link>
-                      ) : (
-                        <>
-                          <span className="relative flex shrink-0">
-                            <span className={`flex h-5 w-5 items-center justify-center rounded-md ${bg} text-[10px] font-bold text-white`}>
-                              {agent.name[0]}
-                            </span>
-                            <span className={`absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-sidebar ${STATUS_DOT[agent.status] ?? "bg-zinc-400"}`} />
-                          </span>
-                          <span className="truncate">{agent.name}</span>
-                        </>
-                      )}
+                          <span className={`absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-sidebar ${STATUS_DOT[agent.status] ?? "bg-zinc-400"}`} />
+                        </span>
+                        <span className="truncate">{agent.name}</span>
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )

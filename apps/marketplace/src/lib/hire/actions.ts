@@ -185,28 +185,15 @@ export async function checkInstanceStatus(instanceId: string) {
 
   const { data } = await service
     .from('agent_instances')
-    .select('id, status, fly_app_name, agent_id, team_id')
+    .select('id, status')
     .eq('id', instanceId)
     .eq('user_id', user.id)
     .single()
 
   if (!data) return null
 
-  // Get project ID for redirect
-  let projectId: string | null = null
-  if (data.team_id) {
-    const { data: team } = await service
-      .from('teams')
-      .select('project_id')
-      .eq('id', data.team_id)
-      .single()
-    projectId = team?.project_id ?? null
-  }
-
   return {
     id: data.id,
     status: data.status,
-    teamId: data.team_id,
-    projectId,
   }
 }

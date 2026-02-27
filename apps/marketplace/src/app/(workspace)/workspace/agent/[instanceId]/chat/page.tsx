@@ -12,22 +12,22 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 
-export default async function TeamChatPage({
+export default async function AgentChatPage({
   params,
 }: {
-  params: Promise<{ projectId: string; teamId: string }>
+  params: Promise<{ instanceId: string }>
 }) {
   const user = await getUser()
   if (!user) redirect('/login')
 
-  const { teamId } = await params
+  const { instanceId } = await params
   const service = createServiceClient()
 
-  // Find the agent instance linked to this team
+  // Find the agent instance by ID + user ownership
   const { data: instance } = await service
     .from('agent_instances')
     .select('id, status, display_name, agents!inner(name, category)')
-    .eq('team_id', teamId)
+    .eq('id', instanceId)
     .eq('user_id', user.id)
     .in('status', ['running', 'suspended'])
     .limit(1)

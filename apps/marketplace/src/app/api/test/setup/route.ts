@@ -82,6 +82,6 @@ export async function POST() {
     instanceId: instance.id,
     agentName: 'Test Assistant',
     status: instance.status,
-    chatUrl: `/workspace/p/test/t/${instance.id}/chat`,
+    chatUrl: `/workspace/agent/${instance.id}/chat`,
   })
 }

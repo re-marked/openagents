@@ -44,7 +44,6 @@ interface AvailableRole {
 interface TeamSettingsProps {
   members: TeamMember[]
   availableRoles: AvailableRole[]
-  projectId: string
   teamId: string
 }
 
@@ -74,21 +73,21 @@ function StatusDot({ status }: { status: string }) {
   )
 }
 
-export function TeamSettings({ members, availableRoles, projectId, teamId }: TeamSettingsProps) {
+export function TeamSettings({ members, availableRoles, teamId }: TeamSettingsProps) {
   const [isPending, startTransition] = useTransition()
   const [selectedRole, setSelectedRole] = useState<string>('')
 
   const handleAdd = () => {
     if (!selectedRole) return
     startTransition(async () => {
-      await addSubAgent({ teamId, projectId, roleId: selectedRole })
+      await addSubAgent({ teamId, roleId: selectedRole })
       setSelectedRole('')
     })
   }
 
   const handleRemove = (instanceId: string) => {
     startTransition(async () => {
-      await removeSubAgent({ instanceId, projectId, teamId })
+      await removeSubAgent({ instanceId, teamId })
     })
   }
 

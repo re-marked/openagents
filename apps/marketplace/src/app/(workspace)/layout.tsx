@@ -16,7 +16,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
   // Load ALL user's agent instances (not just test-agent)
   const { data: instances } = await service
     .from('agent_instances')
-    .select('id, display_name, status, team_id, agents!inner(name, slug, category, tagline)')
+    .select('id, display_name, status, agents!inner(name, slug, category, tagline)')
     .eq('user_id', user.id)
     .not('status', 'eq', 'destroyed')
     .order('created_at', { ascending: true })
@@ -28,7 +28,6 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
     category: string
     tagline: string
     status: string
-    teamId: string | null
   }
 
   const agents: AgentInfo[] = (instances ?? []).map((inst) => {
@@ -45,26 +44,12 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
       category: agent.category,
       tagline: agent.tagline,
       status: inst.status,
-      teamId: inst.team_id,
     }
   })
-
-  // Get project ID from first team (for routing)
-  let projectId: string | undefined
-  const firstTeamId = agents.find((a) => a.teamId)?.teamId
-  if (firstTeamId) {
-    const { data: team } = await service
-      .from('teams')
-      .select('project_id')
-      .eq('id', firstTeamId)
-      .single()
-    projectId = team?.project_id ?? undefined
-  }
 
   return (
     <SidebarProvider className="h-svh !min-h-0">
       <AppSidebar
-        projectId={projectId}
         userEmail={user.email}
         agents={agents}
       />
