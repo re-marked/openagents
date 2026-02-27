@@ -201,11 +201,11 @@ export function KnowledgeGraph({ instanceId }: KnowledgeGraphProps) {
         'link',
         forceLink<GraphNode, GraphLink>(linksRef.current)
           .id((d) => d.id)
-          .distance(70)
+          .distance(50)
           .strength(0.8)
       )
       .force('charge', forceManyBody().strength(-320))
-      .force('center', forceCenter(0, 0).strength(0.03))
+      .force('center', forceCenter(0, 0).strength(0.01))
       .force('collide', forceCollide<GraphNode>().radius((d) => nodeRadius(d) + 4))
       .alpha(0.8)
       .alphaDecay(0.015)
