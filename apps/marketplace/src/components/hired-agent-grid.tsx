@@ -57,10 +57,10 @@ export function HiredAgentGrid({ agents: initialAgents }: HiredAgentGridProps) {
               variant="ghost"
               size="icon"
               asChild
-              className="absolute top-2 right-2 size-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+              className="absolute top-3 right-3 size-8 text-muted-foreground hover:text-foreground"
             >
               <Link href={`/workspace/agent/${agent.instanceId}`}>
-                <Info className="size-3.5" />
+                <Info className="size-4.5" />
               </Link>
             </Button>
             <CardContent className="p-5">
