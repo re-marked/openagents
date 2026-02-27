@@ -259,8 +259,8 @@ export function OverviewSection({
       <div>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <BarChart3 className="size-4 text-muted-foreground/60" />
-            <h2 className="text-sm font-medium text-muted-foreground">Stats</h2>
+            <BarChart3 className="size-5 text-muted-foreground/60" />
+            <h2 className="text-base font-semibold text-muted-foreground">Stats</h2>
           </div>
           <TimeframeToggle value={timeframe} onChange={setTimeframe} />
         </div>
@@ -331,8 +331,8 @@ export function OverviewSection({
       {/* ── Brain (Knowledge Graph) ─────────────────────────────────── */}
       <div>
         <div className="flex items-center gap-2 mb-4">
-          <Brain className="size-4 text-muted-foreground/60" />
-          <h2 className="text-sm font-medium text-muted-foreground">Brain</h2>
+          <Brain className="size-5 text-muted-foreground/60" />
+          <h2 className="text-base font-semibold text-muted-foreground">Brain</h2>
         </div>
         <KnowledgeGraph instanceId={instanceId} />
       </div>
