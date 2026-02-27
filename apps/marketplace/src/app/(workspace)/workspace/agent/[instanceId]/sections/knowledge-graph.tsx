@@ -204,9 +204,9 @@ export function KnowledgeGraph({ instanceId }: KnowledgeGraphProps) {
           .distance(70)
           .strength(0.8)
       )
-      .force('charge', forceManyBody().strength(-250))
-      .force('center', forceCenter(0, 0).strength(0.08))
-      .force('collide', forceCollide<GraphNode>().radius((d) => nodeRadius(d) + 6))
+      .force('charge', forceManyBody().strength(-320))
+      .force('center', forceCenter(0, 0).strength(0.03))
+      .force('collide', forceCollide<GraphNode>().radius((d) => nodeRadius(d) + 4))
       .alpha(0.8)
       .alphaDecay(0.015)
 
@@ -226,8 +226,8 @@ export function KnowledgeGraph({ instanceId }: KnowledgeGraphProps) {
 
   // Node radius based on incoming links
   function nodeRadius(node: GraphNode): number {
-    if (node.isRoot) return 22
-    return 10 + node.incomingCount * 3
+    if (node.isRoot) return 16
+    return 7 + node.incomingCount * 2
   }
 
   // ── Drag handlers ──────────────────────────────────────────────────────
