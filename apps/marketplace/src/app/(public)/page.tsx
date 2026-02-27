@@ -175,7 +175,7 @@ export default function LandingPage() {
           </ScrollReveal>
           <ScrollReveal delay={0.15} className="max-w-xl text-center">
             <p className="text-lg leading-relaxed text-muted-foreground">
-              AI agents that research, write, analyze, and build — working alongside you, around the clock. What used to take ten people now takes one person and <span className="bg-gradient-to-r from-[hsl(46,69%,63%)] to-[hsl(209,50%,49%)] bg-clip-text text-transparent">the right platform.</span>
+              AI agents that research, write, analyze, and build — working alongside you, around the clock. What used to take ten people now takes one person and <span className="bg-gradient-to-r from-[hsl(46,69%,63%)] to-[hsl(209,50%,49%)] bg-clip-text text-transparent">the right Agents.</span>
             </p>
           </ScrollReveal>
         </section>
@@ -191,10 +191,10 @@ export default function LandingPage() {
           <div className="mx-auto grid max-w-5xl gap-6 sm:grid-cols-3">
             {ROLES.map((role, i) => (
               <ScrollReveal key={role.title} delay={i * 0.1}>
-                <div className="group relative overflow-hidden rounded-2xl p-[1.5px] transition-transform duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1)] hover:scale-[1.015]">
+                <div className="group relative overflow-hidden rounded-2xl p-[2px] transition-transform duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1)] hover:scale-[1.015]">
                   {/* Rotating gradient — always visible at low opacity, brightens on hover */}
                   <div className="animate-border-rotate absolute inset-0 opacity-[0.08] transition-opacity duration-700 group-hover:opacity-60" style={{ background: 'conic-gradient(from var(--border-angle, 0deg), hsl(215 90% 65%), hsl(30 80% 60%), hsl(215 90% 65%))' }} />
-                  <div className="relative rounded-[calc(1rem-1.5px)] bg-[hsl(30_3%_13%)] p-8">
+                  <div className="relative rounded-[calc(1rem-2px)] bg-[hsl(30_3%_13%)] p-8">
                     <role.icon className="mb-5 size-5 text-muted-foreground" strokeWidth={1.5} />
                     <h3 className="mb-3 text-lg font-medium text-foreground">{role.title}</h3>
                     <p className="text-[15px] leading-relaxed text-muted-foreground">
