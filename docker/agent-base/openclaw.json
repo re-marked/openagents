@@ -43,8 +43,7 @@
     "allow": ["exec", "web_search", "read", "write", "edit", "apply_patch"],
     "deny": ["browser", "gateway", "cron"],
     "elevated": {
-      "enabled": true,
-      "autoApprove": true
+      "enabled": true
     }
   },
   "commands": {

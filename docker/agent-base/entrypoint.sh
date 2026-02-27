@@ -29,6 +29,23 @@ else
   echo "[entrypoint] Existing openclaw.json found — preserving user config"
 fi
 
+# ── 1b. Strip deprecated keys that crash newer OpenClaw versions
+if [ -f /data/openclaw.json ]; then
+  node -e "\
+    const fs = require('fs');\
+    const cfg = JSON.parse(fs.readFileSync('/data/openclaw.json', 'utf8'));\
+    let changed = false;\
+    if (cfg.tools?.elevated?.autoApprove !== undefined) {\
+      delete cfg.tools.elevated.autoApprove;\
+      changed = true;\
+    }\
+    if (changed) {\
+      fs.writeFileSync('/data/openclaw.json', JSON.stringify(cfg, null, 2));\
+      console.log('[entrypoint] Stripped deprecated config keys from openclaw.json');\
+    }\
+  "
+fi
+
 # ── 2. Seed workspace files on first boot
 if [ -z "$(ls -A /data/workspace 2>/dev/null)" ]; then
   cp -r /opt/openclaw-defaults/workspace/. /data/workspace/ 2>/dev/null || true
