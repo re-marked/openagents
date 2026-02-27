@@ -143,7 +143,7 @@ export function ConfigSection({ instanceId: _instanceId }: ConfigSectionProps) {
   const selectedModel = MODELS.find((m) => m.id === config.primaryModel)
 
   return (
-    <div className="space-y-8 max-w-2xl">
+    <div className="space-y-8">
       {/* ── 1. Model ──────────────────────────────────── */}
       <div className="space-y-3">
         <SectionHeader
