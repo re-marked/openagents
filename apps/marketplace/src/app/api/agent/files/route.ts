@@ -35,29 +35,20 @@ You are Nova, a sharp and curious research assistant who helps users explore top
 `,
   '/data/workspace/MEMORY.md': `# Long-term Memory
 
-## User Preferences
-- Prefers concise responses with bullet points
-- Works primarily with TypeScript and Python codebases
-- Timezone: EST (UTC-5)
-- Likes when I include relevant code examples
+## User Profile
+See [[user-preferences]] for communication style and work habits. Works with [[tech-stack]].
 
-## Project Context
-- Currently building a SaaS analytics dashboard
-- Tech stack: Next.js 15, Supabase, Tailwind CSS
-- Main pain point: complex SQL queries for time-series aggregation
-- Has a deadline for v2 launch in mid-March
+## Research
+- [[sse-vs-websocket]] — evaluated for real-time dashboard streaming
+- [[supabase-rls]] — multi-tenant security patterns for SaaS
 
-## Key Facts
-- User's name: Alex
-- Team size: 3 engineers
-- Using GitHub Actions for CI/CD
-- Prefers Vitest over Jest for testing
+## Projects
+- [[saas-dashboard]] — v2 launching mid-March, main active project
+- [[ci-cd-setup]] — GitHub Actions pipeline for monorepo
 
-## Past Research Topics
-- WebSocket vs SSE for real-time dashboards (concluded: SSE for their use case)
-- Supabase RLS policies for multi-tenant apps
-- Fly.io deployment strategies for globally distributed apps
-- OAuth2 PKCE flow implementation patterns
+## Team & Context
+- [[team-context]] — 3-person engineering team, roles and workflow
+- [[fly-io-deployment]] — global deployment strategy for the dashboard
 `,
 }
 
@@ -68,12 +59,17 @@ drwxr-xr-x  5 node node 4096 Feb 26 14:28 ..
 drwxr-xr-x  2 node node 4096 Feb 26 14:30 web-search
 drwxr-xr-x  2 node node 4096 Feb 26 14:30 code-review
 drwxr-xr-x  2 node node 4096 Feb 26 14:31 summarize`,
-  '/data/memory': `total 12
+  '/data/memory': `total 36
 drwxr-xr-x  2 node node 4096 Feb 27 09:15 .
 drwxr-xr-x  5 node node 4096 Feb 26 14:28 ..
--rw-r--r--  1 node node  847 Feb 27 09:15 2026-02-27-session-notes.md
--rw-r--r--  1 node node  432 Feb 26 18:42 2026-02-26-research-findings.md
--rw-r--r--  1 node node  295 Feb 25 11:20 2026-02-25-project-setup.md`,
+-rw-r--r--  1 node node  512 Feb 27 09:15 user-preferences.md
+-rw-r--r--  1 node node  480 Feb 27 08:30 tech-stack.md
+-rw-r--r--  1 node node  620 Feb 26 18:42 saas-dashboard.md
+-rw-r--r--  1 node node  410 Feb 26 15:20 sse-vs-websocket.md
+-rw-r--r--  1 node node  390 Feb 26 11:00 supabase-rls.md
+-rw-r--r--  1 node node  350 Feb 25 16:45 fly-io-deployment.md
+-rw-r--r--  1 node node  295 Feb 25 11:20 team-context.md
+-rw-r--r--  1 node node  440 Feb 24 09:30 ci-cd-setup.md`,
 }
 
 const MOCK_SKILL_FILES: Record<string, string> = {
@@ -165,43 +161,136 @@ Condense long content into clear, actionable summaries.
 }
 
 const MOCK_MEMORY_FILES: Record<string, string> = {
-  '/data/memory/2026-02-27-session-notes.md': `# Session Notes — Feb 27, 2026
+  '/data/memory/user-preferences.md': `# User Preferences
+#profile #workflow
 
-## Topics Discussed
-- Reviewed Supabase RLS policies for the analytics dashboard
-- Debugged a race condition in the real-time subscription handler
-- Discussed migration strategy from REST to tRPC for internal APIs
+Alex prefers concise responses with bullet points. Likes code examples inline.
+Timezone: EST (UTC-5). Usually active 9am–7pm weekdays.
 
-## Decisions Made
-- Will keep REST for public API, use tRPC only for internal dashboard endpoints
-- RLS policy for \`analytics_events\` table: users can only read their own org's data
-- Added \`org_id\` column to support multi-tenant queries
+Works primarily with TypeScript and Python. See [[tech-stack]] for full details.
+Part of a small team — see [[team-context]] for roles and dynamics.
 
-## Follow-ups
-- [ ] Write migration script for adding org_id to existing rows
-- [ ] Set up tRPC router with Zod validation
-- [ ] Benchmark time-series query with new partitioning scheme
+## Communication Style
+- Lead with the answer, then context
+- Use markdown tables for comparisons
+- Flag uncertainty explicitly
+- Skip boilerplate intros
 `,
-  '/data/memory/2026-02-26-research-findings.md': `# Research: SSE vs WebSocket for Dashboards
+  '/data/memory/tech-stack.md': `# Tech Stack
+#engineering #architecture
 
-## Conclusion: SSE is the better fit
+Current production stack for the [[saas-dashboard]] project:
 
-### Reasons
-- Dashboard only needs server→client data push (no bidirectional)
-- SSE auto-reconnects on connection drop (built into EventSource API)
-- Simpler server implementation with standard HTTP
-- Works through all proxies and CDNs without special config
+| Layer | Technology |
+|-------|-----------|
+| Frontend | Next.js 15 (App Router), React 19, Tailwind v4 |
+| Backend | Supabase (Postgres + Auth + Realtime) |
+| Deployment | Vercel (frontend), Fly.io (services) |
+| CI/CD | GitHub Actions — see [[ci-cd-setup]] |
+| Testing | Vitest + Playwright |
 
-### Caveats
+Considering adding tRPC for internal API routes. REST stays for public API.
+`,
+  '/data/memory/saas-dashboard.md': `# SaaS Dashboard Project
+#project #active
+
+Analytics dashboard for mid-market SaaS companies. V2 launching mid-March 2026.
+
+## Architecture
+Built on [[tech-stack]]. Real-time updates via SSE — see [[sse-vs-websocket]] for the decision.
+Multi-tenant security handled by [[supabase-rls]] policies.
+
+## Current Sprint
+- Time-series aggregation optimization (partitioned tables)
+- Org-level data isolation with RLS
+- Dashboard widget drag-and-drop
+
+## Pain Points
+- Complex SQL for time-series rollups
+- Supabase connection pooling under load
+- Bundle size creeping up (need tree-shaking audit)
+`,
+  '/data/memory/sse-vs-websocket.md': `# SSE vs WebSocket
+#research #decision
+
+Evaluated for the [[saas-dashboard]] real-time features.
+
+## Decision: SSE
+- Dashboard is server→client only (no bidirectional needed)
+- EventSource API auto-reconnects on drop
+- Works through all proxies and CDNs
+- Simpler server implementation
+
+## Caveats
 - Max 6 connections per domain in HTTP/1.1 (use HTTP/2)
-- No binary data support (fine for JSON payloads)
+- No binary data (fine for JSON payloads)
+- For future chat features, may revisit WebSocket
 `,
-  '/data/memory/2026-02-25-project-setup.md': `# Project Setup Notes
+  '/data/memory/supabase-rls.md': `# Supabase RLS Patterns
+#security #database
 
-- Initialized Next.js 15 with App Router
-- Configured Supabase project with auth + postgres
-- Set up Tailwind CSS v4 with custom design tokens
-- Deployed to Vercel with preview branches
+Row Level Security policies for the [[saas-dashboard]] multi-tenant model.
+Applied across the [[tech-stack]] Supabase layer.
+
+## Core Pattern
+- Every table has \`org_id\` column
+- RLS policy: \`auth.jwt() ->> 'org_id' = org_id\`
+- Service role bypasses RLS for admin/background tasks
+
+## Gotchas
+- JOINs can leak data if RLS not on all joined tables
+- \`INSERT\` policies need separate handling from \`SELECT\`
+- Realtime subscriptions respect RLS (good!)
+`,
+  '/data/memory/fly-io-deployment.md': `# Fly.io Deployment
+#infrastructure #devops
+
+Global deployment strategy for [[saas-dashboard]] backend services.
+Pipeline managed through [[ci-cd-setup]].
+
+## Setup
+- Primary region: iad (US East)
+- Auto-scale to: lhr, nrt for global latency
+- Machine type: shared-cpu-2x / 2048MB RAM
+- Auto-suspend after 5min idle, ~300ms resume
+
+## Notes
+- Volume-backed for persistent state
+- Fly-replay header for region-aware routing
+- Health checks every 30s via /healthz
+`,
+  '/data/memory/team-context.md': `# Team Context
+#team #workflow
+
+Small engineering team of 3. Alex is the tech lead — see [[user-preferences]].
+
+## Roles
+- **Alex** (tech lead) — frontend, architecture, deploys
+- **Jordan** — backend, database, API design
+- **Sam** — DevOps, testing, [[ci-cd-setup]] pipeline
+
+## Process
+- 2-week sprints, async standups
+- PR reviews required before merge
+- Feature branches → dev → main
+- Ship on Fridays (controversial, but it works)
+`,
+  '/data/memory/ci-cd-setup.md': `# CI/CD Setup
+#devops #automation
+
+GitHub Actions pipeline for the monorepo. See [[tech-stack]] for what we're building.
+[[team-context]] — Sam owns this pipeline.
+
+## Pipeline Stages
+1. **Lint + Type-check** — runs on every PR
+2. **Unit tests** — Vitest, parallel matrix
+3. **E2E tests** — Playwright against preview deploy
+4. **Deploy** — Vercel (auto) + Fly.io (manual promote)
+
+## Secrets
+- \`SUPABASE_SERVICE_ROLE_KEY\` in GitHub Secrets
+- \`FLY_API_TOKEN\` for deploy steps
+- Vercel auto-links via GitHub integration
 `,
 }
 
