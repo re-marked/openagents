@@ -201,16 +201,22 @@ export function KnowledgeGraph({ instanceId }: KnowledgeGraphProps) {
         'link',
         forceLink<GraphNode, GraphLink>(linksRef.current)
           .id((d) => d.id)
-          .distance(50)
-          .strength(0.8)
+          .distance(45)
+          .strength(0.6)
       )
-      .force('charge', forceManyBody().strength(-320))
-      .force('center', forceCenter(0, 0).strength(0.01))
+      .force('charge', forceManyBody().strength(-400))
+      .force('center', forceCenter(0, 0).strength(0.005))
       .force('collide', forceCollide<GraphNode>().radius((d) => nodeRadius(d) + 4))
       .alpha(0.8)
-      .alphaDecay(0.015)
+      .alphaDecay(0.012)
 
     simRef.current = sim
+
+    // Pre-select MEMORY.md node
+    const memoryNode = nodesRef.current.find((n) => n.isRoot)
+    if (memoryNode) {
+      setSelectedNode(memoryNode)
+    }
 
     function tick() {
       setTick((t) => t + 1)
