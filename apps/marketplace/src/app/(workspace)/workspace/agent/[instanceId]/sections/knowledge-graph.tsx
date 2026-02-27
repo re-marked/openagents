@@ -13,6 +13,8 @@ import {
 import { AnimatePresence, motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -518,9 +520,11 @@ export function KnowledgeGraph({ instanceId }: KnowledgeGraphProps) {
                   <X className="size-3.5" />
                 </button>
               </div>
-              <pre className="mt-3 text-xs text-muted-foreground whitespace-pre-wrap font-mono leading-relaxed overflow-y-auto flex-1 min-h-0">
-                {selectedNode.content.trim()}
-              </pre>
+              <div className="mt-3 text-xs text-muted-foreground overflow-y-auto flex-1 min-h-0 prose prose-invert prose-xs max-w-none prose-headings:text-foreground prose-headings:text-xs prose-headings:font-semibold prose-headings:mt-3 prose-headings:mb-1 prose-p:my-1 prose-ul:my-1 prose-li:my-0 prose-table:text-xs prose-td:py-1 prose-td:px-2 prose-th:py-1 prose-th:px-2 prose-strong:text-foreground prose-code:text-[11px] prose-code:bg-muted prose-code:px-1 prose-code:rounded prose-a:text-blue-400">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {selectedNode.content.trim()}
+                </ReactMarkdown>
+              </div>
             </div>
           </motion.div>
         )}
