@@ -44,6 +44,14 @@ export async function hireAgent({ agentSlug }: HireAgentParams) {
     return { instanceId: existing.id, status: existing.status, alreadyHired: true }
   }
 
+  // 2b. Clean up any destroyed instance so the unique constraint doesn't block re-hire
+  await service
+    .from('agent_instances')
+    .delete()
+    .eq('user_id', user.id)
+    .eq('agent_id', agent.id)
+    .in('status', ['destroyed', 'destroying'])
+
   // 3. Ensure project exists
   const { data: existingProject } = await service
     .from('projects')
