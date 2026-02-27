@@ -239,9 +239,13 @@ app.post('/v1/chat', async (c) => {
         return new Promise<string | null>((resolve) => {
           let lifecycleEnded = false
           let doneSent = false
+          let doneEmitted = false // guards against emitting duplicate done SSE events
           let resolved = false
           let deltaBuffer = ''
           let lastDoneText: string | null = null
+
+          // Track chat content parts to detect tool calls embedded in message
+          let lastSeenPartsCount = 0
 
           const onTimeout = () => {
             console.error('[chat] Turn timed out — no agent response received')
@@ -260,6 +264,19 @@ app.post('/v1/chat', async (c) => {
           const resetTurnTimer = () => {
             clearTimeout(turnTimer)
             turnTimer = setTimeout(onTimeout, TURN_TIMEOUT_MS)
+          }
+
+          /** Emit a done SSE event exactly once, then reset deltaBuffer. */
+          const emitDone = async (content: string) => {
+            if (doneEmitted) return
+            doneEmitted = true
+            doneSent = true
+            lastDoneText = content || null
+            await stream.writeSSE({
+              event: 'done',
+              data: JSON.stringify({ content }),
+            })
+            deltaBuffer = ''
           }
 
           const finalize = (result: string | null) => {
@@ -322,12 +339,7 @@ app.post('/v1/chat', async (c) => {
                     return
                   }
                   if (deltaBuffer) {
-                    doneSent = true
-                    lastDoneText = deltaBuffer
-                    await stream.writeSSE({
-                      event: 'done',
-                      data: JSON.stringify({ content: deltaBuffer }),
-                    })
+                    await emitDone(deltaBuffer)
                     finalize(deltaBuffer)
                     return
                   }
@@ -340,24 +352,55 @@ app.post('/v1/chat', async (c) => {
                 }
               }
 
-              // Chat events — "final" signals one turn's completion.
+              // Chat events — detect tool calls in content parts and emit
+              // text_block / tool events. "final" signals one turn's completion.
               if (msg.type === 'event' && msg.event === 'chat') {
                 resetTurnTimer() // Chat state change
                 const payload = msg.payload
-                const parts = payload.message?.content ?? []
+                const parts: { type: string; [key: string]: unknown }[] = payload.message?.content ?? []
+
+                // Log content part types for debugging
+                if (parts.length > 0) {
+                  const types = parts.map((p: { type: string }) => p.type)
+                  console.log(`[chat] content parts (${parts.length}): ${types.join(', ')}`)
+                }
+
+                // Scan for NEW non-text parts (tool calls, tool results)
+                // These appear in the chat message content alongside text parts
+                for (let i = lastSeenPartsCount; i < parts.length; i++) {
+                  const part = parts[i]
+                  if (part.type !== 'text') {
+                    // Flush buffered text before the tool part
+                    if (deltaBuffer) {
+                      await stream.writeSSE({
+                        event: 'text_block',
+                        data: JSON.stringify({ content: deltaBuffer }),
+                      })
+                      deltaBuffer = ''
+                    }
+
+                    // Emit as a tool event
+                    const isResult = part.type === 'tool_result' || part.type === 'tool-result'
+                    await stream.writeSSE({
+                      event: 'tool',
+                      data: JSON.stringify({
+                        stream: 'tool',
+                        state: isResult ? 'end' : 'start',
+                        data: part,
+                      }),
+                    })
+                  }
+                }
+                lastSeenPartsCount = parts.length
+
                 const text = parts
-                  .filter((p: { type: string }) => p.type === 'text')
-                  .map((p: { text: string }) => p.text)
+                  .filter((p) => p.type === 'text')
+                  .map((p) => (p as { type: string; text: string }).text)
                   .join('')
 
                 if (payload.state === 'final' || payload.state === 'done' || payload.state === 'completed') {
-                  doneSent = true
                   const doneText = text || deltaBuffer
-                  lastDoneText = doneText || null
-                  await stream.writeSSE({
-                    event: 'done',
-                    data: JSON.stringify({ content: doneText }),
-                  })
+                  await emitDone(doneText)
 
                   if (lifecycleEnded) {
                     // This is the last turn in this agent response cycle.
