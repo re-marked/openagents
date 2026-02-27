@@ -1,7 +1,17 @@
 import { updateSession } from '@agentbay/db/middleware'
-import type { NextRequest } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+
+  // ── Launch lockdown: only the landing page is public ──
+  // Remove this block when ready to open the full app.
+  if (pathname !== '/') {
+    const url = request.nextUrl.clone()
+    url.pathname = '/'
+    return NextResponse.redirect(url)
+  }
+
   return updateSession(request as any)
 }
 
