@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@agentbay/db/server'
+import { createServiceClient } from '@agentbay/db/server'
 
 export async function joinWaitlist(formData: FormData) {
   const email = formData.get('email')?.toString().trim().toLowerCase()
@@ -9,7 +9,7 @@ export async function joinWaitlist(formData: FormData) {
     return { error: 'Please enter a valid email address.' }
   }
 
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { error } = await supabase.from('waitlist').insert({ email })
 
   // Treat duplicate as success — don't leak existing signups
