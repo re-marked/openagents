@@ -14,7 +14,7 @@ import {
   Brain,
 } from 'lucide-react'
 import { Bar, BarChart } from 'recharts'
-import { ChartContainer, type ChartConfig } from '@/components/ui/chart'
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AgentAvatar } from '@/lib/agents'
@@ -56,10 +56,15 @@ function formatTotalTime(minutes: number): string {
 }
 
 function formatCost(credits: number): string {
-  if (credits === 0) return '0 cr'
-  if (credits < 1) return `${Math.round(credits * 100)}c`
-  if (credits < 10) return `${credits.toFixed(1)} cr`
-  return `${Math.round(credits)} cr`
+  if (credits === 0) return '0'
+  if (credits < 1) return `${credits.toFixed(1)}`
+  if (credits < 10) return `${credits.toFixed(1)}`
+  return `${Math.round(credits)}`
+}
+
+function formatTooltipDate(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00')
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 function sliceTimeSeries(data: TimeSeriesEntry[], timeframe: Timeframe): TimeSeriesEntry[] {
@@ -80,7 +85,7 @@ function sumField(data: TimeSeriesEntry[], field: keyof Omit<TimeSeriesEntry, 'd
 // ── Chart configs (one per stat, different colors) ───────────────────────
 
 const costChartConfig = {
-  cost: { label: 'Cost', color: 'hsl(215, 90%, 58%)' },
+  cost: { label: 'Credits', color: 'hsl(215, 90%, 58%)' },
 } satisfies ChartConfig
 
 const minutesChartConfig = {
@@ -259,10 +264,10 @@ export function OverviewSection({
       {loading ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="rounded-xl border border-border/40 bg-card/50 px-4 py-4">
-              <Skeleton className="h-7 w-12 mb-2" />
-              <Skeleton className="h-10 w-full mb-1.5" />
-              <Skeleton className="h-3.5 w-16" />
+            <div key={i} className="rounded-xl border border-border/40 bg-card/50 px-5 py-5">
+              <Skeleton className="h-9 w-16 mb-3" />
+              <Skeleton className="h-16 w-full mb-2" />
+              <Skeleton className="h-4 w-20" />
             </div>
           ))}
         </div>
@@ -272,6 +277,7 @@ export function OverviewSection({
           <SparklineCard
             icon={DollarSign}
             value={formatCost(costTotal)}
+            unit="credits"
             label="Cost"
             chartConfig={costChartConfig}
             data={sliced}
@@ -279,7 +285,7 @@ export function OverviewSection({
             footer={
               <Link
                 href="/workspace/usage"
-                className="text-[10px] text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+                className="text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors"
               >
                 Full Breakdown →
               </Link>
@@ -307,13 +313,13 @@ export function OverviewSection({
           />
 
           {/* Hired — static, no sparkline */}
-          <div className="rounded-xl border border-border/40 bg-card/50 px-4 py-4 flex flex-col">
-            <div className="flex items-center gap-2 mb-1">
-              <CalendarDays className="size-3.5 text-muted-foreground/60" />
-              <span className="text-2xl font-bold tracking-tight leading-none">{hiredDate}</span>
+          <div className="rounded-xl border border-border/40 bg-card/50 px-5 py-5 flex flex-col">
+            <div className="flex items-center gap-2.5 mb-2">
+              <CalendarDays className="size-4 text-muted-foreground/60" />
+              <span className="text-3xl font-bold tracking-tight leading-none">{hiredDate}</span>
             </div>
-            <div className="flex-1" />
-            <p className="text-xs text-muted-foreground">Hired</p>
+            <div className="flex-1 min-h-16" />
+            <p className="text-sm text-muted-foreground">Hired</p>
           </div>
         </div>
       )}
@@ -363,6 +369,7 @@ function TimeframeToggle({
 function SparklineCard({
   icon: Icon,
   value,
+  unit,
   label,
   chartConfig,
   data,
@@ -371,6 +378,7 @@ function SparklineCard({
 }: {
   icon: typeof Clock
   value: string
+  unit?: string
   label: string
   chartConfig: ChartConfig
   data: TimeSeriesEntry[]
@@ -380,21 +388,36 @@ function SparklineCard({
   const hasData = data.some((d) => d[dataKey as keyof TimeSeriesEntry] as number > 0)
 
   return (
-    <div className="rounded-xl border border-border/40 bg-card/50 px-4 py-4 flex flex-col">
-      <div className="flex items-center gap-2 mb-1">
-        <Icon className="size-3.5 text-muted-foreground/60" />
-        <span className="text-2xl font-bold tracking-tight leading-none">{value}</span>
+    <div className="rounded-xl border border-border/40 bg-card/50 px-5 py-5 flex flex-col">
+      <div className="flex items-center gap-2.5 mb-2">
+        <Icon className="size-4 text-muted-foreground/60" />
+        <span className="text-3xl font-bold tracking-tight leading-none">{value}</span>
+        {unit && (
+          <span className="text-sm text-muted-foreground/60 font-medium self-end mb-0.5">{unit}</span>
+        )}
       </div>
 
-      {/* Sparkline */}
-      <div className="h-10 mt-1">
+      {/* Sparkline with tooltip */}
+      <div className="h-16 mt-1">
         {hasData && data.length > 1 ? (
-          <ChartContainer config={chartConfig} className="h-10 w-full">
+          <ChartContainer config={chartConfig} className="h-16 w-full">
             <BarChart data={data} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+              <ChartTooltip
+                cursor={{ fill: 'hsl(var(--muted))', radius: 4 }}
+                content={
+                  <ChartTooltipContent
+                    hideIndicator
+                    labelFormatter={(_, payload) => {
+                      const entry = payload?.[0]?.payload as TimeSeriesEntry | undefined
+                      return entry ? formatTooltipDate(entry.date) : ''
+                    }}
+                  />
+                }
+              />
               <Bar
                 dataKey={dataKey}
                 fill={`var(--color-${dataKey})`}
-                radius={[2, 2, 0, 0]}
+                radius={[3, 3, 0, 0]}
                 isAnimationActive={false}
               />
             </BarChart>
@@ -406,8 +429,8 @@ function SparklineCard({
         )}
       </div>
 
-      <div className="flex items-center justify-between mt-1">
-        <p className="text-xs text-muted-foreground">{label}</p>
+      <div className="flex items-center justify-between mt-2">
+        <p className="text-sm text-muted-foreground">{label}</p>
         {footer}
       </div>
     </div>
