@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import {
   LayoutDashboard,
   Cpu,
@@ -9,7 +8,6 @@ import {
   Puzzle,
   Brain,
   Settings,
-  MessageSquare,
   Power,
   type LucideIcon,
 } from 'lucide-react'
@@ -66,16 +64,10 @@ export function AgentHomePage(props: AgentHomeProps) {
     initialStatus,
     displayName,
   } = props
-  const router = useRouter()
   const [activeSection, setActiveSection] = useState<Section>('overview')
   const [currentName, setCurrentName] = useState(displayName)
 
   const { status } = useAgentStatus({ instanceId, initialStatus })
-  const cfg = STATUS_CONFIG[status] ?? {
-    label: status,
-    dot: 'bg-zinc-400',
-    bg: 'bg-zinc-500/10 text-zinc-400 ring-zinc-500/20',
-  }
 
   const isRunning = status === 'running'
 
@@ -131,52 +123,6 @@ export function AgentHomePage(props: AgentHomeProps) {
     <div className="flex flex-1 min-h-0 flex-col">
       {/* Main content area with secondary sidebar */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
-        {/* Secondary sidebar */}
-        <nav className="hidden md:flex w-52 shrink-0 flex-col border-r border-border/40 bg-background">
-          <div className="flex flex-col gap-0.5 p-3 flex-1">
-            {NAV_ITEMS.map((item) => {
-              const Icon = item.icon
-              const isActive = activeSection === item.id
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveSection(item.id)}
-                  className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-left ${
-                    isActive
-                      ? 'bg-accent text-accent-foreground'
-                      : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
-                  }`}
-                >
-                  <Icon className="size-4 shrink-0" />
-                  {item.label}
-                </button>
-              )
-            })}
-          </div>
-        </nav>
-
-        {/* Mobile nav */}
-        <div className="md:hidden flex gap-1 px-3 py-2 border-b border-border/40 overflow-x-auto shrink-0 bg-background">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon
-            const isActive = activeSection === item.id
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveSection(item.id)}
-                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
-                  isActive
-                    ? 'bg-accent text-accent-foreground'
-                    : 'text-muted-foreground hover:bg-accent/50'
-                }`}
-              >
-                <Icon className="size-3.5" />
-                {item.label}
-              </button>
-            )
-          })}
-        </div>
-
         {/* Content area */}
         <div className="flex-1 min-w-0 min-h-0 flex flex-col">
           {isFullHeight ? (
@@ -195,23 +141,28 @@ export function AgentHomePage(props: AgentHomeProps) {
         </div>
       </div>
 
-      {/* Persistent bottom bar */}
-      <div className="shrink-0 flex items-center justify-between border-t border-border/40 bg-background px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${cfg.bg}`}>
-            <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
-            {cfg.label}
-          </span>
-          <span className="text-xs text-muted-foreground">{currentName}</span>
+      {/* macOS dock-style nav */}
+      <div className="shrink-0 flex items-center justify-center border-t border-border/40 bg-background px-4 py-2">
+        <div className="flex items-center gap-1 rounded-xl bg-muted/40 px-1.5 py-1.5">
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon
+            const isActive = activeSection === item.id
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveSection(item.id)}
+                className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                  isActive
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Icon className="size-4" />
+                <span className={isActive ? '' : 'hidden sm:inline'}>{item.label}</span>
+              </button>
+            )
+          })}
         </div>
-        <Button
-          size="sm"
-          onClick={() => router.push(`/workspace/agent/${instanceId}/chat`)}
-          disabled={!isRunning && status !== 'suspended' && status !== 'stopped'}
-        >
-          <MessageSquare className="size-3.5 mr-1.5" />
-          Open Chat
-        </Button>
       </div>
     </div>
   )
