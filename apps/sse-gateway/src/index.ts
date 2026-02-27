@@ -354,7 +354,7 @@ app.post('/v1/chat', async (c) => {
                   const phase = td.phase ?? ''
                   const normalizedState =
                     phase === 'start' || phase === 'running' ? 'start'
-                    : phase === 'end' || phase === 'complete' || phase === 'done' ? 'end'
+                    : phase === 'end' || phase === 'complete' || phase === 'done' || phase === 'result' ? 'end'
                     : phase === 'error' ? 'error'
                     : phase || 'start'
                   await stream.writeSSE({
