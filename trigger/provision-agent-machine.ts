@@ -131,14 +131,28 @@ export const provisionAgentMachine = task({
       await allocatePublicIPs(appName)
       logger.info('Fly app ready with IPs', { appName: app.name })
 
-      // ── 4. Create volume ─────────────────────────────────────────────────
-      const volume = await fly.createVolume(appName, {
-        name: 'agent_data',
-        region: FLY_REGION,
-        size_gb: 1,
-        encrypted: true,
-      })
-      logger.info('Volume created', { volumeId: volume.id })
+      // ── 4. Reuse or create volume ────────────────────────────────────────
+      // Check for existing volumes first (from previous failed attempts or
+      // destroyed machines). Reuse an unattached volume to avoid orphans and
+      // Fly 412 "insufficient resources" errors.
+      const existingVolumes = await fly.listVolumes(appName)
+      const unattachedVolume = existingVolumes.find(
+        (v) => v.name === 'agent_data' && !v.attached_machine_id
+      )
+
+      let volume
+      if (unattachedVolume) {
+        volume = unattachedVolume
+        logger.info('Reusing existing unattached volume', { volumeId: volume.id })
+      } else {
+        volume = await fly.createVolume(appName, {
+          name: 'agent_data',
+          region: FLY_REGION,
+          size_gb: 1,
+          encrypted: true,
+        })
+        logger.info('Volume created', { volumeId: volume.id })
+      }
 
       // ── 5. Create machine ─────────────────────────────────────────────────
       const roleEnv: Record<string, string> = {}
