@@ -218,22 +218,24 @@ export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCa
               } else if (currentEvent === 'tool') {
                 // Tool use event — each tool gets its own message
                 const toolPayload = data.data ?? data
-                const toolId = toolPayload.id ?? `tool-${Date.now()}`
+                const toolId = toolPayload.id ?? toolPayload.toolCallId ?? `tool-${Date.now()}`
                 const toolName = toolPayload.tool ?? toolPayload.name ?? 'unknown'
-                const state = data.state ?? toolPayload.state ?? ''
+                const state = data.state ?? toolPayload.state ?? toolPayload.phase ?? ''
 
+                // Extract args — OpenClaw may use args, arguments, or input
+                const rawArgs = toolPayload.args ?? toolPayload.arguments ?? toolPayload.input
                 let args = ''
-                if (toolPayload.args) {
-                  if (typeof toolPayload.args === 'string') {
-                    args = toolPayload.args
-                  } else if (toolPayload.args.command) {
-                    args = toolPayload.args.command
-                  } else if (toolPayload.args.path || toolPayload.args.file) {
-                    args = toolPayload.args.path ?? toolPayload.args.file
-                  } else if (toolPayload.args.query) {
-                    args = toolPayload.args.query
+                if (rawArgs) {
+                  if (typeof rawArgs === 'string') {
+                    args = rawArgs
+                  } else if (rawArgs.command) {
+                    args = rawArgs.command
+                  } else if (rawArgs.path || rawArgs.file) {
+                    args = rawArgs.path ?? rawArgs.file
+                  } else if (rawArgs.query) {
+                    args = rawArgs.query
                   } else {
-                    args = JSON.stringify(toolPayload.args)
+                    args = JSON.stringify(rawArgs)
                   }
                 }
 

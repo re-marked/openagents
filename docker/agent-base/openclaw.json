@@ -29,7 +29,7 @@
       "compaction": {
         "mode": "safeguard"
       },
-      "verboseDefault": "on",
+      "verboseDefault": "full",
       "blockStreamingDefault": "on",
       "maxConcurrent": 4,
       "subagents": {

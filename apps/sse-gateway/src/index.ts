@@ -218,6 +218,16 @@ app.post('/v1/chat', async (c) => {
       connectedWs.send(JSON.stringify(chatRequest))
       console.log('[chat] Sent chat.send')
 
+      // Ensure tool events stream for this session (belt-and-suspenders
+      // alongside openclaw.json verboseDefault). "full" = tool calls + outputs.
+      connectedWs.send(JSON.stringify({
+        type: 'req',
+        id: generateId(),
+        method: 'sessions.patch',
+        params: { key: sessionKey, verboseLevel: 'full' },
+      }))
+      console.log('[chat] Sent sessions.patch verboseLevel=full')
+
       // --- Multi-turn @mention loop ---
       // We listen for the agent's response. When a "done" event arrives with
       // @mentions, we emit thread events, then send a follow-up chat.send
@@ -336,9 +346,31 @@ app.post('/v1/chat', async (c) => {
                     deltaBuffer = ''
                   }
                   resetTurnTimer()
+
+                  // Normalize OpenClaw tool event to consistent shape for frontend
+                  // OpenClaw sends: { phase, name, toolCallId, args, result }
+                  // Frontend expects: { state, id, tool, args, output }
+                  const td = payload.data ?? {}
+                  const phase = td.phase ?? ''
+                  const normalizedState =
+                    phase === 'start' || phase === 'running' ? 'start'
+                    : phase === 'end' || phase === 'complete' || phase === 'done' ? 'end'
+                    : phase === 'error' ? 'error'
+                    : phase || 'start'
                   await stream.writeSSE({
                     event: 'tool',
-                    data: JSON.stringify(payload),
+                    data: JSON.stringify({
+                      stream: 'tool',
+                      state: normalizedState,
+                      data: {
+                        id: td.toolCallId ?? td.id ?? `tool-${Date.now()}`,
+                        tool: td.name ?? td.tool ?? 'unknown',
+                        name: td.name ?? td.tool ?? 'unknown',
+                        args: td.args ?? td.arguments ?? td.input ?? undefined,
+                        output: td.result ?? td.output ?? undefined,
+                        error: td.error ?? undefined,
+                      },
+                    }),
                   })
                 } else if (payload?.stream === 'lifecycle' && payload.data?.phase === 'end') {
                   lifecycleEnded = true
@@ -655,6 +687,7 @@ async function connectAndHandshake(
   console.log('[chat] Received connect.challenge')
 
   // Step 2: Send connect request
+  // caps: ["tool-events"] tells OpenClaw to emit stream:tool WS events
   const connectParams: Record<string, unknown> = {
     minProtocol: 3,
     maxProtocol: 3,
@@ -666,6 +699,7 @@ async function connectAndHandshake(
     },
     role: 'operator',
     scopes: ['operator.admin'],
+    caps: ['tool-events'],
   }
 
   if (agentToken) {
