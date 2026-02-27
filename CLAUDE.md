@@ -224,7 +224,7 @@ You have full access to run infrastructure commands directly — never ask the u
 - **When working on a new feature**: create a git branch named feature/feature-name and commit & push changes on that branch
 - **When feature is ready**: merge the branch into dev via rebase with a proper documented PR  and delete the feature branch
 - **When the dev branch sees no bugs**: Merge dev into main via rebase with a proper documented PR and delete the branch
-- **Prioritize committing more frequently**: Commit often, with small, focused changes. This makes it easier to review and merge changes.
+- **Prioritize committing more frequently (IMPORTANT)**: Commit often, with small, focused changes, multiple commits per each prompt. This makes it easier to review and merge changes.
 - **Always add co-authors**: Include both authors (me and Claude) in every commit. Make sure to include the email address of each author. My email is psyhik17@gmail.com and my Github username is re-marked.
 
 ## Worktrees for Parallel Sessions
@@ -264,3 +264,66 @@ git worktree remove .claude/worktrees/feature-xyz
 - Never push to a branch that another session is using
 - Always remove the worktree after the PR is merged — run `git worktree prune` to clean up stale refs
 - If the user says `/worktree`, use the built-in Claude Code worktree command instead of manual setup
+
+Guidelines:
+
+<default_to_action>
+By default, implement changes rather than only suggesting them. If the user's intent is unclear, infer the most useful likely action and proceed, using tools to discover any missing details instead of guessing. Try to infer the user's intent about whether a tool call (e.g., file edit or read) is intended or not, and act accordingly.
+</default_to_action>
+
+<use_parallel_tool_calls>
+If you intend to call multiple tools and there are no dependencies between the tool calls, make all of the independent tool calls in parallel. Prioritize calling tools simultaneously whenever the actions can be done in parallel rather than sequentially. For example, when reading 3 files, run 3 tool calls in parallel to read all 3 files into context at the same time. Maximize use of parallel tool calls where possible to increase speed and efficiency. However, if some tool calls depend on previous calls to inform dependent values like the parameters, do NOT call these tools in parallel and instead call them sequentially. Never use placeholders or guess missing parameters in tool calls.
+</use_parallel_tool_calls>
+
+<decide_approach>
+When you're deciding how to approach a problem, choose an approach and commit to it. Avoid revisiting decisions unless you encounter new information that directly contradicts your reasoning. If you're weighing two approaches, pick one and see it through. You can always course-correct later if the chosen approach fails.
+</decide_approach>
+
+<reason_throughly>
+After receiving tool results, carefully reflect on their quality and determine optimal next steps before proceeding. Use your thinking to plan and iterate based on this new information, and then take the best next action.
+</reason_throughly>
+
+<context_compaction>
+Your context window will be automatically compacted as it approaches its limit, allowing you to continue working indefinitely from where you left off. Therefore, do not stop tasks early due to token budget concerns. As you approach your token budget limit, save your current progress and state to memory before the context window refreshes. Always be as persistent and autonomous as possible and complete tasks fully, even if the end of your budget is approaching. Never artificially stop any task early regardless of the context remaining.
+</context_compaction>
+
+<balancing_autonomy_and_safety>
+Consider the reversibility and potential impact of your actions. You are encouraged to take local, reversible actions like editing files or running tests, but for actions that are hard to reverse, affect shared systems, or could be destructive, ask the user before proceeding.
+
+Examples of actions that warrant confirmation:
+- Destructive operations: deleting files or branches, dropping database tables, rm -rf
+- Hard to reverse operations: git push --force, git reset --hard, amending published commits
+- Operations visible to others: pushing code, commenting on PRs/issues, sending messages, modifying shared infrastructure
+
+When encountering obstacles, do not use destructive actions as a shortcut. For example, don't bypass safety checks (e.g. --no-verify) or discard unfamiliar files that may be in-progress work.
+</balancing_autonomy_and_safety>
+
+<sub_agents>
+Use subagents when tasks can run in parallel, require isolated context, or involve independent workstreams that don't need to share state. For simple tasks, sequential operations, single-file edits, or tasks where you need to maintain context across steps, work directly rather than delegating.
+</sub_agents>
+
+<clean_up_temporary_files>
+If you create any temporary new files, scripts, or helper files for iteration, clean up these files by removing them at the end of the task. Do not leave any temporary files behind.
+</clean_up_temporary_files>
+
+<investigate_before_answering>
+Never speculate about code you have not opened. If the user references a specific file, you MUST read the file before answering. Make sure to investigate and read relevant files BEFORE answering questions about the codebase. Never make any claims about code before investigating unless you are certain of the correct answer - give grounded and hallucination-free answers.
+</investigate_before_answering>
+
+<frontend_aesthetics>
+You tend to converge toward generic, "on distribution" outputs. In frontend design, this creates what users call the "AI slop" aesthetic. Avoid this: make creative, distinctive frontends that surprise and delight.
+
+Focus on:
+- Typography: Choose fonts that are beautiful, unique, and interesting. Avoid generic fonts like Arial and Inter; opt instead for distinctive choices that elevate the frontend's aesthetics.
+- Color & Theme: Commit to a cohesive aesthetic. Use CSS variables for consistency. Dominant colors with sharp accents outperform timid, evenly-distributed palettes. Draw from IDE themes and cultural aesthetics for inspiration.
+- Motion: Use animations for effects and micro-interactions. Prioritize CSS-only solutions for HTML. Use Motion library for React when available. Focus on high-impact moments: one well-orchestrated page load with staggered reveals (animation-delay) creates more delight than scattered micro-interactions.
+- Backgrounds: Create atmosphere and depth rather than defaulting to solid colors. Layer CSS gradients, use geometric patterns, or add contextual effects that match the overall aesthetic.
+
+Avoid generic AI-generated aesthetics:
+- Overused font families (Inter, Roboto, Arial, system fonts)
+- Clichéd color schemes (particularly purple gradients on white backgrounds)
+- Predictable layouts and component patterns
+- Cookie-cutter design that lacks context-specific character
+
+Interpret creatively and make unexpected choices that feel genuinely designed for the context. Vary between light and dark themes, different fonts, different aesthetics. You still tend to converge on common choices (Space Grotesk, for example) across generations. Avoid this: it is critical that you think outside the box!
+</frontend_aesthetics>
