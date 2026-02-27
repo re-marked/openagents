@@ -239,7 +239,7 @@ export function DiscordMessageList({ messages, agentName = 'Agent', agentCategor
   const groups = groupMessages(messages)
 
   return (
-    <ScrollArea ref={scrollAreaRef} className="min-h-0 flex-1">
+    <ScrollArea ref={scrollAreaRef} className="min-h-0 flex-1" data-lenis-prevent>
       <div className="flex flex-col gap-1 py-4">
         {groups.map((group, i) => (
           <MessageGroupView key={`${group.role}-${group.messages[0].id}-${i}`} group={group} agentName={agentName} botBg={botBg} botText={botText} />
