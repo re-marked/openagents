@@ -128,7 +128,7 @@ export function KnowledgeGraph({ instanceId }: KnowledgeGraphProps) {
     startVX: number
     startVY: number
   }>({ active: false, startX: 0, startY: 0, startVX: 0, startVY: 0 })
-  const viewBoxRef = useRef({ x: -200, y: -175, w: 400, h: 350 })
+  const viewBoxRef = useRef({ x: -200, y: -240, w: 400, h: 480 })
   const rafRef = useRef<number>(0)
 
   // Fetch memory files
@@ -354,7 +354,7 @@ export function KnowledgeGraph({ instanceId }: KnowledgeGraphProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[350px]">
+      <div className="flex items-center justify-center h-[480px]">
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
           Loading memory graph...
@@ -365,7 +365,7 @@ export function KnowledgeGraph({ instanceId }: KnowledgeGraphProps) {
 
   if (files.length === 0 || graph.nodes.length === 0) {
     return (
-      <div className="flex items-center justify-center h-[350px] text-sm text-muted-foreground">
+      <div className="flex items-center justify-center h-[480px] text-sm text-muted-foreground">
         No memory files found.
       </div>
     )
@@ -382,7 +382,7 @@ export function KnowledgeGraph({ instanceId }: KnowledgeGraphProps) {
         className={`relative rounded-xl border border-border/40 bg-card/30 overflow-hidden select-none shrink-0 transition-all duration-200 ${
           selectedNode ? 'w-[55%]' : 'w-full'
         }`}
-        style={{ touchAction: 'none', height: 350 }}
+        style={{ touchAction: 'none', height: 480 }}
       >
         <svg
           ref={svgRef}
@@ -491,7 +491,7 @@ export function KnowledgeGraph({ instanceId }: KnowledgeGraphProps) {
             transition={{ duration: 0.2, ease: 'easeOut' }}
             className="overflow-hidden min-w-0"
           >
-            <div className="rounded-xl border border-border/40 bg-card/50 p-4 h-[350px] flex flex-col">
+            <div className="rounded-xl border border-border/40 bg-card/50 p-4 h-[480px] flex flex-col">
               <div className="flex items-start justify-between gap-3 shrink-0">
                 <div className="min-w-0">
                   <h3 className="text-sm font-semibold truncate">{selectedNode.label}</h3>
