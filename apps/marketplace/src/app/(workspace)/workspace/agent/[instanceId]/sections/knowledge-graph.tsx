@@ -128,7 +128,7 @@ export function KnowledgeGraph({ instanceId }: KnowledgeGraphProps) {
     startVX: number
     startVY: number
   }>({ active: false, startX: 0, startY: 0, startVX: 0, startVY: 0 })
-  const viewBoxRef = useRef({ x: -300, y: -250, w: 600, h: 500 })
+  const viewBoxRef = useRef({ x: -200, y: -175, w: 400, h: 350 })
   const rafRef = useRef<number>(0)
 
   // Fetch memory files
@@ -201,12 +201,12 @@ export function KnowledgeGraph({ instanceId }: KnowledgeGraphProps) {
         'link',
         forceLink<GraphNode, GraphLink>(linksRef.current)
           .id((d) => d.id)
-          .distance(100)
-          .strength(0.7)
+          .distance(70)
+          .strength(0.8)
       )
-      .force('charge', forceManyBody().strength(-350))
-      .force('center', forceCenter(0, 0).strength(0.05))
-      .force('collide', forceCollide<GraphNode>().radius((d) => nodeRadius(d) + 8))
+      .force('charge', forceManyBody().strength(-250))
+      .force('center', forceCenter(0, 0).strength(0.08))
+      .force('collide', forceCollide<GraphNode>().radius((d) => nodeRadius(d) + 6))
       .alpha(0.8)
       .alphaDecay(0.015)
 
@@ -354,7 +354,7 @@ export function KnowledgeGraph({ instanceId }: KnowledgeGraphProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center h-[350px]">
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
           Loading memory graph...
@@ -365,7 +365,7 @@ export function KnowledgeGraph({ instanceId }: KnowledgeGraphProps) {
 
   if (files.length === 0 || graph.nodes.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-[400px] text-sm text-muted-foreground">
+      <div className="flex items-center justify-center h-[350px] text-sm text-muted-foreground">
         No memory files found.
       </div>
     )
@@ -376,17 +376,18 @@ export function KnowledgeGraph({ instanceId }: KnowledgeGraphProps) {
   const links = linksRef.current
 
   return (
-    <div className="space-y-0">
-      {/* SVG graph */}
+    <div className="flex gap-3 items-stretch">
+      {/* SVG graph — compact left side */}
       <div
-        className="relative w-full min-h-[500px] rounded-xl border border-border/40 bg-card/30 overflow-hidden select-none"
-        style={{ touchAction: 'none' }}
+        className={`relative rounded-xl border border-border/40 bg-card/30 overflow-hidden select-none shrink-0 transition-all duration-200 ${
+          selectedNode ? 'w-[55%]' : 'w-full'
+        }`}
+        style={{ touchAction: 'none', height: 350 }}
       >
         <svg
           ref={svgRef}
           className="w-full h-full"
           viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`}
-          style={{ minHeight: 500 }}
           onPointerDown={handleBgPointerDown}
           onPointerMove={(e) => {
             handleBgPointerMove(e)
@@ -479,21 +480,21 @@ export function KnowledgeGraph({ instanceId }: KnowledgeGraphProps) {
         </div>
       </div>
 
-      {/* Content panel */}
-      <AnimatePresence>
+      {/* Content panel — right side */}
+      <AnimatePresence mode="wait">
         {selectedNode && (
           <motion.div
             key={selectedNode.id}
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
+            initial={{ opacity: 0, width: 0 }}
+            animate={{ opacity: 1, width: '45%' }}
+            exit={{ opacity: 0, width: 0 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="overflow-hidden"
+            className="overflow-hidden min-w-0"
           >
-            <div className="mt-3 rounded-xl border border-border/40 bg-card/50 p-4">
-              <div className="flex items-start justify-between gap-3">
+            <div className="rounded-xl border border-border/40 bg-card/50 p-4 h-[350px] flex flex-col">
+              <div className="flex items-start justify-between gap-3 shrink-0">
                 <div className="min-w-0">
-                  <h3 className="text-sm font-semibold">{selectedNode.label}</h3>
+                  <h3 className="text-sm font-semibold truncate">{selectedNode.label}</h3>
                   {selectedNode.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mt-1.5">
                       {selectedNode.tags.map((tag) => (
@@ -511,7 +512,7 @@ export function KnowledgeGraph({ instanceId }: KnowledgeGraphProps) {
                   <X className="size-3.5" />
                 </button>
               </div>
-              <pre className="mt-3 text-xs text-muted-foreground whitespace-pre-wrap font-mono leading-relaxed max-h-48 overflow-y-auto">
+              <pre className="mt-3 text-xs text-muted-foreground whitespace-pre-wrap font-mono leading-relaxed overflow-y-auto flex-1 min-h-0">
                 {selectedNode.content.trim()}
               </pre>
             </div>
