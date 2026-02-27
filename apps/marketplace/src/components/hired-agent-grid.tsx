@@ -51,13 +51,13 @@ export function HiredAgentGrid({ agents: initialAgents }: HiredAgentGridProps) {
         return (
           <Card
             key={agent.instanceId}
-            className="group relative border-0 gap-0 py-0 transition-all duration-200 hover:bg-accent"
+            className="group relative border-0 gap-0 py-0"
           >
             <Button
               variant="ghost"
               size="icon"
               asChild
-              className="absolute top-3 right-3 size-8 text-muted-foreground hover:bg-transparent hover:text-muted-foreground"
+              className="absolute top-3 right-3 size-8 text-muted-foreground hover:text-foreground"
             >
               <Link href={`/workspace/agent/${agent.instanceId}`}>
                 <Info className="size-4.5" />
