@@ -122,7 +122,7 @@ export default function LandingPage() {
         </section>
 
         {/* ─── Section 2: The Shift ─── */}
-        <section className="flex w-full flex-col items-center justify-center px-6 py-20">
+        <section className="flex w-full flex-col items-center justify-center px-6 py-32">
           <ScrollReveal className="max-w-3xl text-center">
             <h2 className="mb-6 text-4xl font-medium tracking-tight sm:text-5xl lg:text-6xl">
               <span className="text-secondary-foreground">You used to need a company</span>
@@ -142,7 +142,7 @@ export default function LandingPage() {
         </section>
 
         {/* ─── Section 3: Three Roles ─── */}
-        <section className="w-full px-6 py-12">
+        <section className="w-full px-6 py-2">
           <ScrollReveal className="mx-auto mb-16 max-w-lg text-center">
             <p className="text-sm font-medium uppercase tracking-widest text-muted-foreground">
               Your first hires
@@ -152,8 +152,8 @@ export default function LandingPage() {
           <div className="mx-auto grid max-w-5xl gap-6 sm:grid-cols-3">
             {ROLES.map((role, i) => (
               <ScrollReveal key={role.title} delay={i * 0.1}>
-                <div className="group rounded-2xl border border-white/[0.06] bg-card/40 p-8 backdrop-blur-sm transition-colors hover:border-white/10 hover:bg-card/60">
-                  <role.icon className="mb-5 size-5 text-muted-foreground transition-colors group-hover:text-foreground" strokeWidth={1.5} />
+                <div className="rounded-2xl border border-white/[0.06] bg-card/40 p-8 backdrop-blur-sm">
+                  <role.icon className="mb-5 size-5 text-muted-foreground" strokeWidth={1.5} />
                   <h3 className="mb-3 text-lg font-medium text-foreground">{role.title}</h3>
                   <p className="text-[15px] leading-relaxed text-muted-foreground">
                     {role.description}
