@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,8 +28,20 @@ export function RemoveAgentButton({ instanceId, agentName }: RemoveAgentButtonPr
   const [removing, setRemoving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
+  const [confirmText, setConfirmText] = useState('')
+
+  const confirmed = confirmText === agentName
+
+  function handleOpenChange(next: boolean) {
+    setOpen(next)
+    if (!next) {
+      setConfirmText('')
+      setError(null)
+    }
+  }
 
   async function handleRemove() {
+    if (!confirmed) return
     setRemoving(true)
     setError(null)
 
@@ -43,7 +56,7 @@ export function RemoveAgentButton({ instanceId, agentName }: RemoveAgentButtonPr
   }
 
   return (
-    <AlertDialog open={open} onOpenChange={setOpen}>
+    <AlertDialog open={open} onOpenChange={handleOpenChange}>
       <AlertDialogTrigger asChild>
         <Button
           variant="ghost"
@@ -54,13 +67,25 @@ export function RemoveAgentButton({ instanceId, agentName }: RemoveAgentButtonPr
           Remove
         </Button>
       </AlertDialogTrigger>
-      <AlertDialogContent>
+      <AlertDialogContent className="transition-all duration-200 ease-out data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=open]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=closed]:slide-out-to-bottom-2">
         <AlertDialogHeader>
           <AlertDialogTitle>Remove {agentName}?</AlertDialogTitle>
           <AlertDialogDescription>
             This will shut down the agent and delete all its data. This action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
+        <div className="grid gap-2 py-1">
+          <label className="text-sm text-muted-foreground">
+            Type <span className="font-semibold text-foreground">{agentName}</span> to confirm
+          </label>
+          <Input
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            placeholder={agentName}
+            autoComplete="off"
+            spellCheck={false}
+          />
+        </div>
         {error && (
           <p className="text-sm text-red-400">{error}</p>
         )}
@@ -68,7 +93,7 @@ export function RemoveAgentButton({ instanceId, agentName }: RemoveAgentButtonPr
           <AlertDialogCancel disabled={removing}>Cancel</AlertDialogCancel>
           <AlertDialogAction
             variant="destructive"
-            disabled={removing}
+            disabled={!confirmed || removing}
             onClick={(e) => {
               e.preventDefault()
               handleRemove()
