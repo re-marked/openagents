@@ -2,7 +2,6 @@ import { Suspense } from "react"
 import { createClient } from "@agentbay/db/server"
 import { DiscoverSidebar } from "@/components/discover-sidebar"
 import { DiscoverContent } from "@/components/discover-content"
-import { seedDemoAgentsIfEmpty } from "@/lib/agents-seed"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import type { AgentListItem } from "@/lib/agents"
@@ -16,10 +15,6 @@ async function fetchAgents(searchParams: {
   category?: string
   sort?: string
 }): Promise<AgentListItem[]> {
-  if (process.env.NODE_ENV === "development") {
-    await seedDemoAgentsIfEmpty()
-  }
-
   const supabase = await createClient()
   let query = supabase
     .from("agents")
