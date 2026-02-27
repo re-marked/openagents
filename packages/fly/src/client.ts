@@ -201,4 +201,78 @@ export class FlyClient {
   async listVolumes(appName: string): Promise<FlyVolume[]> {
     return this.request<FlyVolume[]>('GET', `/apps/${appName}/volumes`)
   }
+
+  // ── Exec ─────────────────────────────────────────────────────────────────
+
+  /**
+   * Execute a command on a running machine via the Fly Machines exec API.
+   * The machine must be in `started` state.
+   */
+  async execCommand(
+    appName: string,
+    machineId: string,
+    cmd: string[]
+  ): Promise<{ stdout: string; stderr: string; exit_code: number }> {
+    const res = await fetch(
+      `${FLY_API_BASE}/apps/${appName}/machines/${machineId}/exec`,
+      {
+        method: 'POST',
+        headers: this.headers,
+        body: JSON.stringify({ cmd }),
+      }
+    )
+    if (!res.ok) {
+      const text = await res.text().catch(() => res.statusText)
+      throw new Error(`Fly exec ${cmd.join(' ')} → ${res.status}: ${text}`)
+    }
+    const data = (await res.json()) as {
+      stdout?: string
+      stderr?: string
+      exit_code?: number
+    }
+    // Fly may return base64-encoded output — decode if needed
+    const decode = (s?: string) => {
+      if (!s) return ''
+      try {
+        return Buffer.from(s, 'base64').toString('utf-8')
+      } catch {
+        return s
+      }
+    }
+    return {
+      stdout: decode(data.stdout),
+      stderr: decode(data.stderr),
+      exit_code: data.exit_code ?? 0,
+    }
+  }
+
+  /** Read a file from a running machine. */
+  async readFile(appName: string, machineId: string, path: string): Promise<string> {
+    const result = await this.execCommand(appName, machineId, ['cat', path])
+    if (result.exit_code !== 0) {
+      throw new Error(`Failed to read ${path}: ${result.stderr}`)
+    }
+    return result.stdout
+  }
+
+  /** Write a file on a running machine. */
+  async writeFile(appName: string, machineId: string, path: string, content: string): Promise<void> {
+    // Use printf to write content to avoid heredoc shell escaping issues
+    const escaped = content.replace(/\\/g, '\\\\').replace(/'/g, "'\\''")
+    const result = await this.execCommand(appName, machineId, [
+      'sh', '-c', `printf '%s' '${escaped}' > ${path}`,
+    ])
+    if (result.exit_code !== 0) {
+      throw new Error(`Failed to write ${path}: ${result.stderr}`)
+    }
+  }
+
+  /** List directory contents on a running machine. */
+  async listDir(appName: string, machineId: string, path: string): Promise<string> {
+    const result = await this.execCommand(appName, machineId, ['ls', '-la', path])
+    if (result.exit_code !== 0) {
+      throw new Error(`Failed to list ${path}: ${result.stderr}`)
+    }
+    return result.stdout
+  }
 }
