@@ -8,9 +8,9 @@ import {
   Heart,
   Puzzle,
   Brain,
-  Server,
   Settings,
   MessageSquare,
+  Power,
   type LucideIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -20,7 +20,6 @@ import { ModelSection } from './sections/model-section'
 import { PersonalitySection } from './sections/personality-section'
 import { SkillsSection } from './sections/skills-section'
 import { MemorySection } from './sections/memory-section'
-import { InfraSection } from './sections/infra-section'
 import { ActionsSection } from './sections/actions-section'
 
 export const STATUS_CONFIG: Record<string, { label: string; dot: string; bg: string }> = {
@@ -31,7 +30,7 @@ export const STATUS_CONFIG: Record<string, { label: string; dot: string; bg: str
   error: { label: 'Error', dot: 'bg-red-500', bg: 'bg-red-500/10 text-red-400 ring-red-500/20' },
 }
 
-type Section = 'overview' | 'model' | 'personality' | 'skills' | 'memory' | 'infra' | 'actions'
+type Section = 'overview' | 'model' | 'personality' | 'skills' | 'memory' | 'actions'
 
 interface NavItem {
   id: Section
@@ -45,7 +44,6 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'personality', label: 'Personality', icon: Heart },
   { id: 'skills', label: 'Skills', icon: Puzzle },
   { id: 'memory', label: 'Memory', icon: Brain },
-  { id: 'infra', label: 'Infrastructure', icon: Server },
   { id: 'actions', label: 'Actions', icon: Settings },
 ]
 
@@ -58,8 +56,6 @@ export interface AgentHomeProps {
   agentCategory: string
   agentTagline: string | null
   agentIconUrl: string | null
-  flyAppName: string
-  flyMachineId: string
   createdAt: string
 }
 
@@ -68,8 +64,6 @@ export function AgentHomePage(props: AgentHomeProps) {
     instanceId,
     initialStatus,
     displayName,
-    flyAppName,
-    flyMachineId,
   } = props
   const router = useRouter()
   const [activeSection, setActiveSection] = useState<Section>('overview')
@@ -116,15 +110,6 @@ export function AgentHomePage(props: AgentHomeProps) {
         return <SkillsSection instanceId={instanceId} />
       case 'memory':
         return <MemorySection instanceId={instanceId} />
-      case 'infra':
-        return (
-          <InfraSection
-            instanceId={instanceId}
-            flyAppName={flyAppName}
-            flyMachineId={flyMachineId}
-            status={status}
-          />
-        )
       case 'actions':
         return (
           <ActionsSection
@@ -244,7 +229,7 @@ function MachineRequiredBanner({
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
       <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
-        <Server className="size-6 text-muted-foreground" />
+        <Power className="size-6 text-muted-foreground" />
       </div>
       <div>
         <h3 className="text-sm font-medium">Agent is {status}</h3>
