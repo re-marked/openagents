@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { MarkdownContent } from '@/components/markdown-content'
 import { ToolUseBlockList } from '@/components/tool-use-block'
 import type { ToolUse } from '@/components/tool-use-block'
@@ -209,12 +210,13 @@ export function DiscordMessageList({ messages, agentName = 'Agent', agentCategor
   const agentColor = agentCategory ? CATEGORY_AVATAR[agentCategory] : undefined
   const botBg = agentColor?.bg ?? 'bg-primary'
   const botText = agentColor?.text ?? 'text-primary'
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const scrollAreaRef = useRef<HTMLDivElement>(null)
 
   const lastMsg = messages[messages.length - 1]
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    const viewport = scrollAreaRef.current?.querySelector('[data-slot="scroll-area-viewport"]')
+    if (viewport) {
+      viewport.scrollTop = viewport.scrollHeight
     }
   }, [messages.length, lastMsg?.content, lastMsg?.toolUses?.length])
 
@@ -237,12 +239,12 @@ export function DiscordMessageList({ messages, agentName = 'Agent', agentCategor
   const groups = groupMessages(messages)
 
   return (
-    <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto">
+    <ScrollArea ref={scrollAreaRef} className="min-h-0 flex-1">
       <div className="flex flex-col gap-1 py-4">
         {groups.map((group, i) => (
           <MessageGroupView key={`${group.role}-${group.messages[0].id}-${i}`} group={group} agentName={agentName} botBg={botBg} botText={botText} />
         ))}
       </div>
-    </div>
+    </ScrollArea>
   )
 }

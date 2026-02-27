@@ -68,7 +68,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
         userEmail={user.email}
         agents={agents}
       />
-      <SidebarInset className="overflow-y-auto">
+      <SidebarInset className="overflow-hidden">
         {children}
       </SidebarInset>
     </SidebarProvider>

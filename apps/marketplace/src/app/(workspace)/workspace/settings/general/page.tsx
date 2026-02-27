@@ -19,7 +19,7 @@ export default async function GeneralSettingsPage() {
   if (!user) redirect('/login')
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col flex-1 overflow-y-auto">
       <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b border-border/40 bg-background px-4 rounded-t-xl">
         <SidebarTrigger className="-ml-1" />
         <Separator

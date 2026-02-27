@@ -442,7 +442,7 @@ export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCa
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
+    <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
       <DiscordMessageList messages={messages} agentName={agentName} agentCategory={agentCategory} />
 
       {/* Typing indicator */}

@@ -68,7 +68,7 @@ export default async function TeamSettingsPage({ params }: Props) {
   const availableRoles = Object.values(AGENT_ROLES).filter((r) => !activeRoleIds.has(r.id))
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8">
+    <div className="mx-auto max-w-2xl px-4 py-8 flex-1 overflow-y-auto">
       <h1 className="mb-1 text-xl font-semibold">Team Settings</h1>
       <p className="text-muted-foreground mb-6 text-sm">
         Manage the members of your AI team. Add specialists to handle different types of tasks.

@@ -77,7 +77,7 @@ export default async function HomePage() {
   }
 
   return (
-    <div className="px-8 py-8 lg:px-12">
+    <div className="flex-1 overflow-y-auto px-8 py-8 lg:px-12">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
