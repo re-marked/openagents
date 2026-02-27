@@ -1,30 +1,33 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import {
   MessageSquare,
   Power,
   RotateCcw,
   Clock,
-  MessagesSquare,
   CalendarDays,
   Zap,
+  DollarSign,
+  Brain,
 } from 'lucide-react'
+import { Bar, BarChart } from 'recharts'
+import { ChartContainer, type ChartConfig } from '@/components/ui/chart'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AgentAvatar } from '@/lib/agents'
 import { STATUS_CONFIG } from '../agent-home'
+import { KnowledgeGraph } from './knowledge-graph'
 
 // ── Types ────────────────────────────────────────────────────────────────
 
-interface ActivityItem {
-  sessionId: string
-  startedAt: string
-  endedAt: string | null
-  preview: string
-  messageCount: number
-  durationMinutes: number
+interface TimeSeriesEntry {
+  date: string
+  messages: number
+  minutes: number
+  cost: number
 }
 
 interface StatsData {
@@ -32,42 +35,18 @@ interface StatsData {
     totalConversations: number
     totalMessages: number
     totalMinutes: number
+    totalCost: number
     longestSessionMinutes: number
     skillsCount: number
     memoriesCount: number
   }
-  recentActivity: ActivityItem[]
+  recentActivity: unknown[]
+  timeSeries: TimeSeriesEntry[]
 }
+
+type Timeframe = '24h' | '7d' | '30d'
 
 // ── Helpers ──────────────────────────────────────────────────────────────
-
-function formatDuration(minutes: number): string {
-  if (minutes < 1) return '< 1 min'
-  if (minutes < 60) return `${minutes} min`
-  const h = Math.floor(minutes / 60)
-  const m = minutes % 60
-  return m > 0 ? `${h}h ${m}m` : `${h}h`
-}
-
-function formatRelativeTime(dateStr: string): string {
-  const now = new Date()
-  const date = new Date(dateStr)
-  const diffMs = now.getTime() - date.getTime()
-  const diffMin = Math.floor(diffMs / 60000)
-  const diffHours = Math.floor(diffMs / 3600000)
-  const diffDays = Math.floor(diffMs / 86400000)
-
-  if (diffMin < 1) return 'Just now'
-  if (diffMin < 60) return `${diffMin}m ago`
-  if (diffHours < 24) return `${diffHours}h ago`
-  if (diffDays === 1) return 'Yesterday'
-  if (diffDays < 7) return `${diffDays} days ago`
-  if (diffDays < 30) {
-    const weeks = Math.floor(diffDays / 7)
-    return `${weeks}w ago`
-  }
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
 
 function formatTotalTime(minutes: number): string {
   if (minutes < 60) return `${minutes}m`
@@ -75,6 +54,42 @@ function formatTotalTime(minutes: number): string {
   const m = minutes % 60
   return m > 0 ? `${h}h ${m}m` : `${h}h`
 }
+
+function formatCost(credits: number): string {
+  if (credits === 0) return '0 cr'
+  if (credits < 1) return `${Math.round(credits * 100)}c`
+  if (credits < 10) return `${credits.toFixed(1)} cr`
+  return `${Math.round(credits)} cr`
+}
+
+function sliceTimeSeries(data: TimeSeriesEntry[], timeframe: Timeframe): TimeSeriesEntry[] {
+  switch (timeframe) {
+    case '24h':
+      return data.slice(-1)
+    case '7d':
+      return data.slice(-7)
+    case '30d':
+      return data
+  }
+}
+
+function sumField(data: TimeSeriesEntry[], field: keyof Omit<TimeSeriesEntry, 'date'>): number {
+  return data.reduce((sum, d) => sum + d[field], 0)
+}
+
+// ── Chart configs (one per stat, different colors) ───────────────────────
+
+const costChartConfig = {
+  cost: { label: 'Cost', color: 'hsl(215, 90%, 58%)' },
+} satisfies ChartConfig
+
+const minutesChartConfig = {
+  minutes: { label: 'Minutes', color: 'hsl(160, 60%, 45%)' },
+} satisfies ChartConfig
+
+const messagesChartConfig = {
+  messages: { label: 'Messages', color: 'hsl(35, 90%, 55%)' },
+} satisfies ChartConfig
 
 // ── Component ────────────────────────────────────────────────────────────
 
@@ -106,6 +121,7 @@ export function OverviewSection({
   const [restarting, setRestarting] = useState(false)
   const [stats, setStats] = useState<StatsData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [timeframe, setTimeframe] = useState<Timeframe>('7d')
 
   const cfg = STATUS_CONFIG[status] ?? {
     label: status,
@@ -124,7 +140,7 @@ export function OverviewSection({
           setStats(data)
         }
       } catch {
-        // Stats are non-critical — fail silently
+        // Stats are non-critical
       } finally {
         setLoading(false)
       }
@@ -167,9 +183,19 @@ export function OverviewSection({
     day: 'numeric',
   })
 
+  // Slice time series for selected timeframe
+  const sliced = useMemo(
+    () => (stats ? sliceTimeSeries(stats.timeSeries, timeframe) : []),
+    [stats, timeframe]
+  )
+
+  const costTotal = useMemo(() => sumField(sliced, 'cost'), [sliced])
+  const minutesTotal = useMemo(() => sumField(sliced, 'minutes'), [sliced])
+  const messagesTotal = useMemo(() => sumField(sliced, 'messages'), [sliced])
+
   return (
     <div className="space-y-8">
-      {/* Agent identity */}
+      {/* ── Agent identity ──────────────────────────────────────────── */}
       <div className="flex items-start gap-5">
         <AgentAvatar
           name={agentName}
@@ -197,7 +223,6 @@ export function OverviewSection({
               {cfg.label}
             </span>
           </div>
-          {/* Quick actions */}
           <div className="flex flex-wrap gap-2 mt-3">
             {isRunning && (
               <Button
@@ -224,73 +249,82 @@ export function OverviewSection({
         </div>
       </div>
 
-      {/* Relationship stats */}
+      {/* ── Stats header ────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-medium text-muted-foreground">Stats</h2>
+        <TimeframeToggle value={timeframe} onChange={setTimeframe} />
+      </div>
+
+      {/* ── Stats grid ──────────────────────────────────────────────── */}
       {loading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="rounded-xl border border-border/40 bg-card/50 px-4 py-4">
-              <Skeleton className="h-7 w-12 mb-1.5" />
+              <Skeleton className="h-7 w-12 mb-2" />
+              <Skeleton className="h-10 w-full mb-1.5" />
               <Skeleton className="h-3.5 w-16" />
             </div>
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <StatCard
-            icon={MessagesSquare}
-            value={stats ? String(stats.relationship.totalConversations) : '0'}
-            label="Conversations"
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* Cost */}
+          <SparklineCard
+            icon={DollarSign}
+            value={formatCost(costTotal)}
+            label="Cost"
+            chartConfig={costChartConfig}
+            data={sliced}
+            dataKey="cost"
+            footer={
+              <Link
+                href="/workspace/usage"
+                className="text-[10px] text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+              >
+                Full Breakdown →
+              </Link>
+            }
           />
-          <StatCard
+
+          {/* Together */}
+          <SparklineCard
             icon={Clock}
-            value={stats ? formatTotalTime(stats.relationship.totalMinutes) : '0m'}
+            value={formatTotalTime(minutesTotal)}
             label="Together"
+            chartConfig={minutesChartConfig}
+            data={sliced}
+            dataKey="minutes"
           />
-          <StatCard
+
+          {/* Messages */}
+          <SparklineCard
             icon={Zap}
-            value={stats ? String(stats.relationship.totalMessages) : '0'}
+            value={String(messagesTotal)}
             label="Messages"
+            chartConfig={messagesChartConfig}
+            data={sliced}
+            dataKey="messages"
           />
-          <StatCard
-            icon={CalendarDays}
-            value={hiredDate}
-            label="Hired"
-          />
+
+          {/* Hired — static, no sparkline */}
+          <div className="rounded-xl border border-border/40 bg-card/50 px-4 py-4 flex flex-col">
+            <div className="flex items-center gap-2 mb-1">
+              <CalendarDays className="size-3.5 text-muted-foreground/60" />
+              <span className="text-2xl font-bold tracking-tight leading-none">{hiredDate}</span>
+            </div>
+            <div className="flex-1" />
+            <p className="text-xs text-muted-foreground">Hired</p>
+          </div>
         </div>
       )}
 
-      {/* Activity feed */}
+      {/* ── Brain (Knowledge Graph) ─────────────────────────────────── */}
       <div>
-        <h2 className="text-sm font-medium text-muted-foreground mb-4">Recent Activity</h2>
-        {loading ? (
-          <div className="space-y-4">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="flex gap-3">
-                <Skeleton className="h-2 w-2 rounded-full mt-2 shrink-0" />
-                <div className="flex-1 space-y-1.5">
-                  <Skeleton className="h-3.5 w-48" />
-                  <Skeleton className="h-4 w-full max-w-sm" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : stats && stats.recentActivity.length > 0 ? (
-          <div className="space-y-1">
-            {stats.recentActivity.map((item) => (
-              <ActivityEntry key={item.sessionId} item={item} />
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-xl border border-border/40 bg-card/50 px-6 py-10 text-center">
-            <MessageSquare className="size-8 text-muted-foreground/40 mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">
-              No conversations yet.
-            </p>
-            <p className="text-xs text-muted-foreground/60 mt-1">
-              Start chatting to see your activity here.
-            </p>
-          </div>
-        )}
+        <div className="flex items-center gap-2 mb-4">
+          <Brain className="size-4 text-muted-foreground/60" />
+          <h2 className="text-sm font-medium text-muted-foreground">Brain</h2>
+        </div>
+        <KnowledgeGraph instanceId={instanceId} />
       </div>
     </div>
   )
@@ -298,49 +332,84 @@ export function OverviewSection({
 
 // ── Subcomponents ────────────────────────────────────────────────────────
 
-function StatCard({
-  icon: Icon,
+function TimeframeToggle({
   value,
-  label,
+  onChange,
 }: {
-  icon: typeof Clock
-  value: string
-  label: string
+  value: Timeframe
+  onChange: (tf: Timeframe) => void
 }) {
+  const options: Timeframe[] = ['24h', '7d', '30d']
+
   return (
-    <div className="rounded-xl border border-border/40 bg-card/50 px-4 py-4">
-      <div className="flex items-center gap-2 mb-1">
-        <Icon className="size-3.5 text-muted-foreground/60" />
-        <span className="text-2xl font-bold tracking-tight leading-none">{value}</span>
-      </div>
-      <p className="text-xs text-muted-foreground">{label}</p>
+    <div className="flex items-center rounded-lg bg-muted/50 p-0.5">
+      {options.map((opt) => (
+        <button
+          key={opt}
+          onClick={() => onChange(opt)}
+          className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+            value === opt
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          {opt}
+        </button>
+      ))}
     </div>
   )
 }
 
-function ActivityEntry({ item }: { item: ActivityItem }) {
+function SparklineCard({
+  icon: Icon,
+  value,
+  label,
+  chartConfig,
+  data,
+  dataKey,
+  footer,
+}: {
+  icon: typeof Clock
+  value: string
+  label: string
+  chartConfig: ChartConfig
+  data: TimeSeriesEntry[]
+  dataKey: string
+  footer?: React.ReactNode
+}) {
+  const hasData = data.some((d) => d[dataKey as keyof TimeSeriesEntry] as number > 0)
+
   return (
-    <button
-      className="flex items-start gap-3 w-full text-left rounded-lg px-3 py-2.5 -mx-3 transition-colors hover:bg-accent/50 group"
-      onClick={() => {
-        // Future: navigate to session
-      }}
-    >
-      <span className="relative mt-[7px] shrink-0">
-        <span className="block h-2 w-2 rounded-full bg-foreground/20 group-hover:bg-foreground/40 transition-colors" />
-      </span>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>{formatRelativeTime(item.startedAt)}</span>
-          <span className="text-border">·</span>
-          <span>{formatDuration(item.durationMinutes)}</span>
-          <span className="text-border">·</span>
-          <span>{item.messageCount} messages</span>
-        </div>
-        <p className="text-sm mt-0.5 truncate text-foreground/80">
-          &ldquo;{item.preview}&rdquo;
-        </p>
+    <div className="rounded-xl border border-border/40 bg-card/50 px-4 py-4 flex flex-col">
+      <div className="flex items-center gap-2 mb-1">
+        <Icon className="size-3.5 text-muted-foreground/60" />
+        <span className="text-2xl font-bold tracking-tight leading-none">{value}</span>
       </div>
-    </button>
+
+      {/* Sparkline */}
+      <div className="h-10 mt-1">
+        {hasData && data.length > 1 ? (
+          <ChartContainer config={chartConfig} className="h-10 w-full">
+            <BarChart data={data} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+              <Bar
+                dataKey={dataKey}
+                fill={`var(--color-${dataKey})`}
+                radius={[2, 2, 0, 0]}
+                isAnimationActive={false}
+              />
+            </BarChart>
+          </ChartContainer>
+        ) : (
+          <div className="h-full flex items-end">
+            <div className="w-full h-[2px] bg-border/30 rounded-full" />
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center justify-between mt-1">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        {footer}
+      </div>
+    </div>
   )
 }
