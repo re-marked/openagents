@@ -141,16 +141,19 @@ function makeMdComponents(onNavigate: (slug: string) => void) {
     code: ({ children }: { children?: React.ReactNode }) => (
       <code className="text-[11px] bg-muted/60 px-1 py-0.5 rounded font-mono">{children}</code>
     ),
-    a: ({ children, href }: { children?: React.ReactNode; href?: string }) => {
-      if (href?.startsWith('wikilink:')) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    a: (props: any) => {
+      const { children, href } = props
+      if (typeof href === 'string' && href.startsWith('wikilink:')) {
         const slug = href.replace('wikilink:', '').toLowerCase()
         return (
-          <button
-            onClick={() => onNavigate(slug)}
+          <a
+            href="#"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onNavigate(slug) }}
             className="text-blue-400 hover:underline cursor-pointer"
           >
             {children}
-          </button>
+          </a>
         )
       }
       return <a href={href} className="text-blue-400 hover:underline">{children}</a>
