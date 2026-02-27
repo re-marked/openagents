@@ -16,7 +16,7 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
-    "@openagents/config": "workspace:*",
+    "@agentbay/config": "workspace:*",
     "@types/node": "^22",
     "@types/ws": "^8",
     "tsx": "latest",

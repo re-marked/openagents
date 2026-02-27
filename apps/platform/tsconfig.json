@@ -1,5 +1,5 @@
 {
-  "extends": "@openagents/config/tsconfig.nextjs.json",
+  "extends": "@agentbay/config/tsconfig.nextjs.json",
   "compilerOptions": {
     "paths": {
       "@/*": ["./src/*"]

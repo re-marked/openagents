@@ -1,8 +1,8 @@
 'use server'
 
-import { createServiceClient } from '@openagents/db/server'
+import { createServiceClient } from '@agentbay/db/server'
 import { getUser } from '@/lib/auth/get-user'
-import { validateOpenagentsYaml } from './validate'
+import { validateAgentBayYaml } from './validate'
 
 interface PublishParams {
   repoFullName: string
@@ -16,9 +16,9 @@ export async function publishAgent({ repoFullName, yamlContent }: PublishParams)
   if (!user) throw new Error('Not authenticated')
 
   // Validate YAML
-  const validation = validateOpenagentsYaml(yamlContent)
+  const validation = validateAgentBayYaml(yamlContent)
   if (!validation.valid || !validation.parsed) {
-    return { error: `Invalid openagents.yaml: ${validation.errors.join(', ')}` }
+    return { error: `Invalid agentbay.yaml: ${validation.errors.join(', ')}` }
   }
 
   const config = validation.parsed
@@ -75,7 +75,7 @@ export async function publishAgent({ repoFullName, yamlContent }: PublishParams)
     agent_id: agentId,
     version: config.version ?? '1.0.0',
     changelog: existing ? 'Updated agent configuration' : 'Initial release',
-    docker_image: 'registry.fly.io/openagents-agent-base:latest',
+    docker_image: 'registry.fly.io/agentbay-agent-base:latest',
   })
 
   return { success: true, agentId, slug: config.slug }

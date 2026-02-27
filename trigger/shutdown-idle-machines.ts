@@ -1,6 +1,6 @@
 import { schedules, logger } from '@trigger.dev/sdk/v3'
-import { createServiceClient } from '@openagents/db'
-import { FlyClient } from '@openagents/fly'
+import { createServiceClient } from '@agentbay/db'
+import { FlyClient } from '@agentbay/fly'
 
 const IDLE_THRESHOLD_HOURS = 2
 

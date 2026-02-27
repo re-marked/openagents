@@ -1,5 +1,5 @@
 #!/bin/sh
-# OpenAgents agent entrypoint
+# AgentBay agent entrypoint
 # Seed config + workspace on first boot only; always refresh auth-profiles from env
 
 mkdir -p /data/workspace /data/memory /data/sessions

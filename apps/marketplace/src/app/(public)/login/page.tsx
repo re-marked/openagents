@@ -8,7 +8,7 @@ export default function LoginPage() {
         <div className="text-center">
           <h1 className="text-2xl font-bold tracking-tight">Welcome back</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Sign in to continue to OpenAgents
+            Sign in to continue to AgentBay
           </p>
         </div>
 

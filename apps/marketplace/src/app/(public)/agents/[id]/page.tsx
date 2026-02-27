@@ -1,4 +1,4 @@
-import { createClient } from '@openagents/db/server'
+import { createClient } from '@agentbay/db/server'
 import { notFound } from 'next/navigation'
 import { Zap, Users, Rocket } from 'lucide-react'
 import { AgentInitial, CATEGORY_COLORS } from '@/lib/agents'

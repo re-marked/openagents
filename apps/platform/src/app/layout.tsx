@@ -16,10 +16,10 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: 'OpenAgents Developer Platform',
-    template: '%s | OpenAgents Platform',
+    default: 'AgentBay Developer Platform',
+    template: '%s | AgentBay Platform',
   },
-  description: 'Publish AI agents to the OpenAgents marketplace.',
+  description: 'Publish AI agents to the AgentBay marketplace.',
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3001'),
 }
 

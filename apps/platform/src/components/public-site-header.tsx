@@ -6,7 +6,7 @@ import { Search } from 'lucide-react'
 import { SierpinskiLogo } from '@/components/sierpinski-logo'
 import { Button } from '@/components/ui/button'
 
-const MARKETPLACE_URL = process.env.NEXT_PUBLIC_MARKETPLACE_URL ?? 'https://openagents.com'
+const MARKETPLACE_URL = process.env.NEXT_PUBLIC_MARKETPLACE_URL ?? 'https://agentbay.com'
 
 export function PublicSiteHeader() {
   const inputRef = useRef<HTMLInputElement>(null)
@@ -35,7 +35,7 @@ export function PublicSiteHeader() {
         {/* Logo */}
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
           <SierpinskiLogo className="size-5 text-foreground" />
-          <span className="text-[15px] font-semibold tracking-tight">OpenAgents</span>
+          <span className="text-[15px] font-semibold tracking-tight">AgentBay</span>
         </Link>
 
         {/* Search bar */}

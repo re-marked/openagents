@@ -1,6 +1,6 @@
 'use server'
 
-import { createServiceClient } from '@openagents/db/server'
+import { createServiceClient } from '@agentbay/db/server'
 import { getUser } from '@/lib/auth/get-user'
 
 export interface CreditBalance {

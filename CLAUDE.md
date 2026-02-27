@@ -1,6 +1,7 @@
-# OpenAgents — Codebase Guide
+# AgentBay — Codebase Guide
 
 App Store-style marketplace for OpenClaw AI agents. Users hire assistants; creators publish and earn.
+(Rebranded from OpenAgents to AgentBay — may revert later)
 
 ## Stack
 
@@ -171,7 +172,7 @@ Deploy tasks: `npx trigger.dev@latest deploy`
 `packages/fly` — typed wrapper around Fly Machines API.
 
 ```typescript
-import { FlyClient } from '@openagents/fly'
+import { FlyClient } from '@agentbay/fly'
 const fly = new FlyClient() // reads FLY_API_TOKEN from env
 await fly.createMachine(appName, { region, config })
 await fly.waitForMachineState(appName, machineId, 'started')
@@ -216,10 +217,10 @@ You have full access to run infrastructure commands directly — never ask the u
 
 ## Key Conventions
 
-- **Use Agent with an A for OpenAgent's agents, and agent with an a for any other agent.**
+- **Use Agent with an A for AgentBay's agents, and agent with an a for any other agent.**
 - **Server Components by default**: use `'use client'` only when needed (interactivity, hooks)
-- **Service client for admin ops**: use `createServiceClient()` from `@openagents/db/server` in Trigger.dev tasks — bypasses RLS
-- **Regular client for user ops**: use `createClient()` from `@openagents/db/server` in route handlers/Server Components
+- **Service client for admin ops**: use `createServiceClient()` from `@agentbay/db/server` in Trigger.dev tasks — bypasses RLS
+- **Regular client for user ops**: use `createClient()` from `@agentbay/db/server` in route handlers/Server Components
 - **shadcn components**: go in `src/components/ui/` — don't edit these manually
 - **When working on a new feature**: create a git branch named feature/feature-name and commit & push changes on that branch
 - **When feature is ready**: merge the branch into dev via rebase with a proper documented PR  and delete the feature branch
@@ -253,7 +254,7 @@ git push -u origin feature/xyz
 gh pr create --base dev --title "feat: xyz" --body "..."
 
 # Go back to repo root and remove the worktree
-cd /path/to/openagents
+cd /path/to/agentbay
 git worktree remove .claude/worktrees/feature-xyz
 ```
 

@@ -15,7 +15,7 @@ export default function LandingPage() {
         </h1>
         <p className="mb-10 max-w-xl text-center text-lg text-muted-foreground">
           Import your agent from GitHub, configure it visually, and publish to
-          the OpenAgents marketplace. You earn credits every time someone hires
+          the AgentBay marketplace. You earn credits every time someone hires
           your agent.
         </p>
 
@@ -27,7 +27,7 @@ export default function LandingPage() {
             </Link>
           </Button>
           <Button variant="ghost" size="lg" className="text-muted-foreground" asChild>
-            <a href={process.env.NEXT_PUBLIC_MARKETPLACE_URL ?? 'https://openagents.com'}>
+            <a href={process.env.NEXT_PUBLIC_MARKETPLACE_URL ?? 'https://agentbay.com'}>
               Browse marketplace
               <ArrowRight className="ml-2 size-3.5" />
             </a>
@@ -54,7 +54,7 @@ export default function LandingPage() {
               number="1"
               icon={Github}
               title="Import from GitHub"
-              description="Select a repo with your agent.yaml and openagents.yaml. We validate the structure instantly."
+              description="Select a repo with your agent.yaml and agentbay.yaml. We validate the structure instantly."
             />
             <Step
               number="2"
@@ -86,9 +86,9 @@ export default function LandingPage() {
               Your repo, your rules
             </h2>
             <p className="mb-4 text-muted-foreground">
-              OpenAgents uses two config files. <code className="rounded bg-muted px-1.5 py-0.5 text-xs">agent.yaml</code> is
+              AgentBay uses two config files. <code className="rounded bg-muted px-1.5 py-0.5 text-xs">agent.yaml</code> is
               the platform-agnostic standard that defines what your agent can
-              do. <code className="rounded bg-muted px-1.5 py-0.5 text-xs">openagents.yaml</code> defines how it appears on the marketplace.
+              do. <code className="rounded bg-muted px-1.5 py-0.5 text-xs">agentbay.yaml</code> defines how it appears on the marketplace.
             </p>
             <p className="mb-6 text-muted-foreground">
               You provide the configuration. We provide the runtime. No Docker
@@ -132,11 +132,11 @@ export default function LandingPage() {
         <div className="mx-auto max-w-6xl">
           <div className="mb-12 flex items-center gap-3">
             <SierpinskiLogo className="size-8 text-foreground" />
-            <span className="text-3xl font-bold tracking-tight">OPENAGENTS</span>
+            <span className="text-3xl font-bold tracking-tight">AGENTBAY</span>
           </div>
 
           <div className="mt-12 border-t border-border/40 pt-8 text-center text-xs text-muted-foreground">
-            &copy; {new Date().getFullYear()} OpenAgents. All rights reserved.
+            &copy; {new Date().getFullYear()} AgentBay. All rights reserved.
           </div>
         </div>
       </footer>
@@ -175,7 +175,7 @@ function FileTree() {
   const lines = [
     { indent: 0, text: 'my-agent/', color: 'text-foreground' },
     { indent: 1, text: 'agent.yaml', color: 'text-primary', note: 'REQUIRED' },
-    { indent: 1, text: 'openagents.yaml', color: 'text-primary', note: 'REQUIRED' },
+    { indent: 1, text: 'agentbay.yaml', color: 'text-primary', note: 'REQUIRED' },
     { indent: 1, text: 'README.md', color: 'text-primary', note: 'REQUIRED' },
     { indent: 1, text: '.skills/', color: 'text-muted-foreground', note: 'optional' },
     { indent: 2, text: 'research/', color: 'text-muted-foreground' },

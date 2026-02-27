@@ -15,7 +15,7 @@ export function YamlEditor({ value, onChange }: YamlEditorProps) {
     editorRef.current = editor
 
     // Custom dark theme matching the app palette
-    monaco.editor.defineTheme('openagents-dark', {
+    monaco.editor.defineTheme('agentbay-dark', {
       base: 'vs-dark',
       inherit: true,
       rules: [
@@ -34,7 +34,7 @@ export function YamlEditor({ value, onChange }: YamlEditorProps) {
         'editor.inactiveSelectionBackground': '#1e293b',
       },
     })
-    monaco.editor.setTheme('openagents-dark')
+    monaco.editor.setTheme('agentbay-dark')
   }, [])
 
   return (

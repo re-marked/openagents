@@ -1,4 +1,4 @@
-import { updateSession } from '@openagents/db/middleware'
+import { updateSession } from '@agentbay/db/middleware'
 import type { NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {

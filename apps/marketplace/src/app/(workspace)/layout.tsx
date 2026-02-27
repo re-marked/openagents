@@ -1,6 +1,6 @@
 import { getUser } from '@/lib/auth/get-user'
 import { redirect } from 'next/navigation'
-import { createServiceClient } from '@openagents/db/server'
+import { createServiceClient } from '@agentbay/db/server'
 import { AppSidebar } from '@/components/app-sidebar'
 import {
   SidebarInset,

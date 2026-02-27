@@ -1,6 +1,6 @@
 'use server'
 
-import { createServiceClient } from '@openagents/db/server'
+import { createServiceClient } from '@agentbay/db/server'
 import { getUser } from '@/lib/auth/get-user'
 import { triggerDestroy } from '@/lib/trigger'
 import { AGENT_ROLES } from '@/lib/agent-roles'
@@ -40,7 +40,7 @@ export async function addSubAgent({ teamId, projectId, roleId }: AddSubAgentPara
       agent_id: agent.id,
       team_id: teamId,
       display_name: roleId,
-      fly_app_name: 'oa-test-agent',
+      fly_app_name: 'ab-test-agent',
       fly_machine_id: '2861050fe63548',
       status: 'running',
     })

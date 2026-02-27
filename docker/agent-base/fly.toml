@@ -3,11 +3,11 @@
 # Each user-agent pair gets its own Fly App created programmatically.
 #
 # For manual testing, copy this file and run:
-#   fly apps create oa-test-agent --org personal
-#   fly secrets set ANTHROPIC_API_KEY=sk-ant-... GATEWAY_TOKEN=test-token-123 --app oa-test-agent
-#   fly deploy --app oa-test-agent --image registry.fly.io/openagents-agent-base:latest
+#   fly apps create ab-test-agent --org personal
+#   fly secrets set ANTHROPIC_API_KEY=sk-ant-... GATEWAY_TOKEN=test-token-123 --app ab-test-agent
+#   fly deploy --app ab-test-agent --image registry.fly.io/agentbay-agent-base:latest
 
-app = "oa-test-agent"
+app = "ab-test-agent"
 primary_region = "iad"
 
 [env]

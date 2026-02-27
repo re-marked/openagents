@@ -1,4 +1,4 @@
-app = "openagents-sse-gateway"
+app = "agentbay-sse-gateway"
 primary_region = "iad"
 
 [build]

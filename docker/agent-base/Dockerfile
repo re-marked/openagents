@@ -1,4 +1,4 @@
-# OpenAgents base agent image
+# AgentBay base agent image
 # Wraps the official OpenClaw image with marketplace defaults:
 #   - Hardened sandbox config
 #   - Gateway on port 18789 (LAN only)

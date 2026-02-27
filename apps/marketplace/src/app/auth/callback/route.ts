@@ -1,4 +1,4 @@
-import { createClient as createServerClient } from '@openagents/db/server'
+import { createClient as createServerClient } from '@agentbay/db/server'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {

@@ -13,7 +13,7 @@ app.use(
   cors({
     origin: [
       process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000',
-      'https://openagents.com',
+      'https://agentbay.com',
       'https://*.vercel.app',
     ],
     allowMethods: ['GET', 'POST', 'OPTIONS'],

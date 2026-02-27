@@ -1,8 +1,8 @@
 {
-  "name": "@openagents/fly",
+  "name": "@agentbay/fly",
   "version": "0.1.0",
   "private": true,
-  "description": "Typed Fly.io Machines API client for OpenAgents",
+  "description": "Typed Fly.io Machines API client for AgentBay",
   "exports": {
     ".": "./src/index.ts"
   },
@@ -10,7 +10,7 @@
     "type-check": "tsc --noEmit"
   },
   "devDependencies": {
-    "@openagents/config": "workspace:*",
+    "@agentbay/config": "workspace:*",
     "typescript": "^5"
   }
 }

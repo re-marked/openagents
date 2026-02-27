@@ -1,5 +1,5 @@
 {
-  "name": "@openagents/db",
+  "name": "@agentbay/db",
   "version": "0.1.0",
   "private": true,
   "description": "Supabase client, types, and database helpers",
@@ -30,7 +30,7 @@
     "@supabase/supabase-js": "latest"
   },
   "devDependencies": {
-    "@openagents/config": "workspace:*",
+    "@agentbay/config": "workspace:*",
     "@types/node": "^22",
     "typescript": "^5"
   },

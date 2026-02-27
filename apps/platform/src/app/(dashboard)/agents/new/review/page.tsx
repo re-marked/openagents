@@ -20,8 +20,8 @@ export default function ReviewPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    setYamlContent(sessionStorage.getItem('openagents-yaml') ?? '')
-    setReadmeContent(sessionStorage.getItem('openagents-readme') ?? '')
+    setYamlContent(sessionStorage.getItem('agentbay-yaml') ?? '')
+    setReadmeContent(sessionStorage.getItem('agentbay-readme') ?? '')
   }, [])
 
   const handlePublish = async () => {
@@ -43,9 +43,9 @@ export default function ReviewPage() {
       }
 
       // Clean up sessionStorage
-      sessionStorage.removeItem('openagents-yaml')
-      sessionStorage.removeItem('openagents-readme')
-      sessionStorage.removeItem('openagents-agent-yaml')
+      sessionStorage.removeItem('agentbay-yaml')
+      sessionStorage.removeItem('agentbay-readme')
+      sessionStorage.removeItem('agentbay-agent-yaml')
 
       router.push('/agents?published=true')
     } catch (e) {

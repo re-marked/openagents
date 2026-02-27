@@ -2,7 +2,7 @@ import { getUser } from '@/lib/auth/get-user'
 import { redirect } from 'next/navigation'
 import { PlatformSidebar } from '@/components/platform-sidebar'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
-import { createServiceClient } from '@openagents/db/server'
+import { createServiceClient } from '@agentbay/db/server'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const user = await getUser()

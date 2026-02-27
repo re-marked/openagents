@@ -8,10 +8,10 @@ importers:
 
   .:
     dependencies:
-      '@openagents/db':
+      '@agentbay/db':
         specifier: workspace:*
         version: link:packages/db
-      '@openagents/fly':
+      '@agentbay/fly':
         specifier: workspace:*
         version: link:packages/fly
       '@trigger.dev/sdk':
@@ -33,18 +33,18 @@ importers:
 
   apps/marketplace:
     dependencies:
+      '@agentbay/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@agentbay/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       '@base-ui/react':
         specifier: ^1.2.0
         version: 1.2.0(@types/react@19.2.14)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.2.2(react-hook-form@7.71.1(react@19.2.3))
-      '@openagents/db':
-        specifier: workspace:*
-        version: link:../../packages/db
-      '@openagents/ui':
-        specifier: workspace:*
-        version: link:../../packages/ui
       '@trigger.dev/sdk':
         specifier: ^3.3.17
         version: 3.3.17(zod@4.3.6)
@@ -115,7 +115,7 @@ importers:
         specifier: ^4.3.6
         version: 4.3.6
     devDependencies:
-      '@openagents/config':
+      '@agentbay/config':
         specifier: workspace:*
         version: link:../../packages/config
       '@tailwindcss/postcss':
@@ -145,15 +145,15 @@ importers:
 
   apps/platform:
     dependencies:
+      '@agentbay/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@agentbay/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       '@monaco-editor/react':
         specifier: ^4.7.0
         version: 4.7.0(monaco-editor@0.55.1)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      '@openagents/db':
-        specifier: workspace:*
-        version: link:../../packages/db
-      '@openagents/ui':
-        specifier: workspace:*
-        version: link:../../packages/ui
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -191,7 +191,7 @@ importers:
         specifier: ^4.3.6
         version: 4.3.6
     devDependencies:
-      '@openagents/config':
+      '@agentbay/config':
         specifier: workspace:*
         version: link:../../packages/config
       '@tailwindcss/postcss':
@@ -231,7 +231,7 @@ importers:
         specifier: ^8.18.0
         version: 8.19.0
     devDependencies:
-      '@openagents/config':
+      '@agentbay/config':
         specifier: workspace:*
         version: link:../../packages/config
       '@types/node':
@@ -280,7 +280,7 @@ importers:
         specifier: '>=15.0.0'
         version: 16.1.6(@opentelemetry/api@1.9.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
     devDependencies:
-      '@openagents/config':
+      '@agentbay/config':
         specifier: workspace:*
         version: link:../config
       '@types/node':
@@ -292,7 +292,7 @@ importers:
 
   packages/fly:
     devDependencies:
-      '@openagents/config':
+      '@agentbay/config':
         specifier: workspace:*
         version: link:../config
       typescript:
@@ -323,7 +323,7 @@ importers:
         specifier: '>=4.0.0'
         version: 4.1.18
     devDependencies:
-      '@openagents/config':
+      '@agentbay/config':
         specifier: workspace:*
         version: link:../config
       '@types/react':

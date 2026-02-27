@@ -1,5 +1,5 @@
 import { getUser } from '@/lib/auth/get-user'
-import { createServiceClient } from '@openagents/db/server'
+import { createServiceClient } from '@agentbay/db/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, MessageSquare, Loader2 } from 'lucide-react'

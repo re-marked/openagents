@@ -1,8 +1,8 @@
 {
-  "name": "@openagents/ui",
+  "name": "@agentbay/ui",
   "version": "0.1.0",
   "private": true,
-  "description": "Shared UI components for OpenAgents",
+  "description": "Shared UI components for AgentBay",
   "exports": {
     ".": {
       "types": "./src/index.ts",
@@ -16,7 +16,7 @@
     "tailwind-merge": "latest"
   },
   "devDependencies": {
-    "@openagents/config": "workspace:*",
+    "@agentbay/config": "workspace:*",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "typescript": "^5"

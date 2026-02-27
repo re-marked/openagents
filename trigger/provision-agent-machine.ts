@@ -1,9 +1,9 @@
 import { task, logger } from '@trigger.dev/sdk/v3'
-import { createServiceClient } from '@openagents/db'
-import { FlyClient } from '@openagents/fly'
+import { createServiceClient } from '@agentbay/db'
+import { FlyClient } from '@agentbay/fly'
 import { AGENT_ROLES } from './agent-roles'
 
-const BASE_IMAGE = process.env.FLY_AGENT_BASE_IMAGE ?? 'registry.fly.io/openagents-agent-base:latest'
+const BASE_IMAGE = process.env.FLY_AGENT_BASE_IMAGE ?? 'registry.fly.io/agentbay-agent-base:latest'
 const FLY_ORG = process.env.FLY_ORG_SLUG ?? 'personal'
 const FLY_REGION = process.env.FLY_REGION ?? 'ord'
 
@@ -120,8 +120,8 @@ export const provisionAgentMachine = task({
       const image = agent.docker_image ?? BASE_IMAGE
       // Sub-agents get named by role, master agents by slug
       const appName = role
-        ? `oa-${role.id}-${userId.slice(0, 8)}`
-        : `oa-${agent.slug}-${userId.slice(0, 8)}`
+        ? `ab-${role.id}-${userId.slice(0, 8)}`
+        : `ab-${agent.slug}-${userId.slice(0, 8)}`
       const gatewayToken = crypto.randomUUID()
 
       logger.info('Provisioning agent machine', { appName, userId, agentId })

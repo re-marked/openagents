@@ -1,8 +1,8 @@
 {
-  "name": "openagents",
+  "name": "agentbay",
   "version": "0.1.0",
   "private": true,
-  "description": "OpenAgents — App Store-style marketplace for AI agents",
+  "description": "AgentBay — App Store-style marketplace for AI agents",
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
@@ -15,8 +15,8 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,md,json,mjs,css}\" --ignore-path .prettierignore"
   },
   "dependencies": {
-    "@openagents/db": "workspace:*",
-    "@openagents/fly": "workspace:*",
+    "@agentbay/db": "workspace:*",
+    "@agentbay/fly": "workspace:*",
     "@trigger.dev/sdk": "4.4.1"
   },
   "devDependencies": {

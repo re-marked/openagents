@@ -1,4 +1,4 @@
-import { createServiceClient } from '@openagents/db/server'
+import { createServiceClient } from '@agentbay/db/server'
 
 /**
  * Get total available credits for a user.

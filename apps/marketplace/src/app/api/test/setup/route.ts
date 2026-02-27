@@ -1,4 +1,4 @@
-import { createClient, createServiceClient } from '@openagents/db/server'
+import { createClient, createServiceClient } from '@agentbay/db/server'
 import { NextResponse } from 'next/server'
 
 export async function POST() {
@@ -29,10 +29,10 @@ export async function POST() {
         name: 'Test Assistant',
         creator_id: user.id,
         tagline: 'Test agent for development',
-        description: 'A test agent running on oa-test-agent.fly.dev',
+        description: 'A test agent running on ab-test-agent.fly.dev',
         category: 'general',
         status: 'published',
-        github_repo_url: 'https://github.com/openagents/test-agent',
+        github_repo_url: 'https://github.com/agentbay/test-agent',
       })
       .select('id')
       .single()
@@ -62,7 +62,7 @@ export async function POST() {
       .insert({
         user_id: user.id,
         agent_id: agent.id,
-        fly_app_name: 'oa-test-agent',
+        fly_app_name: 'ab-test-agent',
         fly_machine_id: '2861050fe63548',
         status: 'running',
       })

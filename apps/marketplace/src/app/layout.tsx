@@ -12,8 +12,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: 'OpenAgents — AI assistants for everything',
-    template: '%s | OpenAgents',
+    default: 'AgentBay — AI assistants for everything',
+    template: '%s | AgentBay',
   },
   description: 'Discover and use AI assistants built by creators worldwide.',
   metadataBase: new URL(

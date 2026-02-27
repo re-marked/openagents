@@ -12,8 +12,8 @@
   "dependencies": {
     "@base-ui/react": "^1.2.0",
     "@hookform/resolvers": "^5.2.2",
-    "@openagents/db": "workspace:*",
-    "@openagents/ui": "workspace:*",
+    "@agentbay/db": "workspace:*",
+    "@agentbay/ui": "workspace:*",
     "@trigger.dev/sdk": "^3.3.17",
     "class-variance-authority": "^0.7.1",
     "cmdk": "^1.1.1",
@@ -39,7 +39,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@openagents/config": "workspace:*",
+    "@agentbay/config": "workspace:*",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^22",
     "@types/react": "^19",

@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import { CheckCircle2, XCircle, Shield, Loader2 } from 'lucide-react'
-import { validateOpenagentsYaml, scanForSecrets } from '@/lib/publish/validate'
+import { validateAgentBayYaml, scanForSecrets } from '@/lib/publish/validate'
 
 interface SecurityScanProps {
   yamlContent: string
@@ -23,7 +23,7 @@ export function SecurityScan({ yamlContent, readmeContent, isScanning }: Securit
     const results: ScanCheck[] = []
 
     // 1. YAML schema validation
-    const validation = validateOpenagentsYaml(yamlContent)
+    const validation = validateAgentBayYaml(yamlContent)
     results.push({
       label: 'YAML schema valid',
       passed: validation.valid,

@@ -1,13 +1,13 @@
 import YAML from 'yaml'
-import { openagentsYamlSchema, type OpenAgentsYaml } from './schema'
+import { agentbayYamlSchema, type AgentBayYaml } from './schema'
 
 export interface ValidationResult {
   valid: boolean
   errors: string[]
-  parsed: OpenAgentsYaml | null
+  parsed: AgentBayYaml | null
 }
 
-export function validateOpenagentsYaml(content: string): ValidationResult {
+export function validateAgentBayYaml(content: string): ValidationResult {
   // Parse YAML
   let raw: unknown
   try {
@@ -21,7 +21,7 @@ export function validateOpenagentsYaml(content: string): ValidationResult {
   }
 
   // Validate against schema
-  const result = openagentsYamlSchema.safeParse(raw)
+  const result = agentbayYamlSchema.safeParse(raw)
 
   if (!result.success) {
     const errors = result.error.issues.map((issue) => {

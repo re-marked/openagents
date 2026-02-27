@@ -1,6 +1,6 @@
-import { createClient, createServiceClient } from '@openagents/db/server'
+import { createClient, createServiceClient } from '@agentbay/db/server'
 import { NextResponse } from 'next/server'
-import type { Tables } from '@openagents/db'
+import type { Tables } from '@agentbay/db'
 import { getUserCredits } from '@/lib/usage/credit-check'
 import { estimateTokens, calculateCredits, estimateCostUsd } from '@/lib/usage/token-estimator'
 

@@ -1,4 +1,4 @@
-import { createServiceClient } from '@openagents/db/server'
+import { createServiceClient } from '@agentbay/db/server'
 
 const DEMO_AGENTS = [
   {
@@ -106,7 +106,7 @@ export async function seedDemoAgentsIfEmpty() {
   const agents = DEMO_AGENTS.map((a) => ({
     ...a,
     creator_id: firstUser.id,
-    github_repo_url: `https://github.com/openagents/${a.slug}`,
+    github_repo_url: `https://github.com/agentbay/${a.slug}`,
     status: "published" as const,
     published_at: now,
     total_hires: Math.floor(Math.random() * 500) + 10,

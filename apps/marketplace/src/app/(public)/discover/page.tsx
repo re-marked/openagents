@@ -1,5 +1,5 @@
 import { Suspense } from "react"
-import { createClient } from "@openagents/db/server"
+import { createClient } from "@agentbay/db/server"
 import { DiscoverSidebar } from "@/components/discover-sidebar"
 import { DiscoverContent } from "@/components/discover-content"
 import { seedDemoAgentsIfEmpty } from "@/lib/agents-seed"

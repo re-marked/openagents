@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient, createServiceClient } from '@openagents/db/server'
+import { createClient, createServiceClient } from '@agentbay/db/server'
 import { getUser } from '@/lib/auth/get-user'
 import { revalidatePath } from 'next/cache'
 

@@ -1,6 +1,6 @@
 import { task, logger } from '@trigger.dev/sdk/v3'
-import { createServiceClient } from '@openagents/db'
-import { FlyClient } from '@openagents/fly'
+import { createServiceClient } from '@agentbay/db'
+import { FlyClient } from '@agentbay/fly'
 
 export interface DestroyPayload {
   instanceId: string

@@ -35,7 +35,7 @@ export function PublicSiteHeader() {
         {/* Logo */}
         <Link href="/" className="flex w-[200px] shrink-0 items-center gap-2.5">
           <SierpinskiLogo className="size-5 text-foreground" />
-          <span className="text-[15px] font-semibold tracking-tight">OpenAgents</span>
+          <span className="text-[15px] font-semibold tracking-tight">AgentBay</span>
         </Link>
 
         {/* Search bar - centered */}

@@ -9,7 +9,7 @@ export function SierpinskiHero({ className }: { className?: string }) {
       viewBox="0 0 128 111"
       className={className}
       role="img"
-      aria-label="OpenAgents fractal"
+      aria-label="AgentBay fractal"
     >
       {/* Solid background triangle — blocks rays from showing through gaps */}
       <polygon points="0,0 128,0 64,110.8" fill="hsl(30,3%,10%)" />

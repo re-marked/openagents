@@ -1,5 +1,5 @@
 {
-  "extends": "@openagents/config/tsconfig.react-library.json",
+  "extends": "@agentbay/config/tsconfig.react-library.json",
   "compilerOptions": {
     "paths": {
       "@/*": ["./src/*"]

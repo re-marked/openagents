@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient as createServerClient } from '@openagents/db/server'
+import { createClient as createServerClient } from '@agentbay/db/server'
 
 const GITHUB_API = 'https://api.github.com'
 

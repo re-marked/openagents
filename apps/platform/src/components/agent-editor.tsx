@@ -25,9 +25,9 @@ export function AgentEditor({ repoFullName, branch, initialYaml, readmeContent, 
       branch,
     })
     // Store YAML in sessionStorage for the review page
-    sessionStorage.setItem('openagents-yaml', yamlContent)
-    sessionStorage.setItem('openagents-readme', readmeContent)
-    sessionStorage.setItem('openagents-agent-yaml', agentYamlContent)
+    sessionStorage.setItem('agentbay-yaml', yamlContent)
+    sessionStorage.setItem('agentbay-readme', readmeContent)
+    sessionStorage.setItem('agentbay-agent-yaml', agentYamlContent)
     router.push(`/agents/new/review?${params.toString()}`)
   }
 
@@ -37,7 +37,7 @@ export function AgentEditor({ repoFullName, branch, initialYaml, readmeContent, 
         <ResizablePanel defaultSize={50} minSize={30}>
           <div className="flex h-full flex-col">
             <div className="flex items-center justify-between border-b px-4 py-2">
-              <span className="text-xs font-medium text-muted-foreground">openagents.yaml</span>
+              <span className="text-xs font-medium text-muted-foreground">agentbay.yaml</span>
             </div>
             <div className="flex-1">
               <YamlEditor value={yamlContent} onChange={setYamlContent} />

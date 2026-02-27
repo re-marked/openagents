@@ -8,7 +8,7 @@ export function SierpinskiLogo({ className }: { className?: string }) {
       viewBox="0 0 128 111"
       className={className}
       role="img"
-      aria-label="OpenAgents logo"
+      aria-label="AgentBay logo"
     >
       <g fill="currentColor">
         <polygon points="0,0 32,0 16,27.7" />

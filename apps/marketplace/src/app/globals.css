@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * OpenAgents design system — warm dark palette.
+ * AgentBay design system — warm dark palette.
  *
  * Surface hierarchy (3 levels):
  *   Level 0 — sidebar + header:  hsl(30, 3%, 7%)   deepest

@@ -29,15 +29,15 @@ export default async function ConfigurePage({ searchParams }: ConfigurePageProps
 
   try {
     const [yaml, readme, agentYaml] = await Promise.allSettled([
-      getRepoFile(repo, 'openagents.yaml', branch),
+      getRepoFile(repo, 'agentbay.yaml', branch),
       getRepoFile(repo, 'README.md', branch),
       getRepoFile(repo, 'agent.yaml', branch),
     ])
-    yamlContent = yaml.status === 'fulfilled' ? yaml.value : getDefaultOpenagentsYaml(repo)
+    yamlContent = yaml.status === 'fulfilled' ? yaml.value : getDefaultAgentBayYaml(repo)
     readmeContent = readme.status === 'fulfilled' ? readme.value : ''
     agentYamlContent = agentYaml.status === 'fulfilled' ? agentYaml.value : ''
   } catch {
-    yamlContent = getDefaultOpenagentsYaml(repo)
+    yamlContent = getDefaultAgentBayYaml(repo)
   }
 
   return (
@@ -69,7 +69,7 @@ export default async function ConfigurePage({ searchParams }: ConfigurePageProps
   )
 }
 
-function getDefaultOpenagentsYaml(repo: string): string {
+function getDefaultAgentBayYaml(repo: string): string {
   const name = repo.split('/').pop() ?? 'my-agent'
   const slug = name.toLowerCase().replace(/[^a-z0-9-]/g, '-')
   return `name: "${name}"

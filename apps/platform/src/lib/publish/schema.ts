@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const openagentsYamlSchema = z.object({
+export const agentbayYamlSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(50, 'Name must be at most 50 characters'),
   slug: z.string()
     .regex(/^[a-z0-9-]+$/, 'Slug must be lowercase letters, numbers, and hyphens only')
@@ -28,4 +28,4 @@ export const openagentsYamlSchema = z.object({
   version: z.string().regex(/^\d+\.\d+\.\d+$/, 'Version must be semver (e.g., 1.0.0)').optional(),
 })
 
-export type OpenAgentsYaml = z.infer<typeof openagentsYamlSchema>
+export type AgentBayYaml = z.infer<typeof agentbayYamlSchema>
