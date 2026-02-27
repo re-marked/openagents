@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ProvisioningPoller } from '@/components/provisioning-poller'
 import { OnboardingWizard } from '@/components/onboarding-wizard'
 import { RemoveAgentButton } from '@/components/remove-agent-button'
-import { AgentInitial } from '@/lib/agents'
+import { AgentAvatar } from '@/lib/agents'
 import { getApiKeys } from '@/lib/settings/actions'
 
 export default async function HomePage() {
@@ -26,7 +26,7 @@ export default async function HomePage() {
   // Load user's agents
   const { data: instances } = await service
     .from('agent_instances')
-    .select('id, display_name, status, created_at, agents!inner(name, slug, category, tagline)')
+    .select('id, display_name, status, created_at, agents!inner(name, slug, category, tagline, icon_url)')
     .eq('user_id', user.id)
     .not('status', 'eq', 'destroyed')
     .order('created_at', { ascending: false })
@@ -38,11 +38,12 @@ export default async function HomePage() {
     category: string
     tagline: string
     status: string
+    iconUrl: string | null
   }
 
   const agents: HiredAgent[] = (instances ?? []).map((inst) => {
     const agent = (inst as Record<string, unknown>).agents as {
-      name: string; slug: string; category: string; tagline: string
+      name: string; slug: string; category: string; tagline: string; icon_url: string | null
     }
     return {
       instanceId: inst.id,
@@ -51,6 +52,7 @@ export default async function HomePage() {
       category: agent.category,
       tagline: agent.tagline,
       status: inst.status,
+      iconUrl: agent.icon_url,
     }
   })
 
@@ -115,7 +117,7 @@ export default async function HomePage() {
               >
                 <CardContent className="p-5">
                   <div className="flex items-start gap-4 mb-4">
-                    <AgentInitial name={agent.name} category={agent.category} size="md" />
+                    <AgentAvatar name={agent.name} category={agent.category} iconUrl={agent.iconUrl} size="md" />
                     <div className="flex-1 min-w-0">
                       <h3 className="text-[15px] font-semibold leading-tight truncate">{agent.name}</h3>
                       <p className="text-[13px] text-muted-foreground mt-0.5 truncate">{agent.tagline}</p>

@@ -16,7 +16,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
   // Load ALL user's agent instances (not just test-agent)
   const { data: instances } = await service
     .from('agent_instances')
-    .select('id, display_name, status, agents!inner(name, slug, category, tagline)')
+    .select('id, display_name, status, agents!inner(name, slug, category, tagline, icon_url)')
     .eq('user_id', user.id)
     .not('status', 'eq', 'destroyed')
     .order('created_at', { ascending: true })
@@ -28,6 +28,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
     category: string
     tagline: string
     status: string
+    iconUrl: string | null
   }
 
   const agents: AgentInfo[] = (instances ?? []).map((inst) => {
@@ -36,6 +37,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
       slug: string
       category: string
       tagline: string
+      icon_url: string | null
     }
     return {
       instanceId: inst.id,
@@ -44,6 +46,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
       category: agent.category,
       tagline: agent.tagline,
       status: inst.status,
+      iconUrl: agent.icon_url,
     }
   })
 
