@@ -44,6 +44,10 @@ export default async function AgentPage({
     icon_url: string | null
   }
   const agentName = instance.display_name ?? agent.name
+  // Mock agents are always "running" regardless of DB status
+  const initialStatus = instance.fly_app_name?.startsWith('mock-')
+    ? 'running'
+    : instance.status
 
   return (
     <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
@@ -68,7 +72,7 @@ export default async function AgentPage({
 
       <AgentHomePage
         instanceId={instance.id}
-        initialStatus={instance.status}
+        initialStatus={initialStatus}
         displayName={agentName}
         agentName={agent.name}
         agentSlug={agent.slug}

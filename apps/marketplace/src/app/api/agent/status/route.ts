@@ -18,13 +18,18 @@ export async function GET(request: Request) {
 
   const { data: instance } = await service
     .from('agent_instances')
-    .select('id, status')
+    .select('id, status, fly_app_name')
     .eq('id', instanceId)
     .eq('user_id', user.id)
     .single()
 
   if (!instance) {
     return NextResponse.json({ error: 'Agent not found' }, { status: 404 })
+  }
+
+  // Mock agents are always "running" regardless of what the health-check sets
+  if (instance.fly_app_name?.startsWith('mock-')) {
+    return NextResponse.json({ status: 'running' })
   }
 
   return NextResponse.json({ status: instance.status })
