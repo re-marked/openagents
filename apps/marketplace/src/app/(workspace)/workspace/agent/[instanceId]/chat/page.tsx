@@ -29,7 +29,7 @@ export default async function AgentChatPage({
     .select('id, status, display_name, agents!inner(name, category)')
     .eq('id', instanceId)
     .eq('user_id', user.id)
-    .in('status', ['running', 'suspended'])
+    .in('status', ['running', 'suspended', 'stopped'])
     .limit(1)
     .single()
 
@@ -65,6 +65,7 @@ export default async function AgentChatPage({
         agentInstanceId={instance.id}
         agentName={agentName}
         agentCategory={agent.category}
+        agentStatus={instance.status}
       />
     </div>
   )
