@@ -7,7 +7,7 @@ import { motion } from 'framer-motion'
 import { AuroraHero } from '@/components/aurora-hero'
 import { RotatingText } from '@/components/rotating-text'
 import { ScrollReveal } from '@/components/scroll-reveal'
-import { SmoothScroll } from '@/components/smooth-scroll'
+import Lenis from 'lenis'
 import { SierpinskiLogo } from '@/components/sierpinski-logo'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -32,6 +32,33 @@ const ROLES = [
     description: 'Watches your numbers while you sleep. Spots what\'s changing, explains why it matters, tells you what to do about it.',
   },
 ]
+
+/** Lenis smooth scroll bound to a specific wrapper element */
+function SmoothScrollInner({ wrapper }: { wrapper: HTMLElement }) {
+  useEffect(() => {
+    const lenis = new Lenis({
+      wrapper,
+      content: wrapper.children[0] as HTMLElement,
+      duration: 1,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      orientation: 'vertical',
+      gestureOrientation: 'vertical',
+      smoothWheel: true,
+      wheelMultiplier: 1,
+      touchMultiplier: 2,
+    })
+
+    function raf(time: number) {
+      lenis.raf(time)
+      requestAnimationFrame(raf)
+    }
+    requestAnimationFrame(raf)
+
+    return () => { lenis.destroy() }
+  }, [wrapper])
+
+  return null
+}
 
 function WaitlistForm() {
   const [submitted, setSubmitted] = useState(false)
@@ -91,20 +118,20 @@ export default function LandingPage() {
     return <UnlockedLandingPage />
   }
 
-  const viewportRef = useRef<HTMLDivElement>(null)
+  const [viewport, setViewport] = useState<HTMLElement | null>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
 
   // Grab the Radix viewport element after mount
   useEffect(() => {
     if (scrollAreaRef.current) {
-      const viewport = scrollAreaRef.current.querySelector('[data-slot="scroll-area-viewport"]')
-      if (viewport) (viewportRef as React.MutableRefObject<HTMLElement | null>).current = viewport as HTMLDivElement
+      const el = scrollAreaRef.current.querySelector('[data-slot="scroll-area-viewport"]')
+      if (el) setViewport(el as HTMLElement)
     }
   }, [])
 
   return (
     <ScrollArea ref={scrollAreaRef} className="h-svh">
-      <SmoothScroll wrapperRef={viewportRef} />
+      {viewport && <SmoothScrollInner wrapper={viewport} />}
       <main className="w-full">
         {/* ─── Section 1: Hero ─── */}
         <section className="relative flex h-svh w-full flex-col items-center justify-center overflow-hidden px-6">
@@ -164,11 +191,13 @@ export default function LandingPage() {
           <div className="mx-auto grid max-w-5xl gap-6 sm:grid-cols-3">
             {ROLES.map((role, i) => (
               <ScrollReveal key={role.title} delay={i * 0.1}>
-                <div className="group relative rounded-2xl p-px transition-transform duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1)] hover:scale-[1.015]">
-                  {/* Animated gradient border — outline only, visible on hover */}
-                  <div className="absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-500 group-hover:opacity-60 animate-border-rotate" style={{ background: 'conic-gradient(from var(--border-angle, 0deg), hsl(215 90% 65%), hsl(30 80% 60%), hsl(215 90% 65%))', mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)', maskComposite: 'exclude', WebkitMaskComposite: 'xor', padding: '1px' }} />
+                <div className="group relative rounded-2xl p-px overflow-hidden transition-transform duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1)] hover:scale-[1.015]">
+                  {/* Gradient border layer — sits behind card, clipped by overflow-hidden */}
+                  <div className="animate-border-rotate absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-60" style={{ background: 'conic-gradient(from var(--border-angle, 0deg), hsl(215 90% 65%), hsl(30 80% 60%), hsl(215 90% 65%))' }} />
+                  {/* Static border shown when not hovering */}
+                  <div className="absolute inset-0 rounded-2xl border border-white/[0.06] transition-opacity duration-500 group-hover:opacity-0" />
                   {/* Card content */}
-                  <div className="relative rounded-2xl border border-white/[0.06] bg-card/40 p-8 backdrop-blur-sm transition-[border-color] duration-500 group-hover:border-transparent">
+                  <div className="relative rounded-[calc(1rem-1px)] bg-card/40 p-8 backdrop-blur-sm">
                     <role.icon className="mb-5 size-5 text-muted-foreground" strokeWidth={1.5} />
                     <h3 className="mb-3 text-lg font-medium text-foreground">{role.title}</h3>
                     <p className="text-[15px] leading-relaxed text-muted-foreground">
