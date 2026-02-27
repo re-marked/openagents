@@ -122,7 +122,7 @@ export default function LandingPage() {
         </section>
 
         {/* ─── Section 2: The Shift ─── */}
-        <section className="flex min-h-[70vh] w-full flex-col items-center justify-center px-6 py-20">
+        <section className="flex w-full flex-col items-center justify-center px-6 py-20">
           <ScrollReveal className="max-w-3xl text-center">
             <h2 className="mb-6 text-4xl font-medium tracking-tight sm:text-5xl lg:text-6xl">
               <span className="text-secondary-foreground">You used to need a company</span>
