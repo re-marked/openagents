@@ -173,8 +173,8 @@ export function AgentHomePage(props: AgentHomeProps) {
         </div>
 
         {/* Content area */}
-        <div className="flex-1 min-w-0 overflow-y-auto">
-          <div className="p-6 max-w-3xl">
+        <div className="flex-1 min-w-0 flex flex-col overflow-y-auto">
+          <div className="flex-1 p-6 flex flex-col min-h-0">
             {renderSection()}
           </div>
         </div>

@@ -138,8 +138,8 @@ export function MemorySection({ instanceId }: MemorySectionProps) {
   const hasChanges = memoryMd !== originalMemoryMd
 
   return (
-    <div className="space-y-6">
-      <div>
+    <div className="flex flex-col h-full gap-4">
+      <div className="shrink-0">
         <h2 className="text-lg font-semibold tracking-tight">Memory</h2>
         <p className="text-sm text-muted-foreground mt-1">
           Manage your agent&apos;s long-term memory and auto-generated notes.
@@ -147,7 +147,7 @@ export function MemorySection({ instanceId }: MemorySectionProps) {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-border/40">
+      <div className="shrink-0 flex gap-1 border-b border-border/40">
         <button
           onClick={() => setTab('memory-md')}
           className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
@@ -171,18 +171,18 @@ export function MemorySection({ instanceId }: MemorySectionProps) {
       </div>
 
       {tab === 'memory-md' && (
-        <div className="space-y-4">
-          <p className="text-xs text-muted-foreground">
+        <div className="flex-1 flex flex-col gap-4 min-h-0">
+          <p className="shrink-0 text-xs text-muted-foreground">
             Facts and context your agent remembers across conversations.
           </p>
           <textarea
             value={memoryMd}
             onChange={(e) => setMemoryMd(e.target.value)}
             placeholder="Add facts, context, and instructions your agent should remember..."
-            className="w-full min-h-[300px] rounded-xl border border-border/40 bg-card/50 px-4 py-3 text-sm font-mono text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring resize-y"
+            className="w-full flex-1 min-h-[200px] rounded-xl border border-border/40 bg-card/50 px-4 py-3 text-sm font-mono text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring resize-none"
             spellCheck={false}
           />
-          <div className="flex items-center gap-3">
+          <div className="shrink-0 flex items-center gap-3">
             <Button size="sm" onClick={handleSaveMemoryMd} disabled={!hasChanges || saving}>
               {saving && <Loader2 className="size-3 mr-1.5 animate-spin" />}
               {saved ? 'Saved' : 'Save'}
