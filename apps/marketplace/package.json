@@ -10,13 +10,15 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@base-ui/react": "^1.2.0",
-    "@hookform/resolvers": "^5.2.2",
     "@agentbay/db": "workspace:*",
     "@agentbay/ui": "workspace:*",
+    "@base-ui/react": "^1.2.0",
+    "@hookform/resolvers": "^5.2.2",
     "@trigger.dev/sdk": "^3.3.17",
+    "@types/d3-force": "^3.0.10",
     "class-variance-authority": "^0.7.1",
     "cmdk": "^1.1.1",
+    "d3-force": "^3.0.0",
     "date-fns": "^4.1.0",
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "latest",
