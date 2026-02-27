@@ -5,6 +5,10 @@ import { FlyClient } from '@agentbay/fly'
 
 const CONFIG_PATH = '/data/openclaw.json'
 
+function isMock(flyAppName: string) {
+  return flyAppName.startsWith('mock-')
+}
+
 async function getInstance(instanceId: string, userId: string) {
   const service = createServiceClient()
   const { data } = await service
@@ -28,6 +32,11 @@ export async function GET(request: Request) {
   if (!instance) return NextResponse.json({ error: 'Agent not found' }, { status: 404 })
   if (instance.status !== 'running') {
     return NextResponse.json({ error: 'Agent must be running' }, { status: 409 })
+  }
+
+  // Mock mode
+  if (isMock(instance.fly_app_name)) {
+    return NextResponse.json({ model: 'google/gemini-2.5-flash' })
   }
 
   try {
@@ -56,10 +65,14 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: 'Agent must be running' }, { status: 409 })
   }
 
+  // Mock mode — accept silently
+  if (isMock(instance.fly_app_name)) {
+    return NextResponse.json({ ok: true })
+  }
+
   try {
     const fly = new FlyClient()
 
-    // Read existing config
     let config: Record<string, unknown> = {}
     try {
       const raw = await fly.readFile(instance.fly_app_name, instance.fly_machine_id, CONFIG_PATH)
@@ -68,7 +81,6 @@ export async function PUT(request: Request) {
       // No existing config — start fresh
     }
 
-    // Deep-set agents.defaults.model.primary
     const agents = (config.agents ?? {}) as Record<string, unknown>
     const defaults = (agents.defaults ?? {}) as Record<string, unknown>
     const modelConfig = (defaults.model ?? {}) as Record<string, unknown>

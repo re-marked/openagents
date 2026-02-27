@@ -22,6 +22,11 @@ export async function POST(request: Request) {
 
   if (!instance) return NextResponse.json({ error: 'Agent not found' }, { status: 404 })
 
+  // Mock mode — just return ok
+  if (instance.fly_app_name.startsWith('mock-')) {
+    return NextResponse.json({ ok: true })
+  }
+
   try {
     const fly = new FlyClient()
 
