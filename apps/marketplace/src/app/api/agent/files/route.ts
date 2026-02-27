@@ -243,17 +243,18 @@ export async function GET(request: Request) {
 
   const instance = await getInstance(instanceId, user.id)
   if (!instance) return NextResponse.json({ error: 'Agent not found' }, { status: 404 })
-  if (instance.status !== 'running') {
-    return NextResponse.json({ error: 'Agent must be running' }, { status: 409 })
-  }
 
-  // Mock mode
+  // Mock mode — skip status check, return canned data
   if (isMock(instance.fly_app_name)) {
     if (list) {
       return NextResponse.json({ output: MOCK_DIRS[path] ?? '' })
     }
     const content = getMockContent(path)
     return NextResponse.json({ content: content ?? '' })
+  }
+
+  if (instance.status !== 'running') {
+    return NextResponse.json({ error: 'Agent must be running' }, { status: 409 })
   }
 
   try {
@@ -281,9 +282,6 @@ export async function PUT(request: Request) {
 
   const instance = await getInstance(body.instanceId, user.id)
   if (!instance) return NextResponse.json({ error: 'Agent not found' }, { status: 404 })
-  if (instance.status !== 'running') {
-    return NextResponse.json({ error: 'Agent must be running' }, { status: 409 })
-  }
 
   // Mock mode — accept writes silently
   if (isMock(instance.fly_app_name)) {

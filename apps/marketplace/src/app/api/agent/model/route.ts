@@ -30,13 +30,14 @@ export async function GET(request: Request) {
 
   const instance = await getInstance(instanceId, user.id)
   if (!instance) return NextResponse.json({ error: 'Agent not found' }, { status: 404 })
-  if (instance.status !== 'running') {
-    return NextResponse.json({ error: 'Agent must be running' }, { status: 409 })
-  }
 
   // Mock mode
   if (isMock(instance.fly_app_name)) {
     return NextResponse.json({ model: 'google/gemini-2.5-flash' })
+  }
+
+  if (instance.status !== 'running') {
+    return NextResponse.json({ error: 'Agent must be running' }, { status: 409 })
   }
 
   try {
@@ -61,9 +62,6 @@ export async function PUT(request: Request) {
 
   const instance = await getInstance(body.instanceId, user.id)
   if (!instance) return NextResponse.json({ error: 'Agent not found' }, { status: 404 })
-  if (instance.status !== 'running') {
-    return NextResponse.json({ error: 'Agent must be running' }, { status: 409 })
-  }
 
   // Mock mode — accept silently
   if (isMock(instance.fly_app_name)) {
