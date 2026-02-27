@@ -180,7 +180,7 @@ export function SkillsSection({ instanceId }: SkillsSectionProps) {
       <div>
         <h2 className="text-lg font-semibold tracking-tight">Skills</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Manage your agent&apos;s skills. Each skill is a SKILL.md file with YAML frontmatter and instructions.
+          Manage your Agent&apos;s skills. <strong>Each skill is a Markdown file with instructions that teach the Agent to use new tools and extend it&apos;s capabilities.</strong>
         </p>
       </div>
 
