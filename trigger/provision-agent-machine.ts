@@ -60,16 +60,16 @@ export const provisionAgentMachine = task({
   },
 
   // Only mark as error after ALL retries are exhausted
-  onFailure: async (payload, error) => {
+  onFailure: async ({ payload, error }) => {
     const db = createServiceClient()
     logger.error('Provisioning failed permanently (all retries exhausted)', {
-      instanceId: (payload as ProvisionPayload).instanceId,
+      instanceId: payload.instanceId,
       error: error instanceof Error ? error.message : String(error),
     })
     await db
       .from('agent_instances')
       .update({ status: 'error' })
-      .eq('id', (payload as ProvisionPayload).instanceId)
+      .eq('id', payload.instanceId)
   },
 
   run: async (payload: ProvisionPayload) => {

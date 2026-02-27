@@ -121,7 +121,7 @@ export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCa
         return
       }
 
-      // Read SSE — buffer text, show tool blocks live, drop full message on "done"
+      // Read SSE — stream text live token-by-token, each tool as its own block
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
       let sseBuffer = ''
@@ -129,9 +129,12 @@ export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCa
       let contentBuffer = ''
       let turnCount = 0
       let streamDone = false
-      // Track a placeholder message for tool-use blocks (before text arrives)
-      let toolMsgId = ''
-      const toolAccum: ToolUse[] = []
+      // Track the current streaming text message (live token-by-token)
+      let streamingMsgId = ''
+      // Track the current tool message (per-tool, not shared)
+      let currentToolMsgId = ''
+      // Whether any content was rendered this turn (for done fallback)
+      let turnHadOutput = false
 
       while (!streamDone) {
         const { done, value } = await reader.read()
@@ -154,26 +157,66 @@ export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCa
               const data = JSON.parse(line.slice(5).trim())
 
               if (currentEvent === 'delta' && data.content !== undefined) {
-                // Buffer silently — text appears as a block on text_block or done
                 contentBuffer += data.content
+                if (!streamingMsgId) {
+                  // First delta — create a new streaming message
+                  streamingMsgId = `master-${Date.now()}-${turnCount}-stream-${Math.random().toString(36).slice(2, 6)}`
+                  turnHadOutput = true
+                  const id = streamingMsgId
+                  const snapshot = contentBuffer
+                  setMessages((prev) => [
+                    ...prev,
+                    {
+                      id,
+                      role: 'master',
+                      content: snapshot,
+                      timestamp: new Date(),
+                    },
+                  ])
+                } else {
+                  // Subsequent delta — update the streaming message with appended content
+                  const id = streamingMsgId
+                  const snapshot = contentBuffer
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === id
+                        ? { ...m, content: snapshot }
+                        : m,
+                    ),
+                  )
+                }
               } else if (currentEvent === 'text_block') {
-                // Gateway flushed text before a tool call — show as a separate message
-                const blockContent = contentBuffer || data.content || ''
-                if (blockContent) {
+                // Gateway flushed text before a tool call — finalize the streaming message
+                if (streamingMsgId) {
+                  const finalContent = contentBuffer || data.content || ''
+                  if (finalContent) {
+                    const id = streamingMsgId
+                    setMessages((prev) =>
+                      prev.map((m) =>
+                        m.id === id
+                          ? { ...m, content: finalContent }
+                          : m,
+                      ),
+                    )
+                  }
+                } else if (data.content) {
+                  // No streaming message yet (deltas didn't fire) — create one
+                  turnHadOutput = true
                   const blockId = `master-${Date.now()}-${turnCount}-blk-${Math.random().toString(36).slice(2, 6)}`
                   setMessages((prev) => [
                     ...prev,
                     {
                       id: blockId,
                       role: 'master',
-                      content: blockContent,
+                      content: data.content,
                       timestamp: new Date(),
                     },
                   ])
                 }
                 contentBuffer = ''
+                streamingMsgId = ''
               } else if (currentEvent === 'tool') {
-                // Tool use event — show blocks in real-time
+                // Tool use event — each tool gets its own message
                 const toolPayload = data.data ?? data
                 const toolId = toolPayload.id ?? `tool-${Date.now()}`
                 const toolName = toolPayload.tool ?? toolPayload.name ?? 'unknown'
@@ -194,91 +237,102 @@ export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCa
                   }
                 }
 
-                // Create a placeholder message for tool blocks if none exists
-                if (!toolMsgId) {
-                  toolMsgId = `master-tools-${Date.now()}-${turnCount}`
-                  setMessages((prev) => [
-                    ...prev,
-                    {
-                      id: toolMsgId,
-                      role: 'master',
-                      content: '',
-                      timestamp: new Date(),
-                      toolUses: [],
-                    },
-                  ])
-                }
-
                 if (state === 'start' || state === 'running' || !state) {
+                  // Finalize any current streaming text message first
+                  if (streamingMsgId) {
+                    if (contentBuffer) {
+                      const id = streamingMsgId
+                      const finalContent = contentBuffer
+                      setMessages((prev) =>
+                        prev.map((m) =>
+                          m.id === id
+                            ? { ...m, content: finalContent }
+                            : m,
+                        ),
+                      )
+                    }
+                    contentBuffer = ''
+                    streamingMsgId = ''
+                  }
+
+                  // Create a NEW tool message for THIS specific tool
+                  turnHadOutput = true
+                  currentToolMsgId = `master-tool-${Date.now()}-${turnCount}-${toolId}`
                   const newTool: ToolUse = {
                     id: toolId,
                     tool: toolName,
                     args: args || undefined,
                     status: 'running',
                   }
-                  toolAccum.push(newTool)
-                  setMessages((prev) =>
-                    prev.map((m) =>
-                      m.id === toolMsgId
-                        ? { ...m, toolUses: [...toolAccum] }
-                        : m,
-                    ),
-                  )
+                  const msgId = currentToolMsgId
+                  setMessages((prev) => [
+                    ...prev,
+                    {
+                      id: msgId,
+                      role: 'master',
+                      content: '',
+                      timestamp: new Date(),
+                      toolUses: [newTool],
+                    },
+                  ])
                 } else if (state === 'end' || state === 'done' || state === 'completed') {
                   const output = toolPayload.output ?? toolPayload.result ?? ''
-                  const existing = toolAccum.find((t) => t.id === toolId)
-                  if (existing) {
-                    existing.status = 'done'
-                    existing.output = typeof output === 'string' ? output : JSON.stringify(output)
-                  }
+                  const outputStr = typeof output === 'string' ? output : JSON.stringify(output)
+                  // Update the tool message containing this tool ID
                   setMessages((prev) =>
-                    prev.map((m) =>
-                      m.id === toolMsgId
-                        ? { ...m, toolUses: [...toolAccum] }
-                        : m,
-                    ),
+                    prev.map((m) => {
+                      const tu = m.toolUses
+                      if (!tu) return m
+                      const idx = tu.findIndex((t) => t.id === toolId)
+                      if (idx === -1) return m
+                      const updated = [...tu]
+                      updated[idx] = { ...updated[idx], status: 'done', output: outputStr }
+                      return { ...m, toolUses: updated }
+                    }),
                   )
+                  currentToolMsgId = ''
                 } else if (state === 'error') {
-                  const existing = toolAccum.find((t) => t.id === toolId)
-                  if (existing) {
-                    existing.status = 'error'
-                    existing.output = toolPayload.error ?? 'Tool error'
-                  }
                   setMessages((prev) =>
-                    prev.map((m) =>
-                      m.id === toolMsgId
-                        ? { ...m, toolUses: [...toolAccum] }
-                        : m,
-                    ),
+                    prev.map((m) => {
+                      const tu = m.toolUses
+                      if (!tu) return m
+                      const idx = tu.findIndex((t) => t.id === toolId)
+                      if (idx === -1) return m
+                      const updated = [...tu]
+                      updated[idx] = { ...updated[idx], status: 'error', output: toolPayload.error ?? 'Tool error' }
+                      return { ...m, toolUses: updated }
+                    }),
                   )
+                  currentToolMsgId = ''
                 }
               } else if (currentEvent === 'done') {
-                // Turn complete — drop the full message at once
-                const fullContent = contentBuffer || data.content || ''
-                if (toolMsgId && fullContent) {
-                  // Merge text into the existing tool-use message
+                // Turn complete — finalize any remaining streaming message
+                if (streamingMsgId && contentBuffer) {
+                  const id = streamingMsgId
+                  const finalContent = contentBuffer
                   setMessages((prev) =>
                     prev.map((m) =>
-                      m.id === toolMsgId
-                        ? { ...m, content: fullContent }
+                      m.id === id
+                        ? { ...m, content: finalContent }
                         : m,
                     ),
                   )
-                } else if (fullContent) {
-                  // No tools this turn — just add the message
+                } else if (!turnHadOutput && data.content) {
+                  // Fallback: no deltas/tools rendered — gateway sent content only in done
                   setMessages((prev) => [
                     ...prev,
                     {
                       id: `master-${Date.now()}-${turnCount}`,
                       role: 'master',
-                      content: fullContent,
+                      content: data.content,
                       timestamp: new Date(),
                     },
                   ])
                 }
                 contentBuffer = ''
-                toolMsgId = ''
-                toolAccum.length = 0
+                streamingMsgId = ''
+                currentToolMsgId = ''
+                turnHadOutput = false
                 turnCount++
               } else if (currentEvent === 'thread_start') {
                 // Attach thread to the last master message (immutable)
@@ -356,27 +410,28 @@ export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCa
         }
       }
 
-      // If stream ended without a done event but there's buffered content
-      if (contentBuffer) {
-        if (toolMsgId) {
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === toolMsgId
-                ? { ...m, content: contentBuffer }
-                : m,
-            ),
-          )
-        } else {
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: `master-${Date.now()}-final`,
-              role: 'master',
-              content: contentBuffer,
-              timestamp: new Date(),
-            },
-          ])
-        }
+      // If stream ended without a done event — finalize any remaining content
+      if (streamingMsgId && contentBuffer) {
+        const id = streamingMsgId
+        const finalContent = contentBuffer
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === id
+              ? { ...m, content: finalContent }
+              : m,
+          ),
+        )
+      } else if (contentBuffer) {
+        // Content buffer has data but no streaming message — create one
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `master-${Date.now()}-final`,
+            role: 'master',
+            content: contentBuffer,
+            timestamp: new Date(),
+          },
+        ])
       }
 
       if (timeoutId) {
