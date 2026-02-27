@@ -53,7 +53,7 @@ export function AgentCardLarge({
       tabIndex={0}
       onClick={() => onSelect(agent)}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onSelect(agent) }}
-      className="group border-0 gap-0 py-0 transition-all duration-300 ease-out hover:bg-accent hover:scale-[1.01] cursor-pointer select-none"
+      className="group border-0 gap-0 py-0 cursor-pointer select-none"
     >
       {/* Header row: icon + info + CTA */}
       <CardContent className="flex items-center gap-4 p-5 pb-4">
@@ -69,7 +69,7 @@ export function AgentCardLarge({
             <RatingStars rating={agent.avg_rating} count={agent.total_reviews} />
           </div>
         </div>
-        <Badge className="shrink-0 px-4 py-1.5 text-sm font-semibold transition-colors duration-200 group-hover:bg-primary/90">
+        <Badge className="shrink-0 px-4 py-1.5 text-sm font-semibold">
           View
         </Badge>
       </CardContent>
@@ -100,7 +100,7 @@ export function AgentCardLarge({
 export function AgentCard({ agent }: { agent: AgentListItem }) {
   return (
     <Card
-      className="group border-0 gap-0 py-0 transition-all duration-200 hover:bg-accent"
+      className="group border-0 gap-0 py-0"
     >
       <a href={`/agents/${agent.slug}`} className="flex items-center gap-3 p-3">
         <AgentInitial name={agent.name} category={agent.category} size="sm" />

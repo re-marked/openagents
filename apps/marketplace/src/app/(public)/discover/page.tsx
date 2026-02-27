@@ -91,7 +91,7 @@ export default async function DiscoverPage({ searchParams }: Props) {
         <DiscoverSidebar />
       </Suspense>
       <SidebarInset className="overflow-hidden">
-        <ScrollArea className="flex-1">
+        <ScrollArea className="h-0 flex-1">
           <Suspense>
             <DiscoverContent agents={agents} />
           </Suspense>
