@@ -1,13 +1,12 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
-import { MessageSquare, Loader2, Info } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { MessageSquare, Loader2, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { RemoveAgentButton } from '@/components/remove-agent-button'
 import { AgentAvatar } from '@/lib/agents'
 
 export interface HiredAgent {
@@ -33,36 +32,24 @@ interface HiredAgentGridProps {
   agents: HiredAgent[]
 }
 
-export function HiredAgentGrid({ agents: initialAgents }: HiredAgentGridProps) {
-  const [agents, setAgents] = useState(initialAgents)
-
-  function handleRemoved(instanceId: string) {
-    setAgents((prev) => prev.filter((a) => a.instanceId !== instanceId))
-  }
+export function HiredAgentGrid({ agents }: HiredAgentGridProps) {
+  const router = useRouter()
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
       {agents.map((agent) => {
         const statusBadge = STATUS_BADGE[agent.status] ?? { text: agent.status, className: "bg-secondary" }
-        const chatPath = `/workspace/agent/${agent.instanceId}/chat`
+        const homePath = `/workspace/agent/${agent.instanceId}`
+        const chatPath = `${homePath}/chat`
         const isProvisioning = agent.status === "provisioning"
         const isDestroying = agent.status === "destroying"
 
         return (
           <Card
             key={agent.instanceId}
-            className="group relative border-0 gap-0 py-0"
+            className="group relative border-0 gap-0 py-0 cursor-pointer transition-colors hover:bg-card/80"
+            onClick={() => router.push(homePath)}
           >
-            <Button
-              variant="ghost"
-              size="icon"
-              asChild
-              className="absolute top-3 right-3 size-8 text-muted-foreground hover:text-foreground"
-            >
-              <Link href={`/workspace/agent/${agent.instanceId}`}>
-                <Info className="size-4.5" />
-              </Link>
-            </Button>
             <CardContent className="p-5">
               <div className="flex items-start gap-4 mb-4">
                 <AgentAvatar name={agent.name} category={agent.category} iconUrl={agent.iconUrl} size="md" />
@@ -77,12 +64,30 @@ export function HiredAgentGrid({ agents: initialAgents }: HiredAgentGridProps) {
               </div>
 
               {!isProvisioning && !isDestroying && agent.status !== 'error' && (
-                <Button variant="secondary" asChild className="w-full bg-primary/15 text-primary hover:bg-primary/25">
-                  <Link href={chatPath}>
-                    <MessageSquare className="size-4 mr-2" />
-                    Open Chat
-                  </Link>
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    asChild
+                    className="flex-1 bg-primary/15 text-primary hover:bg-primary/25"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Link href={chatPath}>
+                      <MessageSquare className="size-4 mr-2" />
+                      Chat
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    asChild
+                    className="flex-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Link href={homePath}>
+                      <Settings className="size-4 mr-2" />
+                      Agent Config
+                    </Link>
+                  </Button>
+                </div>
               )}
               {isProvisioning && (
                 <Button variant="secondary" disabled className="w-full">
@@ -91,20 +96,12 @@ export function HiredAgentGrid({ agents: initialAgents }: HiredAgentGridProps) {
                 </Button>
               )}
               {agent.status === 'error' && (
-                <Alert variant="destructive" className="border-0 bg-red-500/10 py-2">
-                  <AlertDescription className="text-center text-red-400 text-sm">
-                    Setup failed — remove and try again
+                <Alert variant="destructive" className="border-0 bg-status-error/10 py-2">
+                  <AlertDescription className="text-center text-status-error text-sm">
+                    Setup failed — remove from Agent Config
                   </AlertDescription>
                 </Alert>
               )}
-
-              <div className={`flex justify-end mt-2 transition-opacity ${agent.status === 'error' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-                <RemoveAgentButton
-                  instanceId={agent.instanceId}
-                  agentName={agent.name}
-                  onRemoved={() => handleRemoved(agent.instanceId)}
-                />
-              </div>
             </CardContent>
           </Card>
         )

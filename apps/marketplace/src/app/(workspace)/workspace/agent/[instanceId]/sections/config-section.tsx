@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
+import { RemoveAgentButton } from '@/components/remove-agent-button'
 import {
   Select,
   SelectContent,
@@ -216,9 +217,10 @@ function SectionHeader({ title, description }: { title: string; description: str
 
 interface ConfigSectionProps {
   instanceId: string
+  agentName: string
 }
 
-export function ConfigSection({ instanceId: _instanceId }: ConfigSectionProps) {
+export function ConfigSection({ instanceId, agentName }: ConfigSectionProps) {
   const [config, setConfig] = useState<AgentConfig>({ ...DEFAULT_CONFIG })
   const initialConfig = useRef<AgentConfig>({ ...DEFAULT_CONFIG })
   const [saving, setSaving] = useState(false)
@@ -523,6 +525,25 @@ export function ConfigSection({ instanceId: _instanceId }: ConfigSectionProps) {
           />
         </SettingRow>
       </div>
+
+      {/* ── 7. Danger Zone ─────────────────────────────── */}
+      <div className="space-y-3">
+        <SectionHeader
+          title="Danger Zone"
+          description="Irreversible actions — proceed with caution."
+        />
+        <div className="rounded-xl border border-status-error/20 bg-status-error/5 p-4 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium">Remove this Agent</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Permanently shut down and delete all data for this agent.
+            </p>
+          </div>
+          <RemoveAgentButton instanceId={instanceId} agentName={agentName} redirectTo="/workspace/home" />
+        </div>
+      </div>
+
+      <Separator />
 
       {/* ── Save bar ──────────────────────────────────── */}
       <div

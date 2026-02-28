@@ -100,7 +100,7 @@ export function AgentHomePage(props: AgentHomeProps) {
           />
         )
       case 'config':
-        return <ConfigSection instanceId={instanceId} />
+        return <ConfigSection instanceId={instanceId} agentName={currentName} />
       case 'personality':
         return <PersonalitySection instanceId={instanceId} />
       case 'skills':

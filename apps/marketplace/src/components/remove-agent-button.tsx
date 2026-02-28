@@ -22,9 +22,10 @@ interface RemoveAgentButtonProps {
   instanceId: string
   agentName: string
   onRemoved?: () => void
+  redirectTo?: string
 }
 
-export function RemoveAgentButton({ instanceId, agentName, onRemoved }: RemoveAgentButtonProps) {
+export function RemoveAgentButton({ instanceId, agentName, onRemoved, redirectTo }: RemoveAgentButtonProps) {
   const router = useRouter()
   const [removing, setRemoving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -52,7 +53,11 @@ export function RemoveAgentButton({ instanceId, agentName, onRemoved }: RemoveAg
 
     try {
       await removeAgent(instanceId)
-      router.refresh()
+      if (redirectTo) {
+        router.push(redirectTo)
+      } else {
+        router.refresh()
+      }
     } catch (e) {
       // Re-open dialog with error if removal actually failed
       setError(e instanceof Error ? e.message : 'Failed to remove agent')
