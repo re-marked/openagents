@@ -213,35 +213,30 @@ export class FlyClient {
     machineId: string,
     cmd: string[]
   ): Promise<{ stdout: string; stderr: string; exit_code: number }> {
+    // Fly Machines exec API expects `cmd` as a single string, not an array
+    const cmdStr = cmd.join(' ')
     const res = await fetch(
       `${FLY_API_BASE}/apps/${appName}/machines/${machineId}/exec`,
       {
         method: 'POST',
         headers: this.headers,
-        body: JSON.stringify({ cmd }),
+        body: JSON.stringify({ cmd: cmdStr }),
       }
     )
     if (!res.ok) {
       const text = await res.text().catch(() => res.statusText)
-      throw new Error(`Fly exec ${cmd.join(' ')} → ${res.status}: ${text}`)
+      throw new Error(`Fly exec ${cmdStr} → ${res.status}: ${text}`)
     }
     const data = (await res.json()) as {
       stdout?: string
       stderr?: string
       exit_code?: number
     }
-    // Fly may return base64-encoded output — decode if needed
-    const decode = (s?: string) => {
-      if (!s) return ''
-      try {
-        return Buffer.from(s, 'base64').toString('utf-8')
-      } catch {
-        return s
-      }
-    }
+    // Fly exec returns plain text stdout/stderr — just normalize
+    const normalize = (s?: string) => (s ?? '')
     return {
-      stdout: decode(data.stdout),
-      stderr: decode(data.stderr),
+      stdout: normalize(data.stdout),
+      stderr: normalize(data.stderr),
       exit_code: data.exit_code ?? 0,
     }
   }
