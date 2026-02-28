@@ -4,6 +4,18 @@ import { NextResponse, type NextRequest } from 'next/server'
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // ── Platform redirect ──
+  // localhost:3000/platform → localhost:3001, agentbay.cc/platform → platform.agentbay.cc
+  if (pathname === '/platform' || pathname.startsWith('/platform/')) {
+    const host = request.headers.get('host') ?? ''
+    if (host.startsWith('localhost')) {
+      return NextResponse.redirect(new URL(`http://localhost:3001${pathname.replace(/^\/platform/, '') || '/'}`, request.url))
+    }
+    if (host.includes('agentbay.cc')) {
+      return NextResponse.redirect(new URL(`https://platform.agentbay.cc${pathname.replace(/^\/platform/, '') || '/'}`, request.url))
+    }
+  }
+
   // ── Launch lockdown: only the landing page is public ──
   // Set NEXT_PUBLIC_LAUNCH_LOCKDOWN=false (or remove it) to open the full app.
   if (process.env.NEXT_PUBLIC_LAUNCH_LOCKDOWN !== 'false' && pathname !== '/') {
