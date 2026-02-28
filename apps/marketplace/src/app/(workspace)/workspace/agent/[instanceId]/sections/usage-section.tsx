@@ -15,6 +15,15 @@ import {
   type ChartConfig,
 } from '@/components/ui/chart'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination'
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -223,37 +232,7 @@ export function UsageSection({ instanceId }: { instanceId: string }) {
 
       {/* Events table */}
       {data.events.length > 0 && (
-        <div className="rounded-xl border border-border/40 bg-card/50 overflow-hidden">
-          <div className="px-5 py-3 border-b border-border/40">
-            <p className="text-sm font-medium text-muted-foreground">Recent Events</p>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-border/30 text-muted-foreground">
-                  <th className="text-left px-5 py-2.5 font-medium">Date</th>
-                  <th className="text-right px-5 py-2.5 font-medium">Input</th>
-                  <th className="text-right px-5 py-2.5 font-medium">Output</th>
-                  <th className="text-right px-5 py-2.5 font-medium">Compute</th>
-                  <th className="text-right px-5 py-2.5 font-medium">Credits</th>
-                  <th className="text-right px-5 py-2.5 font-medium">Cost</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.events.map((ev, i) => (
-                  <tr key={i} className="border-b border-border/20 last:border-0 hover:bg-muted/30 transition-colors">
-                    <td className="px-5 py-2.5 text-muted-foreground">{formatDate(ev.date, isHourly)}</td>
-                    <td className="px-5 py-2.5 text-right tabular-nums">{formatTokens(ev.inputTokens)}</td>
-                    <td className="px-5 py-2.5 text-right tabular-nums">{formatTokens(ev.outputTokens)}</td>
-                    <td className="px-5 py-2.5 text-right tabular-nums">{formatTime(ev.computeSeconds)}</td>
-                    <td className="px-5 py-2.5 text-right tabular-nums">{ev.credits.toFixed(1)}</td>
-                    <td className="px-5 py-2.5 text-right tabular-nums text-muted-foreground">${ev.costUsd.toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <EventsTable events={data.events} isHourly={isHourly} />
       )}
     </div>
   )
@@ -308,6 +287,82 @@ function StatCard({
       </div>
       <p className="text-sm text-muted-foreground">{label}</p>
       {sub && <p className="text-[11px] text-muted-foreground/60">{sub}</p>}
+    </div>
+  )
+}
+
+const EVENTS_PER_PAGE = 10
+
+function EventsTable({ events, isHourly }: { events: UsageEvent[]; isHourly: boolean }) {
+  const [page, setPage] = useState(1)
+  const totalPages = Math.ceil(events.length / EVENTS_PER_PAGE)
+  const paged = events.slice((page - 1) * EVENTS_PER_PAGE, page * EVENTS_PER_PAGE)
+
+  return (
+    <div className="rounded-xl border border-border/40 bg-card/50 overflow-hidden flex flex-col">
+      <div className="px-5 py-3 border-b border-border/40">
+        <p className="text-sm font-medium text-muted-foreground">
+          Recent Events
+          <span className="ml-2 text-[11px] text-muted-foreground/50">{events.length} total</span>
+        </p>
+      </div>
+      <ScrollArea className="h-[360px]">
+        <table className="w-full text-xs">
+          <thead className="sticky top-0 bg-card/95 backdrop-blur-sm z-10">
+            <tr className="border-b border-border/30 text-muted-foreground">
+              <th className="text-left px-5 py-2.5 font-medium">Date</th>
+              <th className="text-right px-5 py-2.5 font-medium">Input</th>
+              <th className="text-right px-5 py-2.5 font-medium">Output</th>
+              <th className="text-right px-5 py-2.5 font-medium">Compute</th>
+              <th className="text-right px-5 py-2.5 font-medium">Credits</th>
+              <th className="text-right px-5 py-2.5 font-medium">Cost</th>
+            </tr>
+          </thead>
+          <tbody>
+            {paged.map((ev, i) => (
+              <tr key={i} className="border-b border-border/20 last:border-0 hover:bg-muted/30 transition-colors">
+                <td className="px-5 py-2.5 text-muted-foreground">{formatDate(ev.date, isHourly)}</td>
+                <td className="px-5 py-2.5 text-right tabular-nums">{formatTokens(ev.inputTokens)}</td>
+                <td className="px-5 py-2.5 text-right tabular-nums">{formatTokens(ev.outputTokens)}</td>
+                <td className="px-5 py-2.5 text-right tabular-nums">{formatTime(ev.computeSeconds)}</td>
+                <td className="px-5 py-2.5 text-right tabular-nums">{ev.credits.toFixed(1)}</td>
+                <td className="px-5 py-2.5 text-right tabular-nums text-muted-foreground">${ev.costUsd.toFixed(2)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </ScrollArea>
+      {totalPages > 1 && (
+        <div className="border-t border-border/40 px-5 py-2.5">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className={page === 1 ? 'pointer-events-none opacity-40' : 'cursor-pointer'}
+                />
+              </PaginationItem>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                <PaginationItem key={p}>
+                  <PaginationLink
+                    isActive={p === page}
+                    onClick={() => setPage(p)}
+                    className="cursor-pointer"
+                  >
+                    {p}
+                  </PaginationLink>
+                </PaginationItem>
+              ))}
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  className={page === totalPages ? 'pointer-events-none opacity-40' : 'cursor-pointer'}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
     </div>
   )
 }
