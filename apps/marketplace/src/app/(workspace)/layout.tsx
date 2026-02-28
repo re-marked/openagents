@@ -6,6 +6,7 @@ import {
   SidebarProvider,
 } from '@/components/ui/sidebar'
 import { getActiveProjectId, getProjectAgents, toAgentInfoList } from '@/lib/projects/queries'
+import { getProjectChats, ensureDefaultChat } from '@/lib/chats/queries'
 
 export default async function WorkspaceLayout({ children }: { children: React.ReactNode }) {
   const user = await getUser()
@@ -15,11 +16,18 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
   const instances = await getProjectAgents(user.id, activeProjectId)
   const agents = toAgentInfoList(instances)
 
+  // Ensure default chat exists and load all chats
+  if (activeProjectId) {
+    await ensureDefaultChat(user.id, activeProjectId)
+  }
+  const chats = await getProjectChats(user.id, activeProjectId)
+
   return (
     <SidebarProvider className="h-svh !min-h-0">
       <AppSidebar
         userEmail={user.email}
         agents={agents}
+        chats={chats}
         projects={projects}
         activeProjectId={activeProjectId}
       />

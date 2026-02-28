@@ -1,9 +1,9 @@
 "use client"
 
 import * as React from "react"
-import { Home, Settings, Plus, BarChart3, CreditCard, Key } from "lucide-react"
+import { Home, Settings, Plus, BarChart3, CreditCard, Key, MessageSquare, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 
 import { WorkspaceSwitcher, type ProjectInfo } from "@/components/workspace-switcher"
 import {
@@ -17,9 +17,16 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuAction,
   SidebarRail,
 } from "@/components/ui/sidebar"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { AgentAvatar } from "@/lib/agents"
 
 interface AgentInfo {
@@ -32,9 +39,16 @@ interface AgentInfo {
   iconUrl: string | null
 }
 
+interface ChatInfo {
+  id: string
+  name: string
+  agentCount: number
+}
+
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   userEmail?: string
   agents?: AgentInfo[]
+  chats?: ChatInfo[]
   projects?: ProjectInfo[]
   activeProjectId?: string | null
 }
@@ -49,11 +63,83 @@ const STATUS_DOT: Record<string, string> = {
 export function AppSidebar({
   userEmail,
   agents = [],
+  chats = [],
   projects = [],
   activeProjectId = null,
   ...props
 }: AppSidebarProps) {
   const pathname = usePathname()
+  const router = useRouter()
+  const [isCreating, setIsCreating] = React.useState(false)
+  const [newChatName, setNewChatName] = React.useState("")
+  const [renamingId, setRenamingId] = React.useState<string | null>(null)
+  const [renameValue, setRenameValue] = React.useState("")
+  const inputRef = React.useRef<HTMLInputElement>(null)
+  const renameRef = React.useRef<HTMLInputElement>(null)
+
+  React.useEffect(() => {
+    if (isCreating && inputRef.current) inputRef.current.focus()
+  }, [isCreating])
+
+  React.useEffect(() => {
+    if (renamingId && renameRef.current) renameRef.current.focus()
+  }, [renamingId])
+
+  async function handleCreateChat() {
+    const name = newChatName.trim()
+    if (!name) {
+      setIsCreating(false)
+      return
+    }
+    try {
+      const res = await fetch("/api/chats", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      })
+      if (res.ok) {
+        const { chat } = await res.json()
+        setIsCreating(false)
+        setNewChatName("")
+        router.push(`/workspace/chat/${chat.id}`)
+        router.refresh()
+      }
+    } catch {
+      // silently fail
+    }
+  }
+
+  async function handleRenameChat(chatId: string) {
+    const name = renameValue.trim()
+    if (!name) {
+      setRenamingId(null)
+      return
+    }
+    try {
+      await fetch(`/api/chats/${chatId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      })
+      setRenamingId(null)
+      setRenameValue("")
+      router.refresh()
+    } catch {
+      setRenamingId(null)
+    }
+  }
+
+  async function handleDeleteChat(chatId: string) {
+    try {
+      await fetch(`/api/chats/${chatId}`, { method: "DELETE" })
+      if (pathname.startsWith(`/workspace/chat/${chatId}`)) {
+        router.push("/workspace/home")
+      }
+      router.refresh()
+    } catch {
+      // silently fail
+    }
+  }
 
   return (
     <Sidebar variant="inset" collapsible="icon" {...props}>
@@ -74,6 +160,115 @@ export function AppSidebar({
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Chats */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Your Chats</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {chats.map((chat) => {
+                const chatPath = `/workspace/chat/${chat.id}`
+                const isActive = pathname.startsWith(chatPath)
+
+                if (renamingId === chat.id) {
+                  return (
+                    <SidebarMenuItem key={chat.id}>
+                      <div className="flex items-center gap-2 px-2 py-1">
+                        <MessageSquare className="size-4 shrink-0 text-muted-foreground" />
+                        <input
+                          ref={renameRef}
+                          value={renameValue}
+                          onChange={(e) => setRenameValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleRenameChat(chat.id)
+                            if (e.key === "Escape") setRenamingId(null)
+                          }}
+                          onBlur={() => handleRenameChat(chat.id)}
+                          className="flex-1 bg-transparent text-sm outline-none border-b border-primary"
+                        />
+                      </div>
+                    </SidebarMenuItem>
+                  )
+                }
+
+                return (
+                  <SidebarMenuItem key={chat.id}>
+                    <SidebarMenuButton asChild isActive={isActive} className="gap-2.5">
+                      <Link href={chatPath}>
+                        <MessageSquare className="size-4" />
+                        <span className="truncate">{chat.name}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <SidebarMenuAction>
+                          <MoreHorizontal className="size-4" />
+                        </SidebarMenuAction>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent side="right" align="start">
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setRenamingId(chat.id)
+                            setRenameValue(chat.name)
+                          }}
+                        >
+                          <Pencil className="size-4 mr-2" />
+                          Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleDeleteChat(chat.id)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="size-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </SidebarMenuItem>
+                )
+              })}
+
+              {/* New chat inline input */}
+              {isCreating ? (
+                <SidebarMenuItem>
+                  <div className="flex items-center gap-2 px-2 py-1">
+                    <MessageSquare className="size-4 shrink-0 text-muted-foreground" />
+                    <input
+                      ref={inputRef}
+                      value={newChatName}
+                      onChange={(e) => setNewChatName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleCreateChat()
+                        if (e.key === "Escape") {
+                          setIsCreating(false)
+                          setNewChatName("")
+                        }
+                      }}
+                      onBlur={() => {
+                        if (!newChatName.trim()) {
+                          setIsCreating(false)
+                          setNewChatName("")
+                        }
+                      }}
+                      placeholder="Chat name..."
+                      className="flex-1 bg-transparent text-sm outline-none border-b border-primary placeholder:text-muted-foreground/50"
+                    />
+                  </div>
+                </SidebarMenuItem>
+              ) : (
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => setIsCreating(true)}
+                    className="text-muted-foreground"
+                  >
+                    <Plus className="size-4" />
+                    <span>New Chat</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
