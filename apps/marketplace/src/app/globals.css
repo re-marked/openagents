@@ -124,6 +124,16 @@
   --sidebar-ring: hsl(215 90% 58%);
 }
 
+/* Slightly larger sidebar text (14px → 15px) */
+[data-sidebar="menu-button"],
+[data-sidebar="group-content"] {
+  font-size: 0.9375rem;
+}
+
+[data-sidebar="group-label"] {
+  font-size: 0.8125rem;
+}
+
 html {
   scroll-padding-top: 4rem;
 }
