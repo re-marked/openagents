@@ -7,7 +7,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
     <div className={isLocked ? 'min-h-svh' : 'flex h-svh flex-col'}>
       {!isLocked && <PublicSiteHeader />}
       {isLocked ? children : (
-        <div className="min-h-0 flex-1 overflow-hidden">
+        <div className="min-h-0 flex-1 overflow-auto">
           {children}
         </div>
       )}

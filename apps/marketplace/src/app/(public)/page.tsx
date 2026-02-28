@@ -230,48 +230,137 @@ export default function LandingPage() {
   )
 }
 
-/** Original unlocked landing page with search + CTA */
+/** Unlocked landing page with search + CTA + manifesto + roles */
 function UnlockedLandingPage() {
+  const [viewport, setViewport] = useState<HTMLElement | null>(null)
+  const scrollAreaRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      const el = scrollAreaRef.current.querySelector('[data-slot="scroll-area-viewport"]')
+      if (el) setViewport(el as HTMLElement)
+    }
+  }, [])
+
   return (
-    <main className="h-[calc(100vh-3.5rem)] w-full overflow-hidden">
-      <section className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden px-6">
-        <div className="absolute inset-0 z-0">
-          <AuroraHero className="h-full w-full" />
-        </div>
+    <ScrollArea ref={scrollAreaRef} className="h-[calc(100svh-3.5rem)]">
+      {viewport && <SmoothScrollInner wrapper={viewport} />}
+      <main className="w-full">
+        {/* ─── Section 1: Hero ─── */}
+        <section className="relative flex h-[calc(100svh-3.5rem)] w-full flex-col items-center justify-center overflow-hidden px-6">
+          <div className="absolute inset-0 z-0">
+            <AuroraHero className="h-full w-full" />
+          </div>
 
-        <h1 className="relative z-10 mb-6 flex flex-wrap justify-center text-center text-5xl font-medium tracking-lightest sm:text-6xl">
-          <span>Personal Agents for</span>
-          <span className="ml-[0.25em] w-[220px] text-left">
-            <RotatingText />
-          </span>
-        </h1>
-        <p className="relative z-10 mb-10 max-w-xl text-center text-lg text-secondary-foreground">
-          Every person is a corporation. You are the boss and dozens of AI agents work for you.
-          The real skill now becomes systems thinking, execution speed, and creativity.
-        </p>
+          <h1 className="relative z-10 mb-6 flex flex-wrap justify-center text-center text-5xl font-medium tracking-lightest sm:text-6xl">
+            <span>Personal Agents for</span>
+            <span className="ml-[0.25em] w-[220px] text-left">
+              <RotatingText />
+            </span>
+          </h1>
+          <p className="relative z-10 mb-10 max-w-xl text-center text-lg text-secondary-foreground">
+            Every person is a corporation. You are the boss and dozens of AI agents work for you.
+            The real skill now becomes systems thinking, execution speed, and creativity.
+          </p>
 
-        <div className="relative w-full max-w-2xl">
-          <form action="/discover" className="relative z-10">
-            <div className="flex h-14 items-center gap-4 rounded-2xl border border-white/5 bg-card/50 px-6 shadow-2xl backdrop-blur-md transition-colors focus-within:bg-accent/50">
-              <input
-                name="q"
-                type="text"
-                placeholder="Describe what you need help with..."
-                className="w-full bg-transparent text-lg text-foreground outline-none placeholder:text-muted-foreground"
-              />
-              <Search className="size-6 shrink-0 text-muted-foreground" />
+          <div className="relative w-full max-w-2xl">
+            <form action="/discover" className="relative z-10">
+              <div className="flex h-14 items-center gap-4 rounded-2xl border border-white/5 bg-card/50 px-6 shadow-2xl backdrop-blur-md transition-colors focus-within:bg-accent/50">
+                <input
+                  name="q"
+                  type="text"
+                  placeholder="Describe what you need help with..."
+                  className="w-full bg-transparent text-lg text-foreground outline-none placeholder:text-muted-foreground"
+                />
+                <Search className="size-6 shrink-0 text-muted-foreground" />
+              </div>
+            </form>
+          </div>
+
+          <div className="relative z-10 mt-8 flex justify-center">
+            <Button size="lg" variant="ghost" className="h-12 px-8 text-base" asChild>
+              <Link href="/workspace/home">
+                Create your corporation <ArrowRight className="ml-2 size-4" />
+              </Link>
+            </Button>
+          </div>
+
+          {/* Scroll indicator */}
+          <motion.div
+            className="absolute bottom-8 z-10"
+            animate={{ y: [0, 8, 0] }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            <ChevronDown className="size-6 text-muted-foreground/50" />
+          </motion.div>
+        </section>
+
+        {/* ─── Section 2: The Shift ─── */}
+        <section className="flex w-full flex-col items-center justify-center px-6 py-32">
+          <ScrollReveal className="max-w-3xl text-center">
+            <h2 className="mb-6 text-4xl font-medium tracking-tight sm:text-5xl lg:text-6xl">
+              <span className="text-secondary-foreground">You used to need a company</span>
+              <br />
+              <span className="text-secondary-foreground">to have a team.</span>
+              <br />
+              <span className="mt-2 inline-block pb-1 bg-gradient-to-r from-gradient-from to-gradient-to bg-clip-text text-transparent">
+                Not anymore.
+              </span>
+            </h2>
+          </ScrollReveal>
+          <ScrollReveal delay={0.15} className="max-w-xl text-center">
+            <p className="text-lg leading-relaxed text-muted-foreground">
+              AI agents that research, write, analyze, and build — working alongside you, around the clock. What used to take ten people now takes one person and <span className="bg-gradient-to-r from-gradient-from to-gradient-to bg-clip-text text-transparent">the right agents.</span>
+            </p>
+          </ScrollReveal>
+        </section>
+
+        {/* ─── Section 3: Three Roles ─── */}
+        <section className="w-full px-6 py-2">
+          <ScrollReveal className="mx-auto mb-16 max-w-lg text-center">
+            <p className="text-sm font-medium uppercase tracking-widest text-muted-foreground">
+              Your first hires
+            </p>
+          </ScrollReveal>
+
+          <div className="mx-auto grid max-w-5xl gap-6 sm:grid-cols-3">
+            {ROLES.map((role, i) => (
+              <ScrollReveal key={role.title} delay={i * 0.1}>
+                <div className="group relative overflow-hidden rounded-2xl p-[2px] transition-transform duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1)] hover:scale-[1.015]">
+                  <div className="animate-border-rotate absolute inset-0 opacity-[0.08] transition-opacity duration-700 group-hover:opacity-60" style={{ background: 'conic-gradient(from var(--border-angle, 0deg), hsl(var(--gradient-from)), hsl(var(--gradient-to)), hsl(var(--gradient-from)))' }} />
+                  <div className="relative rounded-[calc(var(--radius-2xl)-2px)] bg-[hsl(30_3%_13%)] p-8">
+                    <role.icon className="mb-5 size-5 text-muted-foreground" strokeWidth={1.5} />
+                    <h3 className="mb-3 text-lg font-medium text-foreground">{role.title}</h3>
+                    <p className="text-[15px] leading-relaxed text-muted-foreground">
+                      {role.description}
+                    </p>
+                  </div>
+                </div>
+              </ScrollReveal>
+            ))}
+          </div>
+        </section>
+
+        {/* ─── Section 4: CTA ─── */}
+        <section className="flex w-full flex-col items-center px-6 pb-24 pt-16">
+          <ScrollReveal className="flex flex-col items-center gap-8 text-center">
+            <SierpinskiLogo className="size-10 text-foreground/80" />
+            <div>
+              <h2 className="mb-3 text-3xl font-medium tracking-tight sm:text-4xl">
+                Your team is waiting.
+              </h2>
+              <p className="text-lg text-muted-foreground">
+                Hire your first agent and start building.
+              </p>
             </div>
-          </form>
-        </div>
-
-        <div className="relative z-10 mt-8 flex justify-center">
-          <Button size="lg" variant="ghost" className="h-12 px-8 text-base" asChild>
-            <Link href="/workspace/home">
-              Create your corporation <ArrowRight className="ml-2 size-4" />
-            </Link>
-          </Button>
-        </div>
-      </section>
-    </main>
+            <Button size="lg" className="h-12 px-8 text-base" asChild>
+              <Link href="/discover">
+                Browse Agents <ArrowRight className="ml-2 size-4" />
+              </Link>
+            </Button>
+          </ScrollReveal>
+        </section>
+      </main>
+    </ScrollArea>
   )
 }
