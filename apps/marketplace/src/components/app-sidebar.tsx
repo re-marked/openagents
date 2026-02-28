@@ -58,7 +58,7 @@ export function AppSidebar({
   return (
     <Sidebar variant="inset" collapsible="icon" {...props}>
       <SidebarHeader>
-        <WorkspaceSwitcher projects={projects} activeProjectId={activeProjectId} />
+        <WorkspaceSwitcher projects={projects} activeProjectId={activeProjectId} userEmail={userEmail} />
       </SidebarHeader>
 
       <SidebarContent>

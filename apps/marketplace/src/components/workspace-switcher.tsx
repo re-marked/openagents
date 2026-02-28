@@ -2,13 +2,12 @@
 
 import { useState, useRef, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { ChevronsUpDown, Plus, Check, FolderKanban, Loader2 } from "lucide-react"
+import { ChevronsUpDown, Plus, Check, FolderKanban, Loader2, Settings, LogOut } from "lucide-react"
 
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -18,6 +17,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { createProject } from "@/lib/projects/actions"
+import { signOut } from "@/lib/auth/actions"
 
 export interface ProjectInfo {
   id: string
@@ -28,6 +28,7 @@ export interface ProjectInfo {
 interface WorkspaceSwitcherProps {
   projects: ProjectInfo[]
   activeProjectId: string | null
+  userEmail?: string
 }
 
 const PROJECT_COLORS = [
@@ -43,7 +44,7 @@ function getProjectColor(index: number) {
   return PROJECT_COLORS[index % PROJECT_COLORS.length]
 }
 
-export function WorkspaceSwitcher({ projects, activeProjectId }: WorkspaceSwitcherProps) {
+export function WorkspaceSwitcher({ projects, activeProjectId, userEmail }: WorkspaceSwitcherProps) {
   const router = useRouter()
   const active = projects.find((p) => p.id === activeProjectId) ?? projects[0]
   const [creating, setCreating] = useState(false)
@@ -62,7 +63,6 @@ export function WorkspaceSwitcher({ projects, activeProjectId }: WorkspaceSwitch
     startTransition(async () => {
       const result = await createProject(name)
       if (result.id) {
-        // Switch to the new project
         document.cookie = `active_project=${result.id};path=/;max-age=${60 * 60 * 24 * 365};samesite=lax`
         setCreating(false)
         router.refresh()
@@ -106,70 +106,109 @@ export function WorkspaceSwitcher({ projects, activeProjectId }: WorkspaceSwitch
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="min-w-[280px] rounded-xl border-white/[0.08] bg-popover/95 p-1.5 shadow-2xl backdrop-blur-xl"
+            className="min-w-[300px] rounded-xl border-white/[0.08] bg-popover p-0 shadow-2xl"
             align="start"
             sideOffset={8}
           >
-            <DropdownMenuLabel className="px-2 pb-1.5 text-[11px] uppercase tracking-widest text-muted-foreground/60">
-              Projects
-            </DropdownMenuLabel>
-            {projects.map((project, i) => (
-              <DropdownMenuItem
-                key={project.id}
-                onClick={() => switchProject(project.id)}
-                className="gap-3 rounded-lg px-2.5 py-2.5"
-              >
-                <div className={`flex aspect-square size-7 items-center justify-center rounded-md text-white ${getProjectColor(i)}`}>
-                  <FolderKanban className="size-3.5" />
+            {/* ─── Active project hero card ─── */}
+            <div className="p-3">
+              <div className="flex items-start gap-3">
+                <div className={`flex aspect-square size-10 shrink-0 items-center justify-center rounded-lg text-white ${getProjectColor(activeIndex)}`}>
+                  <FolderKanban className="size-5" />
                 </div>
-                <div className="flex flex-1 flex-col">
-                  <span className="text-sm font-medium">{project.name}</span>
-                  {project.description && (
-                    <span className="text-[11px] text-muted-foreground">{project.description}</span>
-                  )}
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-sm font-semibold">{active.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {active.description ?? 'Personal project'}
+                  </span>
                 </div>
-                {project.id === active.id && (
-                  <Check className="ml-auto size-4 text-primary" />
-                )}
-              </DropdownMenuItem>
-            ))}
-            <DropdownMenuSeparator className="my-1.5 bg-white/[0.06]" />
-            {creating ? (
-              <div className="flex items-center gap-2 px-2.5 py-2" onClick={(e) => e.stopPropagation()}>
-                <input
-                  ref={inputRef}
-                  autoFocus
-                  placeholder="Project name..."
-                  className="h-8 flex-1 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-primary/40 focus:bg-white/[0.06]"
-                  onKeyDown={(e) => {
-                    e.stopPropagation()
-                    if (e.key === 'Enter') handleCreate()
-                    if (e.key === 'Escape') setCreating(false)
-                  }}
-                  disabled={pending}
-                />
+              </div>
+              <div className="mt-3 flex gap-2">
                 <button
-                  onClick={handleCreate}
-                  disabled={pending}
-                  className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground disabled:opacity-50"
+                  onClick={() => router.push('/workspace/settings/general')}
+                  className="flex items-center gap-1.5 rounded-md border border-white/[0.08] px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-white/[0.04] hover:text-foreground"
                 >
-                  {pending ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
+                  <Settings className="size-3" />
+                  Settings
                 </button>
               </div>
-            ) : (
-              <DropdownMenuItem
-                className="gap-3 rounded-lg px-2.5 py-2.5 text-muted-foreground"
-                onSelect={(e) => {
-                  e.preventDefault()
-                  setCreating(true)
-                }}
-              >
-                <div className="flex aspect-square size-7 items-center justify-center rounded-md border border-dashed border-white/[0.12]">
-                  <Plus className="size-3.5" />
+            </div>
+
+            <DropdownMenuSeparator className="m-0 bg-white/[0.06]" />
+
+            {/* ─── Email + project list ─── */}
+            <div className="p-1.5">
+              {userEmail && (
+                <div className="flex items-center px-2.5 py-1.5">
+                  <span className="text-xs text-muted-foreground/60">{userEmail}</span>
                 </div>
-                <span className="text-sm">New project</span>
+              )}
+
+              {projects.map((project, i) => (
+                <DropdownMenuItem
+                  key={project.id}
+                  onClick={() => switchProject(project.id)}
+                  className="gap-3 rounded-lg px-2.5 py-2"
+                >
+                  <div className={`flex aspect-square size-6 items-center justify-center rounded text-white ${getProjectColor(i)}`}>
+                    <FolderKanban className="size-3" />
+                  </div>
+                  <span className="flex-1 truncate text-sm">{project.name}</span>
+                  {project.id === active.id && (
+                    <Check className="size-4 text-foreground" />
+                  )}
+                </DropdownMenuItem>
+              ))}
+
+              {/* ─── New project ─── */}
+              {creating ? (
+                <div className="flex items-center gap-2 px-2.5 py-2" onClick={(e) => e.stopPropagation()}>
+                  <input
+                    ref={inputRef}
+                    autoFocus
+                    placeholder="Project name..."
+                    className="h-7 flex-1 rounded-md border border-white/[0.08] bg-white/[0.04] px-2.5 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-primary/40 focus:bg-white/[0.06]"
+                    onKeyDown={(e) => {
+                      e.stopPropagation()
+                      if (e.key === 'Enter') handleCreate()
+                      if (e.key === 'Escape') setCreating(false)
+                    }}
+                    disabled={pending}
+                  />
+                  <button
+                    onClick={handleCreate}
+                    disabled={pending}
+                    className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground disabled:opacity-50"
+                  >
+                    {pending ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
+                  </button>
+                </div>
+              ) : (
+                <DropdownMenuItem
+                  className="gap-3 rounded-lg px-2.5 py-2 text-primary"
+                  onSelect={(e) => {
+                    e.preventDefault()
+                    setCreating(true)
+                  }}
+                >
+                  <Plus className="size-4" />
+                  <span className="text-sm">New workspace</span>
+                </DropdownMenuItem>
+              )}
+            </div>
+
+            <DropdownMenuSeparator className="m-0 bg-white/[0.06]" />
+
+            {/* ─── Footer actions ─── */}
+            <div className="p-1.5">
+              <DropdownMenuItem
+                className="gap-3 rounded-lg px-2.5 py-2 text-muted-foreground"
+                onSelect={() => signOut()}
+              >
+                <LogOut className="size-4" />
+                <span className="text-sm">Log out</span>
               </DropdownMenuItem>
-            )}
+            </div>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
