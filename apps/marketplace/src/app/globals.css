@@ -13,7 +13,7 @@
  *   Hover:                       hsl(30, 4%, 16%)
  *
  * All grays use hue 30 (warm) at very low saturation (3-4%).
- * Accent: warm blue hsl(215, 90%, 58%) — not electric, slightly muted.
+ * Accent: warm amber hsl(36, 90%, 54%) — golden, distinctive.
  */
 @layer base {
   :root {
@@ -23,8 +23,8 @@
     --card-foreground: 40 10% 95%;
     --popover: 30 3% 13%;
     --popover-foreground: 40 10% 95%;
-    --primary: 215 90% 58%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 36 90% 54%;
+    --primary-foreground: 30 10% 6%;
     --secondary: 30 3% 16%;
     --secondary-foreground: 40 6% 75%;
     --muted: 30 3% 16%;
@@ -35,21 +35,32 @@
     --destructive-foreground: 0 0% 100%;
     --border: 30 3% 18%;
     --input: 30 3% 18%;
-    --ring: 215 90% 58%;
-    --chart-1: 215 90% 58%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --ring: 36 90% 54%;
+    --chart-1: 36 90% 54%;
+    --chart-2: 28 85% 42%;
+    --chart-3: 45 95% 58%;
+    --chart-4: 20 80% 48%;
+    --chart-5: 40 70% 65%;
+    /* Status colors */
+    --status-running: 142 71% 45%;
+    --status-suspended: 48 96% 53%;
+    --status-stopped: 25 95% 53%;
+    --status-provisioning: var(--primary);
+    --status-error: 0 72% 51%;
+
+    /* Gradient endpoints */
+    --gradient-from: 36 90% 60%;
+    --gradient-to: 28 80% 50%;
+
     --radius: 0.75rem;
     --sidebar-background: 30 3% 7%;
     --sidebar-foreground: 30 5% 55%;
-    --sidebar-primary: 215 90% 58%;
-    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-primary: 36 90% 54%;
+    --sidebar-primary-foreground: 30 10% 6%;
     --sidebar-accent: 30 3% 13%;
     --sidebar-accent-foreground: 40 10% 95%;
     --sidebar-border: 30 3% 14%;
-    --sidebar-ring: 215 90% 58%;
+    --sidebar-ring: 36 90% 54%;
   }
 }
 
@@ -85,6 +96,13 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --font-sans: 'SF Pro Display', system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
+  --color-status-running: hsl(var(--status-running));
+  --color-status-suspended: hsl(var(--status-suspended));
+  --color-status-stopped: hsl(var(--status-stopped));
+  --color-status-provisioning: hsl(var(--status-provisioning));
+  --color-status-error: hsl(var(--status-error));
+  --color-gradient-from: hsl(var(--gradient-from));
+  --color-gradient-to: hsl(var(--gradient-to));
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -116,12 +134,12 @@
 :root {
   --sidebar: hsl(30 3% 7%);
   --sidebar-foreground: hsl(30 5% 55%);
-  --sidebar-primary: hsl(215 90% 58%);
-  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-primary: hsl(36 90% 54%);
+  --sidebar-primary-foreground: hsl(30 10% 6%);
   --sidebar-accent: hsl(30 3% 13%);
   --sidebar-accent-foreground: hsl(40 10% 95%);
   --sidebar-border: hsl(30 3% 14%);
-  --sidebar-ring: hsl(215 90% 58%);
+  --sidebar-ring: hsl(36 90% 54%);
 }
 
 /* Slightly larger sidebar text (14px → 15px) */

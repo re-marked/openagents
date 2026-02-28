@@ -70,7 +70,7 @@ export function OnboardingWizard() {
                 href="https://aistudio.google.com/apikey"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 rounded-xl bg-blue-500/10 px-4 py-3 text-sm text-blue-400 hover:bg-blue-500/15 transition-colors mb-4"
+                className="flex items-center gap-2 rounded-xl bg-primary/10 px-4 py-3 text-sm text-primary hover:bg-primary/15 transition-colors mb-4"
               >
                 <ExternalLink className="size-4 shrink-0" />
                 <span>

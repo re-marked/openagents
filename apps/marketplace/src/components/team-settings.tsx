@@ -57,11 +57,11 @@ const COLOR_MAP: Record<string, string> = {
 }
 
 const STATUS_DOT: Record<string, string> = {
-  running: 'bg-green-500',
-  suspended: 'bg-yellow-500',
-  provisioning: 'bg-blue-500 animate-pulse',
-  error: 'bg-red-500',
-  destroyed: 'bg-zinc-400',
+  running: 'bg-status-running',
+  suspended: 'bg-status-suspended',
+  provisioning: 'bg-status-provisioning animate-pulse',
+  error: 'bg-status-error',
+  destroyed: 'bg-muted-foreground',
 }
 
 function StatusDot({ status }: { status: string }) {

@@ -22,11 +22,11 @@ import { MemorySection } from './sections/memory-section'
 import { ActionsSection } from './sections/actions-section'
 
 export const STATUS_CONFIG: Record<string, { label: string; dot: string; bg: string }> = {
-  running: { label: 'Running', dot: 'bg-green-500', bg: 'bg-green-500/10 text-green-400 ring-green-500/20' },
-  suspended: { label: 'Suspended', dot: 'bg-yellow-500', bg: 'bg-yellow-500/10 text-yellow-400 ring-yellow-500/20' },
-  stopped: { label: 'Stopped', dot: 'bg-orange-500', bg: 'bg-orange-500/10 text-orange-400 ring-orange-500/20' },
-  provisioning: { label: 'Provisioning', dot: 'bg-blue-500 animate-pulse', bg: 'bg-blue-500/10 text-blue-400 ring-blue-500/20' },
-  error: { label: 'Error', dot: 'bg-red-500', bg: 'bg-red-500/10 text-red-400 ring-red-500/20' },
+  running: { label: 'Running', dot: 'bg-status-running', bg: 'bg-status-running/10 text-status-running ring-status-running/20' },
+  suspended: { label: 'Suspended', dot: 'bg-status-suspended', bg: 'bg-status-suspended/10 text-status-suspended ring-status-suspended/20' },
+  stopped: { label: 'Stopped', dot: 'bg-status-stopped', bg: 'bg-status-stopped/10 text-status-stopped ring-status-stopped/20' },
+  provisioning: { label: 'Provisioning', dot: 'bg-status-provisioning animate-pulse', bg: 'bg-status-provisioning/10 text-status-provisioning ring-status-provisioning/20' },
+  error: { label: 'Error', dot: 'bg-status-error', bg: 'bg-status-error/10 text-status-error ring-status-error/20' },
 }
 
 type Section = 'overview' | 'config' | 'personality' | 'skills' | 'memory' | 'actions'

@@ -197,7 +197,7 @@ interface DiscordMessageListProps {
 }
 
 const CATEGORY_AVATAR: Record<string, { bg: string; text: string }> = {
-  productivity: { bg: 'bg-blue-600', text: 'text-blue-400' },
+  productivity: { bg: 'bg-primary', text: 'text-primary' },
   research: { bg: 'bg-emerald-600', text: 'text-emerald-400' },
   writing: { bg: 'bg-purple-600', text: 'text-purple-400' },
   coding: { bg: 'bg-amber-600', text: 'text-amber-400' },

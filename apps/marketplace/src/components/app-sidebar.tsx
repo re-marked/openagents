@@ -40,10 +40,10 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 }
 
 const STATUS_DOT: Record<string, string> = {
-  running: "bg-green-500",
-  suspended: "bg-yellow-500",
-  provisioning: "bg-blue-500 animate-pulse",
-  error: "bg-red-500",
+  running: "bg-status-running",
+  suspended: "bg-status-suspended",
+  provisioning: "bg-status-provisioning animate-pulse",
+  error: "bg-status-error",
 }
 
 export function AppSidebar({

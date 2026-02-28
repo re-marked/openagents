@@ -33,7 +33,7 @@ export const CATEGORIES = [
 ] as const
 
 export const CATEGORY_COLORS: Record<string, string> = {
-  productivity: "bg-blue-500/15 text-blue-400",
+  productivity: "bg-primary/15 text-primary",
   research: "bg-emerald-500/15 text-emerald-400",
   writing: "bg-purple-500/15 text-purple-400",
   coding: "bg-amber-500/15 text-amber-400",
@@ -44,7 +44,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
 }
 
 const CATEGORY_GRADIENT: Record<string, string> = {
-  productivity: "from-blue-500 to-blue-600",
+  productivity: "from-primary to-primary/80",
   research: "from-emerald-500 to-emerald-600",
   writing: "from-purple-500 to-purple-600",
   coding: "from-amber-500 to-amber-600",

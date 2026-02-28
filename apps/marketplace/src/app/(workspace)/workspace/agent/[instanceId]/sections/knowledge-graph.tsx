@@ -40,7 +40,7 @@ interface FileData {
 
 // ── Constants ────────────────────────────────────────────────────────────
 
-const NODE_COLOR_ROOT = 'hsl(215, 90%, 58%)'
+const NODE_COLOR_ROOT = 'hsl(36, 90%, 54%)'
 const NODE_COLOR_DEFAULT = 'hsl(160, 60%, 45%)'
 const EDGE_COLOR = 'hsl(0, 0%, 30%)'
 const LABEL_COLOR = 'hsl(0, 0%, 70%)'
@@ -150,13 +150,13 @@ function makeMdComponents(onNavigate: (slug: string) => void) {
           <a
             href="#"
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onNavigate(slug) }}
-            className="text-blue-400 hover:underline cursor-pointer"
+            className="text-primary hover:underline cursor-pointer"
           >
             {children}
           </a>
         )
       }
-      return <a href={href} className="text-blue-400 hover:underline">{children}</a>
+      return <a href={href} className="text-primary hover:underline">{children}</a>
     },
     table: ({ children }: { children?: React.ReactNode }) => (
       <table className="my-2 w-full text-xs border-collapse">{children}</table>

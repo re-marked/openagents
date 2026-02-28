@@ -33,7 +33,7 @@ import type {
 const creditsConfig = {
   credits: {
     label: "Credits",
-    color: "hsl(215, 90%, 58%)",
+    color: "hsl(var(--primary))",
   },
 } satisfies ChartConfig
 
@@ -116,15 +116,15 @@ export function CreditsAreaChart({ data }: { data: DailyCredits[] }) {
 const tokenPieConfig = {
   "input-tokens": {
     label: "Input",
-    color: "hsl(215, 90%, 58%)",
+    color: "hsl(var(--primary))",
   },
   "output-tokens": {
     label: "Output",
-    color: "hsl(160, 70%, 45%)",
+    color: "hsl(var(--chart-2))",
   },
 } satisfies ChartConfig
 
-const PIE_COLORS = ["hsl(215, 90%, 58%)", "hsl(160, 70%, 45%)"]
+const PIE_COLORS = ["hsl(var(--primary))", "hsl(var(--chart-2))"]
 
 export function TokenPieChart({ data }: { data: TokenSplit[] }) {
   const total = data.reduce((s, d) => s + d.value, 0)
