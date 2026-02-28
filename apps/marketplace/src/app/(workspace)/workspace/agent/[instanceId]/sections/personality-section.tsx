@@ -82,7 +82,7 @@ export function PersonalitySection({ instanceId }: PersonalitySectionProps) {
     return (
       <div className="flex items-center gap-2 py-12 justify-center text-muted-foreground">
         <Loader2 className="size-4 animate-spin" />
-        <span className="text-sm">Loading personality...</span>
+        <span className="text-sm">Loading soul...</span>
       </div>
     )
   }
@@ -92,7 +92,7 @@ export function PersonalitySection({ instanceId }: PersonalitySectionProps) {
   return (
     <div className="flex flex-col h-full gap-4">
       <div className="shrink-0">
-        <h2 className="text-lg font-semibold tracking-tight">Personality</h2>
+        <h2 className="text-lg font-semibold tracking-tight">Soul</h2>
         <p className="text-sm text-muted-foreground mt-1">
           Edit your Agent&apos;s soul document. <strong>The soul document defines the Agent&apos;s personality, background, typical behavior and whatever makes the Agent unique.</strong>.
         </p>

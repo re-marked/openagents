@@ -86,7 +86,7 @@ function sumField(data: TimeSeriesEntry[], field: keyof Omit<TimeSeriesEntry, 'd
 // ── Chart configs (one per stat, different colors) ───────────────────────
 
 const costChartConfig = {
-  cost: { label: 'Credits', color: 'hsl(215, 90%, 58%)' },
+  cost: { label: 'Credits', color: 'hsl(var(--primary))' },
 } satisfies ChartConfig
 
 const minutesChartConfig = {

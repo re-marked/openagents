@@ -149,9 +149,9 @@ const TONE_STYLES = {
     dot: 'bg-red-500',
   },
   blue: {
-    active: 'border-blue-500/50 bg-blue-500/5 ring-1 ring-blue-500/20',
-    icon: 'text-blue-400',
-    dot: 'bg-blue-500',
+    active: 'border-primary/50 bg-primary/5 ring-1 ring-primary/20',
+    icon: 'text-primary',
+    dot: 'bg-primary',
   },
   neutral: {
     active: 'border-border bg-muted/30 ring-1 ring-border',

@@ -61,9 +61,9 @@ const MODELS: ModelDef[] = [
 
 const PROVIDER_STYLES: Record<string, { accent: string; badge: string; glow: string }> = {
   google: {
-    accent: 'border-l-blue-500',
-    badge: 'bg-blue-500/10 text-blue-400',
-    glow: 'shadow-blue-500/10',
+    accent: 'border-l-primary',
+    badge: 'bg-primary/10 text-primary',
+    glow: 'shadow-primary/10',
   },
   anthropic: {
     accent: 'border-l-amber-500',

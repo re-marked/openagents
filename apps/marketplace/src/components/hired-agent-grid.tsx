@@ -21,12 +21,12 @@ export interface HiredAgent {
 }
 
 const STATUS_BADGE: Record<string, { text: string; className: string }> = {
-  running: { text: "Running", className: "bg-green-500/10 text-green-400 border-0" },
-  suspended: { text: "Suspended", className: "bg-yellow-500/10 text-yellow-400 border-0" },
-  stopped: { text: "Stopped", className: "bg-orange-500/10 text-orange-400 border-0" },
-  provisioning: { text: "Provisioning...", className: "bg-blue-500/10 text-blue-400 border-0" },
-  error: { text: "Error", className: "bg-red-500/10 text-red-400 border-0" },
-  destroying: { text: "Removing...", className: "bg-orange-500/10 text-orange-400 border-0" },
+  running: { text: "Running", className: "bg-status-running/10 text-status-running border-0" },
+  suspended: { text: "Suspended", className: "bg-status-suspended/10 text-status-suspended border-0" },
+  stopped: { text: "Stopped", className: "bg-status-stopped/10 text-status-stopped border-0" },
+  provisioning: { text: "Provisioning...", className: "bg-status-provisioning/10 text-status-provisioning border-0" },
+  error: { text: "Error", className: "bg-status-error/10 text-status-error border-0" },
+  destroying: { text: "Removing...", className: "bg-status-stopped/10 text-status-stopped border-0" },
 }
 
 interface HiredAgentGridProps {
