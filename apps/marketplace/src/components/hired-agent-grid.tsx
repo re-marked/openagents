@@ -128,7 +128,7 @@ export function HiredAgentGrid({ agents }: HiredAgentGridProps) {
         <Link
           key={`empty-${i}`}
           href="/discover"
-          className="flex min-h-[180px] flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border/40"
+          className="flex min-h-[180px] flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border/40 transition-colors hover:border-border/60 hover:bg-card/30"
         >
           <div className="flex size-10 items-center justify-center rounded-full border-2 border-dashed border-muted-foreground/30">
             <Plus className="size-5 text-muted-foreground/40" />
