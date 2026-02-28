@@ -35,7 +35,7 @@ interface HiredAgentGridProps {
 export function HiredAgentGrid({ agents }: HiredAgentGridProps) {
   const router = useRouter()
 
-  const MIN_SLOTS = 3
+  const MIN_SLOTS = 6
   const emptySlots = Math.max(0, MIN_SLOTS - agents.length)
 
   return (
@@ -128,12 +128,12 @@ export function HiredAgentGrid({ agents }: HiredAgentGridProps) {
         <Link
           key={`empty-${i}`}
           href="/discover"
-          className="group/slot flex min-h-[180px] flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border/40 transition-colors hover:border-primary/40 hover:bg-primary/5"
+          className="flex min-h-[180px] flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border/40"
         >
-          <div className="flex size-10 items-center justify-center rounded-full border-2 border-dashed border-muted-foreground/30 transition-colors group-hover/slot:border-primary/50">
-            <Plus className="size-5 text-muted-foreground/40 transition-colors group-hover/slot:text-primary/70" />
+          <div className="flex size-10 items-center justify-center rounded-full border-2 border-dashed border-muted-foreground/30">
+            <Plus className="size-5 text-muted-foreground/40" />
           </div>
-          <span className="text-sm text-muted-foreground/50 transition-colors group-hover/slot:text-muted-foreground">
+          <span className="text-sm text-muted-foreground/50">
             Add an Agent to your team
           </span>
         </Link>
