@@ -1,7 +1,8 @@
 "use client"
 
+import { useState, useRef, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { ChevronsUpDown, Plus, Check, FolderKanban } from "lucide-react"
+import { ChevronsUpDown, Plus, Check, FolderKanban, Loader2 } from "lucide-react"
 
 import {
   DropdownMenu,
@@ -16,6 +17,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { createProject } from "@/lib/projects/actions"
 
 export interface ProjectInfo {
   id: string
@@ -44,10 +46,28 @@ function getProjectColor(index: number) {
 export function WorkspaceSwitcher({ projects, activeProjectId }: WorkspaceSwitcherProps) {
   const router = useRouter()
   const active = projects.find((p) => p.id === activeProjectId) ?? projects[0]
+  const [creating, setCreating] = useState(false)
+  const [pending, startTransition] = useTransition()
+  const inputRef = useRef<HTMLInputElement>(null)
 
   function switchProject(projectId: string) {
     document.cookie = `active_project=${projectId};path=/;max-age=${60 * 60 * 24 * 365};samesite=lax`
     router.refresh()
+  }
+
+  function handleCreate() {
+    const name = inputRef.current?.value.trim()
+    if (!name) return
+
+    startTransition(async () => {
+      const result = await createProject(name)
+      if (result.id) {
+        // Switch to the new project
+        document.cookie = `active_project=${result.id};path=/;max-age=${60 * 60 * 24 * 365};samesite=lax`
+        setCreating(false)
+        router.refresh()
+      }
+    })
   }
 
   if (!active) {
@@ -70,7 +90,7 @@ export function WorkspaceSwitcher({ projects, activeProjectId }: WorkspaceSwitch
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <DropdownMenu>
+        <DropdownMenu onOpenChange={(open) => { if (!open) setCreating(false) }}>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent">
               <div className={`flex aspect-square size-8 items-center justify-center rounded-lg text-white ${getProjectColor(activeIndex)}`}>
@@ -104,10 +124,40 @@ export function WorkspaceSwitcher({ projects, activeProjectId }: WorkspaceSwitch
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="gap-2.5 text-muted-foreground" disabled>
-              <Plus className="size-4" />
-              <span>New project</span>
-            </DropdownMenuItem>
+            {creating ? (
+              <div className="flex items-center gap-2 px-2 py-1.5" onClick={(e) => e.stopPropagation()}>
+                <input
+                  ref={inputRef}
+                  autoFocus
+                  placeholder="Project name"
+                  className="h-7 flex-1 rounded-md border border-input bg-transparent px-2 text-sm outline-none placeholder:text-muted-foreground focus:border-primary/50"
+                  onKeyDown={(e) => {
+                    e.stopPropagation()
+                    if (e.key === 'Enter') handleCreate()
+                    if (e.key === 'Escape') setCreating(false)
+                  }}
+                  disabled={pending}
+                />
+                <button
+                  onClick={handleCreate}
+                  disabled={pending}
+                  className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-50"
+                >
+                  {pending ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
+                </button>
+              </div>
+            ) : (
+              <DropdownMenuItem
+                className="gap-2.5 text-muted-foreground"
+                onSelect={(e) => {
+                  e.preventDefault()
+                  setCreating(true)
+                }}
+              >
+                <Plus className="size-4" />
+                <span>New project</span>
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
