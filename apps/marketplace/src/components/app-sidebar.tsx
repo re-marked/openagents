@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Home, Settings, Plus, BarChart3, CreditCard, Key, MessageSquare, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
+import { Home, Settings, Plus, BarChart3, CreditCard, Key, MoreHorizontal, Pencil, Trash2, CompassIcon, MessagesSquare } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 
@@ -148,7 +148,7 @@ export function AppSidebar({
       </SidebarHeader>
 
       <SidebarContent>
-        {/* General */}
+        {/* Home + Discover */}
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -160,13 +160,99 @@ export function AppSidebar({
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === "/discover"}>
+                  <Link href="/discover">
+                    <CompassIcon className="size-4" />
+                    <span>Discover</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Chats */}
+        {/* Your Agents */}
         <SidebarGroup>
-          <SidebarGroupLabel>Your Chats</SidebarGroupLabel>
+          <SidebarGroupLabel>Your Agents</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {agents.map((agent) => {
+                const agentBase = `/workspace/agent/${agent.instanceId}`
+                const isActive = pathname.startsWith(agentBase)
+                return (
+                  <SidebarMenuItem key={agent.instanceId}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive}
+                      className="gap-2.5"
+                    >
+                      <Link href={agentBase}>
+                        <span className="relative flex shrink-0">
+                          <AgentAvatar name={agent.name} category={agent.category} iconUrl={agent.iconUrl} size="xs" />
+                          <span className={`absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-sidebar ${STATUS_DOT[agent.status] ?? "bg-zinc-400"}`} />
+                        </span>
+                        <span className="truncate">{agent.name}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              })}
+
+              {/* Hire new agent */}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link href="/discover" className="text-muted-foreground">
+                    <Plus className="size-4" />
+                    <span>Hire an Agent</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Direct Messages */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Direct Messages</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {agents.map((agent) => {
+                const dmPath = `/workspace/dm/${agent.instanceId}`
+                const isActive = pathname.startsWith(dmPath)
+                return (
+                  <SidebarMenuItem key={agent.instanceId}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive}
+                      className="gap-2.5"
+                    >
+                      <Link href={dmPath}>
+                        <AgentAvatar name={agent.name} category={agent.category} iconUrl={agent.iconUrl} size="xs" />
+                        <span className="truncate">{agent.name}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              })}
+
+              {agents.length === 0 && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link href="/discover" className="text-muted-foreground">
+                      <Plus className="size-4" />
+                      <span>Hire an Agent</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Group Chats */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Group Chats</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {chats.map((chat) => {
@@ -177,7 +263,7 @@ export function AppSidebar({
                   return (
                     <SidebarMenuItem key={chat.id}>
                       <div className="flex items-center gap-2 px-2 py-1">
-                        <MessageSquare className="size-4 shrink-0 text-muted-foreground" />
+                        <MessagesSquare className="size-4 shrink-0 text-muted-foreground" />
                         <input
                           ref={renameRef}
                           value={renameValue}
@@ -198,7 +284,7 @@ export function AppSidebar({
                   <SidebarMenuItem key={chat.id}>
                     <SidebarMenuButton asChild isActive={isActive} className="gap-2.5">
                       <Link href={chatPath}>
-                        <MessageSquare className="size-4" />
+                        <MessagesSquare className="size-4" />
                         <span className="truncate">{chat.name}</span>
                       </Link>
                     </SidebarMenuButton>
@@ -235,7 +321,7 @@ export function AppSidebar({
               {isCreating ? (
                 <SidebarMenuItem>
                   <div className="flex items-center gap-2 px-2 py-1">
-                    <MessageSquare className="size-4 shrink-0 text-muted-foreground" />
+                    <MessagesSquare className="size-4 shrink-0 text-muted-foreground" />
                     <input
                       ref={inputRef}
                       value={newChatName}
@@ -269,46 +355,6 @@ export function AppSidebar({
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* Agents */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Your Agents</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {agents.map((agent) => {
-                const agentBase = `/workspace/agent/${agent.instanceId}`
-                const isActive = pathname.startsWith(agentBase)
-                return (
-                  <SidebarMenuItem key={agent.instanceId}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive}
-                      className="gap-2.5"
-                    >
-                      <Link href={agentBase}>
-                        <span className="relative flex shrink-0">
-                          <AgentAvatar name={agent.name} category={agent.category} iconUrl={agent.iconUrl} size="xs" />
-                          <span className={`absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-sidebar ${STATUS_DOT[agent.status] ?? "bg-zinc-400"}`} />
-                        </span>
-                        <span className="truncate">{agent.name}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )
-              })}
-
-              {/* Hire new agent */}
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link href="/discover" className="text-muted-foreground">
-                    <Plus className="size-4" />
-                    <span>Hire an Agent</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
