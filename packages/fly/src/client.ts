@@ -252,18 +252,29 @@ export class FlyClient {
 
   /** Write a file on a running machine (creates parent dirs if needed). */
   async writeFile(appName: string, machineId: string, path: string, content: string): Promise<void> {
-    // Extract parent directory and ensure it exists
+    // Ensure parent directory exists
     const parentDir = path.replace(/\/[^/]+$/, '')
     if (parentDir && parentDir !== path) {
       await this.execCommand(appName, machineId, ['mkdir', '-p', parentDir])
     }
-    // Use printf to write content to avoid heredoc shell escaping issues
-    const escaped = content.replace(/\\/g, '\\\\').replace(/'/g, "'\\''")
-    const result = await this.execCommand(appName, machineId, [
-      'sh', '-c', `printf '%s' '${escaped}' > ${path}`,
-    ])
-    if (result.exit_code !== 0) {
-      throw new Error(`Failed to write ${path}: ${result.stderr}`)
+    // Base64 encode to avoid all shell escaping issues.
+    // Fly exec runs the cmd string through a shell, so piping + redirect work.
+    const b64 = Buffer.from(content).toString('base64')
+    const res = await fetch(
+      `${FLY_API_BASE}/apps/${appName}/machines/${machineId}/exec`,
+      {
+        method: 'POST',
+        headers: this.headers,
+        body: JSON.stringify({ cmd: `echo '${b64}' | base64 -d > '${path}'` }),
+      }
+    )
+    if (!res.ok) {
+      const text = await res.text().catch(() => res.statusText)
+      throw new Error(`Failed to write ${path}: ${res.status} ${text}`)
+    }
+    const data = (await res.json()) as { exit_code?: number; stderr?: string }
+    if (data.exit_code && data.exit_code !== 0) {
+      throw new Error(`Failed to write ${path}: ${data.stderr ?? 'exit code ' + data.exit_code}`)
     }
   }
 

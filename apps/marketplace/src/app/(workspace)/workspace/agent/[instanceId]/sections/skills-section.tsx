@@ -38,6 +38,7 @@ export function SkillsSection({ instanceId }: SkillsSectionProps) {
   const savedTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
   const [adding, setAdding] = useState(false)
   const [newSkillName, setNewSkillName] = useState('')
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     loadSkills()
@@ -94,6 +95,7 @@ export function SkillsSection({ instanceId }: SkillsSectionProps) {
     if (content === undefined) return
 
     setSaving(skillName)
+    setError(null)
     try {
       const res = await fetch('/api/agent/files', {
         method: 'PUT',
@@ -104,7 +106,10 @@ export function SkillsSection({ instanceId }: SkillsSectionProps) {
           content,
         }),
       })
-      if (res.ok) {
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setError(data.error ?? `Save failed (${res.status})`)
+      } else {
         setSkills((prev) =>
           prev.map((s) => (s.name === skillName ? { ...s, content } : s))
         )
@@ -129,8 +134,8 @@ export function SkillsSection({ instanceId }: SkillsSectionProps) {
           }, 3000)
         )
       }
-    } catch {
-      // fail silently
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Save failed')
     } finally {
       setSaving(null)
     }
@@ -211,6 +216,10 @@ export function SkillsSection({ instanceId }: SkillsSectionProps) {
           Manage your Agent's skills. <strong>Each skill is a Markdown file with instructions that teach the Agent new tools and extend its capabilities.</strong>
         </p>
       </div>
+
+      {error && (
+        <p className="text-sm text-red-400">{error}</p>
+      )}
 
       {/* Skills list */}
       {skills.length === 0 ? (
