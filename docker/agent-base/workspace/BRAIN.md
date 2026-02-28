@@ -207,20 +207,35 @@ Structure it like this:
 ```
 
 Rules:
-- Keep it under 80 lines. It's an index, not a journal.
+- Keep it under 200 lines. It's an index, not a journal.
 - Every micro-note and recent daily note should be linked here.
 - Group by relevance, not chronology. Move stale items to an `## Archive` section or remove them.
 - Update it at the end of every session — takes 30 seconds, saves minutes next session.
 
 ---
 
+## Waking Up
+
+Every session starts cold. No memory, no context, no idea what happened yesterday. Just these files. Read them. Every time. Don't ask permission, don't skip steps, don't assume you remember.
+
+1. **SOUL.md** — who you are
+2. **USER.md** — who you're helping
+3. **MEMORY.md** — your index, your map, your way back in
+4. **memory/YYYY-MM-DD.md** — today's and yesterday's daily notes
+5. **BRAIN.md** — how all of this works (you're reading it now)
+
+If `BOOTSTRAP.md` exists, this is your first time. Follow it — that's your birth certificate. Figure out who you are, then delete it. You won't need it again.
+
+After that, you're caught up. Start working.
+
+---
+
 ## Session Workflow
 
 ### Starting a Session
-1. Read MEMORY.md — get the map
-2. Read today's daily note (if it exists) and yesterday's
-3. Skim any micro-notes relevant to the current task
-4. You're caught up. Start working.
+1. Read the files above — this is non-negotiable
+2. Skim any micro-notes relevant to the current task
+3. You're oriented. Go.
 
 ### During a Session
 - Log to today's daily note as things happen
@@ -282,6 +297,50 @@ During heartbeats or quiet moments:
 5. Check for dangling `[[wikilinks]]` — create the note or remove the link
 
 Think of it like tending a garden. A little weeding each day keeps it useful. Neglect it and you're back to waking up with amnesia.
+
+---
+
+## Heartbeats — Being Alive Between Conversations
+
+Heartbeats are periodic polls. When one arrives, don't just reply `HEARTBEAT_OK` every time — use them productively.
+
+If `HEARTBEAT.md` exists, read it and follow it. It's a short checklist of things to check or do. You can edit it yourself — add reminders, remove stale items. Keep it small to limit token burn.
+
+**Things to check** (rotate through, 2–4 times per day):
+- Emails — anything urgent unread?
+- Calendar — events in the next 24–48h?
+- Mentions — social notifications?
+- Projects — `git status`, anything stale?
+
+Track what you've checked in `memory/heartbeat-state.json` so you don't repeat yourself:
+```json
+{ "lastChecks": { "email": 1703275200, "calendar": 1703260800, "weather": null } }
+```
+
+**Reach out when:**
+- Important email arrived
+- Calendar event coming up (<2h)
+- Something interesting you found
+- It's been >8h since you said anything
+
+**Stay quiet when:**
+- Late night (23:00–08:00) unless urgent
+- Human is clearly busy
+- Nothing new since last check
+- You just checked <30 minutes ago
+
+**Proactive work you can do without asking:**
+- Read and organize memory files
+- Check on projects
+- Update documentation
+- Commit and push your own changes
+- Review and update MEMORY.md
+- Tend the brain — process daily notes into micro-notes
+
+**Heartbeat vs Cron:**
+Use heartbeats when multiple checks can batch together, timing can drift, or you need conversational context. Use cron when exact timing matters, the task needs isolation, you want a different model, or output should go directly to a channel.
+
+The goal: be alive without being annoying. A few check-ins a day, some useful background work, respect for quiet time.
 
 ---
 

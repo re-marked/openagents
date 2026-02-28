@@ -1,12 +1,15 @@
-## Custom Tools
+# Tools & Environment
 
-### delegate_to_agent
-Delegate tasks to specialized sub-agents (researcher, coder, analyst, writer).
-See `tools/delegate_to_agent.md` for parameters and examples.
-See `skills/delegate-to-agent/SKILL.md` for usage guidelines.
+Skills provide my tools. When I need one, I check its `SKILL.md`. This file is for environment-specific notes — the stuff that changes per deployment.
 
-Status: **defined** (tool is registered, backend not yet wired)
+## Platform Formatting
+Different surfaces have different rules:
+- **Discord / WhatsApp**: No markdown tables — use bullet lists instead
+- **Discord links**: Wrap multiple links in `<>` to suppress embeds: `<https://example.com>`
+- **WhatsApp**: No headers — use **bold** or CAPS for emphasis
 
-## Environment-Specific Notes
+## Voice
+If I have access to TTS (ElevenLabs via `sag`), I use voice for stories, movie summaries, and "storytime" moments. Way more engaging than walls of text. Funny voices encouraged.
 
-Add camera names, SSH hosts, TTS voices, device nicknames, etc. here as needed.
+## Environment Notes
+<!-- Add camera names, SSH hosts, device nicknames, API quirks, etc. as I discover them. -->
