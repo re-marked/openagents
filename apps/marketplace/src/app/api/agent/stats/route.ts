@@ -32,6 +32,7 @@ interface StatsResponse {
   }
   recentActivity: ActivityItem[]
   timeSeries: TimeSeriesEntry[]
+  hourlySeries: TimeSeriesEntry[]
 }
 
 // ── Mock data ────────────────────────────────────────────────────────────
@@ -159,6 +160,26 @@ function generateMockStats(): StatsResponse {
 
   totalCost = Math.round(totalCost * 10) / 10
 
+  // Generate 24 hours of hourly data for 24h view
+  const hourlySeries: TimeSeriesEntry[] = []
+  const randH = seededRandom(99)
+  for (let h = 23; h >= 0; h--) {
+    const d = new Date(now)
+    d.setHours(d.getHours() - h, 0, 0, 0)
+    const dateStr = d.toISOString()
+
+    // Business hours are busier
+    const hour = d.getHours()
+    const isBusy = hour >= 9 && hour <= 18
+    const mult = isBusy ? 1.0 : 0.2
+
+    const messages = Math.round(randH() * 6 * mult)
+    const minutes = Math.round(randH() * 15 * mult)
+    const cost = Math.round(randH() * 1.5 * mult * 10) / 10
+
+    hourlySeries.push({ date: dateStr, messages, minutes, cost })
+  }
+
   return {
     relationship: {
       totalConversations: 47,
@@ -171,6 +192,7 @@ function generateMockStats(): StatsResponse {
     },
     recentActivity: mockActivity,
     timeSeries,
+    hourlySeries,
   }
 }
 
@@ -326,6 +348,7 @@ export async function GET(request: Request) {
       },
       recentActivity,
       timeSeries,
+      hourlySeries: [],
     }
 
     return NextResponse.json(response)

@@ -73,7 +73,11 @@ function formatTime(seconds: number): string {
   return `${h}h ${m % 60}m`
 }
 
-function formatDate(dateStr: string): string {
+function formatDate(dateStr: string, isHourly: boolean = false): string {
+  if (isHourly || dateStr.includes('T')) {
+    const d = new Date(dateStr)
+    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  }
   const d = new Date(dateStr + 'T00:00:00')
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
@@ -108,10 +112,13 @@ export function UsageSection({ instanceId }: { instanceId: string }) {
     fetch_()
   }, [instanceId, timeframe])
 
+  const isHourly = timeframe === '24h'
+
   const dailySlice = useMemo(() => {
     if (!data) return []
-    return data.daily.slice(-TIMEFRAME_DAYS[timeframe])
-  }, [data, timeframe])
+    // For 24h the API returns 24 hourly entries; for others slice daily
+    return isHourly ? data.daily : data.daily.slice(-TIMEFRAME_DAYS[timeframe])
+  }, [data, timeframe, isHourly])
 
   if (loading) {
     return (
@@ -171,7 +178,7 @@ export function UsageSection({ instanceId }: { instanceId: string }) {
       {/* Daily credits chart */}
       {dailySlice.length > 1 && (
         <div className="rounded-xl border border-border/40 bg-card/50 p-5">
-          <p className="text-sm font-medium text-muted-foreground mb-3">Daily Credits</p>
+          <p className="text-sm font-medium text-muted-foreground mb-3">{isHourly ? 'Hourly' : 'Daily'} Credits</p>
           <ChartContainer config={creditsChartConfig} className="h-40 w-full">
             <AreaChart data={dailySlice} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
               <defs>
@@ -182,7 +189,7 @@ export function UsageSection({ instanceId }: { instanceId: string }) {
               </defs>
               <XAxis
                 dataKey="date"
-                tickFormatter={formatDate}
+                tickFormatter={(v: string) => formatDate(v, isHourly)}
                 axisLine={false}
                 tickLine={false}
                 tick={{ fontSize: 11 }}
@@ -195,7 +202,7 @@ export function UsageSection({ instanceId }: { instanceId: string }) {
                     hideIndicator
                     labelFormatter={(_, payload) => {
                       const entry = payload?.[0]?.payload as DailyEntry | undefined
-                      return entry ? formatDate(entry.date) : ''
+                      return entry ? formatDate(entry.date, isHourly) : ''
                     }}
                   />
                 }
@@ -235,7 +242,7 @@ export function UsageSection({ instanceId }: { instanceId: string }) {
               <tbody>
                 {data.events.map((ev, i) => (
                   <tr key={i} className="border-b border-border/20 last:border-0 hover:bg-muted/30 transition-colors">
-                    <td className="px-5 py-2.5 text-muted-foreground">{formatDate(ev.date)}</td>
+                    <td className="px-5 py-2.5 text-muted-foreground">{formatDate(ev.date, isHourly)}</td>
                     <td className="px-5 py-2.5 text-right tabular-nums">{formatTokens(ev.inputTokens)}</td>
                     <td className="px-5 py-2.5 text-right tabular-nums">{formatTokens(ev.outputTokens)}</td>
                     <td className="px-5 py-2.5 text-right tabular-nums">{formatTime(ev.computeSeconds)}</td>

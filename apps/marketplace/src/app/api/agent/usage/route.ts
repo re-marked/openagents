@@ -56,22 +56,34 @@ function generateMockUsage(days: number): UsageResponse {
   let totalCompute = 0
   let totalSessions = 0
 
-  for (let i = days - 1; i >= 0; i--) {
+  const isHourly = days === 1
+  const iterations = isHourly ? 24 : days
+
+  for (let i = iterations - 1; i >= 0; i--) {
     const d = new Date(now)
-    d.setDate(d.getDate() - i)
-    const dateStr = d.toISOString().slice(0, 10)
+    if (isHourly) {
+      d.setHours(d.getHours() - i, 0, 0, 0)
+    } else {
+      d.setDate(d.getDate() - i)
+    }
+    const dateStr = isHourly ? d.toISOString() : d.toISOString().slice(0, 10)
 
+    const hour = d.getHours()
     const isWeekend = d.getDay() === 0 || d.getDay() === 6
-    const mult = isWeekend ? 0.3 : 1.0
-    const sessionsToday = Math.round(rand() * 4 * mult) + (isWeekend ? 0 : 1)
+    const mult = isHourly
+      ? (hour >= 9 && hour <= 18 ? 1.0 : 0.15)
+      : (isWeekend ? 0.3 : 1.0)
+    const sessionsThisPeriod = isHourly
+      ? (rand() > 0.5 ? 1 : 0)
+      : Math.round(rand() * 4 * mult) + (isWeekend ? 0 : 1)
 
-    let dayCredits = 0
-    let dayTokens = 0
+    let periodCredits = 0
+    let periodTokens = 0
 
-    for (let s = 0; s < sessionsToday; s++) {
-      const input = Math.round(rand() * 8000 + 500)
-      const output = Math.round(rand() * 4000 + 200)
-      const compute = Math.round(rand() * 300 + 30)
+    for (let s = 0; s < sessionsThisPeriod; s++) {
+      const input = Math.round(rand() * (isHourly ? 3000 : 8000) * mult + 200)
+      const output = Math.round(rand() * (isHourly ? 1500 : 4000) * mult + 100)
+      const compute = Math.round(rand() * (isHourly ? 120 : 300) * mult + 10)
       const credits = Math.round((input * 0.0003 + output * 0.0012 + compute * 0.001) * 100) / 100
       const costUsd = Math.round(credits * 0.01 * 100) / 100
 
@@ -79,8 +91,8 @@ function generateMockUsage(days: number): UsageResponse {
       totalOutput += output
       totalCompute += compute
       totalCredits += credits
-      dayCredits += credits
-      dayTokens += input + output
+      periodCredits += credits
+      periodTokens += input + output
 
       events.push({
         date: dateStr,
@@ -93,8 +105,8 @@ function generateMockUsage(days: number): UsageResponse {
       })
     }
 
-    totalSessions += sessionsToday
-    daily.push({ date: dateStr, credits: Math.round(dayCredits * 100) / 100, tokens: dayTokens, sessions: sessionsToday })
+    totalSessions += sessionsThisPeriod
+    daily.push({ date: dateStr, credits: Math.round(periodCredits * 100) / 100, tokens: periodTokens, sessions: sessionsThisPeriod })
   }
 
   totalCredits = Math.round(totalCredits * 100) / 100

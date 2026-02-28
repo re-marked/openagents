@@ -42,6 +42,7 @@ interface StatsData {
   }
   recentActivity: unknown[]
   timeSeries: TimeSeriesEntry[]
+  hourlySeries: TimeSeriesEntry[]
 }
 
 type Timeframe = '24h' | '7d' | '30d'
@@ -62,15 +63,23 @@ function formatCost(credits: number): string {
   return `${Math.round(credits)}`
 }
 
-function formatTooltipDate(dateStr: string): string {
+function formatTooltipDate(dateStr: string, isHourly: boolean): string {
+  if (isHourly) {
+    const d = new Date(dateStr)
+    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  }
   const d = new Date(dateStr + 'T00:00:00')
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-function sliceTimeSeries(data: TimeSeriesEntry[], timeframe: Timeframe): TimeSeriesEntry[] {
+function sliceTimeSeries(
+  data: TimeSeriesEntry[],
+  hourlySeries: TimeSeriesEntry[],
+  timeframe: Timeframe
+): TimeSeriesEntry[] {
   switch (timeframe) {
     case '24h':
-      return data.slice(-1)
+      return hourlySeries
     case '7d':
       return data.slice(-7)
     case '30d':
@@ -192,9 +201,11 @@ export function OverviewSection({
 
   // Slice time series for selected timeframe
   const sliced = useMemo(
-    () => (stats ? sliceTimeSeries(stats.timeSeries, timeframe) : []),
+    () => (stats ? sliceTimeSeries(stats.timeSeries, stats.hourlySeries, timeframe) : []),
     [stats, timeframe]
   )
+
+  const isHourly = timeframe === '24h'
 
   const costTotal = useMemo(() => sumField(sliced, 'cost'), [sliced])
   const minutesTotal = useMemo(() => sumField(sliced, 'minutes'), [sliced])
@@ -286,6 +297,7 @@ export function OverviewSection({
             chartConfig={costChartConfig}
             data={sliced}
             dataKey="cost"
+            isHourly={isHourly}
             headerAction={
               <Button
                 variant="ghost"
@@ -306,6 +318,7 @@ export function OverviewSection({
             chartConfig={minutesChartConfig}
             data={sliced}
             dataKey="minutes"
+            isHourly={isHourly}
           />
 
           {/* Messages */}
@@ -316,6 +329,7 @@ export function OverviewSection({
             chartConfig={messagesChartConfig}
             data={sliced}
             dataKey="messages"
+            isHourly={isHourly}
           />
 
           {/* Hired — static, no sparkline */}
@@ -381,6 +395,7 @@ function SparklineCard({
   chartConfig,
   data,
   dataKey,
+  isHourly,
   headerAction,
 }: {
   icon: typeof Clock
@@ -390,6 +405,7 @@ function SparklineCard({
   chartConfig: ChartConfig
   data: TimeSeriesEntry[]
   dataKey: string
+  isHourly?: boolean
   headerAction?: React.ReactNode
 }) {
   const hasData = data.some((d) => d[dataKey as keyof TimeSeriesEntry] as number > 0)
@@ -417,7 +433,7 @@ function SparklineCard({
                     hideIndicator
                     labelFormatter={(_, payload) => {
                       const entry = payload?.[0]?.payload as TimeSeriesEntry | undefined
-                      return entry ? formatTooltipDate(entry.date) : ''
+                      return entry ? formatTooltipDate(entry.date, !!isHourly) : ''
                     }}
                   />
                 }
