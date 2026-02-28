@@ -3,7 +3,7 @@
     "list": [
       {
         "id": "main",
-        "name": "Main",
+        "name": "Main Agent",
         "default": true,
         "workspace": "/data/workspace"
       }
@@ -14,13 +14,58 @@
       },
       "sandbox": {
         "mode": "off"
+      },
+      "compaction": {
+        "mode": "safeguard"
+      },
+      "verboseDefault": "full",
+      "elevatedDefault": "on",
+      "blockStreamingDefault": "on",
+      "maxConcurrent": 4
+    }
+  },
+  "tools": {
+    "profile": "coding",
+    "allow": ["exec", "web_search", "read", "write", "edit", "apply_patch"],
+    "deny": ["browser", "gateway", "cron"],
+    "elevated": {
+      "enabled": true
+    }
+  },
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto"
+  },
+  "hooks": {
+    "internal": {
+      "enabled": true,
+      "entries": {
+        "boot-md": {
+          "enabled": true
+        },
+        "command-logger": {
+          "enabled": true
+        },
+        "session-memory": {
+          "enabled": true
+        }
       }
+    }
+  },
+  "messages": {
+    "ackReactionScope": "group-mentions"
+  },
+  "skills": {
+    "allowBundled": [],
+    "install": {
+      "nodeManager": "pnpm"
     }
   },
   "gateway": {
     "mode": "local",
     "port": 18789,
     "bind": "lan",
+    "trustedProxies": ["172.16.0.0/12", "fdaa::/16"],
     "auth": {
       "mode": "token"
     },
@@ -36,6 +81,16 @@
           "enabled": true
         }
       }
+    },
+    "nodes": {
+      "denyCommands": [
+        "camera.snap",
+        "camera.clip",
+        "screen.record",
+        "calendar.add",
+        "contacts.add",
+        "reminders.add"
+      ]
     }
   }
 }
