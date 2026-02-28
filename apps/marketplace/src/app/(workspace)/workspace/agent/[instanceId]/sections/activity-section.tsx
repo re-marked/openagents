@@ -15,6 +15,7 @@ import {
   Download,
   type LucideIcon,
 } from 'lucide-react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -26,13 +27,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from '@/components/ui/drawer'
 import {
   Pagination,
   PaginationContent,
@@ -224,143 +218,164 @@ export function ActivitySection({ instanceId }: { instanceId: string }) {
         </span>
       </div>
 
-      {/* Timeline */}
-      <div className="rounded-xl border border-border/40 bg-card/50 overflow-hidden flex flex-col">
-        <ScrollArea className="h-[480px]">
-          {paged.length === 0 ? (
-            <div className="flex items-center justify-center h-full py-20 text-sm text-muted-foreground">
-              No activity events found.
-            </div>
-          ) : (
-            <div className="divide-y divide-border/20">
-              {paged.map((event) => {
-                const cfg = EVENT_CONFIG[event.type]
-                const Icon = cfg.icon
-                return (
-                  <button
-                    key={event.id}
-                    onClick={() => setSelectedEvent(event)}
-                    className="flex items-center gap-3 w-full px-4 py-3 text-left hover:bg-muted/30 transition-colors"
-                  >
-                    <div className={`shrink-0 flex items-center justify-center size-8 rounded-lg bg-muted/50 ${cfg.color}`}>
-                      <Icon className="size-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium truncate">{event.title}</span>
-                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${cfg.badgeCls}`}>
-                          {cfg.label}
-                        </Badge>
+      {/* Timeline + Detail panel (side by side like brain graph) */}
+      <div className="flex gap-3 items-stretch">
+        {/* Timeline list */}
+        <div
+          className={`rounded-xl border border-border/40 bg-card/50 overflow-hidden flex flex-col shrink-0 transition-all duration-200 ${
+            selectedEvent ? 'w-[55%]' : 'w-full'
+          }`}
+          style={{ height: 480 }}
+        >
+          <ScrollArea className="flex-1 min-h-0">
+            {paged.length === 0 ? (
+              <div className="flex items-center justify-center h-full py-20 text-sm text-muted-foreground">
+                No activity events found.
+              </div>
+            ) : (
+              <div className="divide-y divide-border/20">
+                {paged.map((event) => {
+                  const cfg = EVENT_CONFIG[event.type]
+                  const Icon = cfg.icon
+                  const isSelected = selectedEvent?.id === event.id
+                  return (
+                    <button
+                      key={event.id}
+                      onClick={() => setSelectedEvent(isSelected ? null : event)}
+                      className={`flex items-center gap-3 w-full px-4 py-3 text-left transition-colors ${
+                        isSelected ? 'bg-muted/50' : 'hover:bg-muted/30'
+                      }`}
+                    >
+                      <div className={`shrink-0 flex items-center justify-center size-8 rounded-lg bg-muted/50 ${cfg.color}`}>
+                        <Icon className="size-4" />
                       </div>
-                      <p className="text-xs text-muted-foreground truncate mt-0.5">{event.summary}</p>
-                    </div>
-                    <div className="shrink-0 flex flex-col items-end gap-0.5">
-                      <span className="text-[11px] text-muted-foreground/60">{relativeTime(event.timestamp)}</span>
-                      {event.durationMs > 0 && (
-                        <span className="text-[10px] tabular-nums text-muted-foreground/40">{formatDuration(event.durationMs)}</span>
-                      )}
-                    </div>
-                  </button>
-                )
-              })}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium truncate">{event.title}</span>
+                          {!selectedEvent && (
+                            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${cfg.badgeCls}`}>
+                              {cfg.label}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">{event.summary}</p>
+                      </div>
+                      <div className="shrink-0 flex flex-col items-end gap-0.5">
+                        <span className="text-[11px] text-muted-foreground/60">{relativeTime(event.timestamp)}</span>
+                        {event.durationMs > 0 && (
+                          <span className="text-[10px] tabular-nums text-muted-foreground/40">{formatDuration(event.durationMs)}</span>
+                        )}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </ScrollArea>
+
+          {totalPages > 1 && (
+            <div className="border-t border-border/40 px-5 py-2.5 shrink-0">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      className={page === 1 ? 'pointer-events-none opacity-40' : 'cursor-pointer'}
+                    />
+                  </PaginationItem>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                    <PaginationItem key={p}>
+                      <PaginationLink isActive={p === page} onClick={() => setPage(p)} className="cursor-pointer">
+                        {p}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      className={page === totalPages ? 'pointer-events-none opacity-40' : 'cursor-pointer'}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             </div>
           )}
-        </ScrollArea>
+        </div>
 
-        {totalPages > 1 && (
-          <div className="border-t border-border/40 px-5 py-2.5">
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    className={page === 1 ? 'pointer-events-none opacity-40' : 'cursor-pointer'}
-                  />
-                </PaginationItem>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                  <PaginationItem key={p}>
-                    <PaginationLink isActive={p === page} onClick={() => setPage(p)} className="cursor-pointer">
-                      {p}
-                    </PaginationLink>
-                  </PaginationItem>
-                ))}
-                <PaginationItem>
-                  <PaginationNext
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    className={page === totalPages ? 'pointer-events-none opacity-40' : 'cursor-pointer'}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          </div>
-        )}
+        {/* Detail panel — slides in from right like knowledge graph */}
+        <AnimatePresence mode="wait">
+          {selectedEvent && (
+            <motion.div
+              key={selectedEvent.id}
+              initial={{ opacity: 0, width: 0 }}
+              animate={{ opacity: 1, width: '45%' }}
+              exit={{ opacity: 0, width: 0 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="overflow-hidden min-w-0"
+            >
+              <ActivityDetailPanel event={selectedEvent} onClose={() => setSelectedEvent(null)} />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-
-      {/* Detail Drawer */}
-      <ActivityDetailDrawer event={selectedEvent} onClose={() => setSelectedEvent(null)} />
     </div>
   )
 }
 
-// ── Detail Drawer ────────────────────────────────────────────────────────
+// ── Detail Panel (inline, not a drawer) ──────────────────────────────────
 
-function ActivityDetailDrawer({ event, onClose }: { event: ActivityEvent | null; onClose: () => void }) {
-  if (!event) return null
-
+function ActivityDetailPanel({ event, onClose }: { event: ActivityEvent; onClose: () => void }) {
   const cfg = EVENT_CONFIG[event.type]
   const Icon = cfg.icon
   const meta = event.metadata
 
   return (
-    <Drawer direction="right" open={!!event} onOpenChange={(open) => !open && onClose()}>
-      <DrawerContent className="!w-[540px] !max-w-[90vw] bg-sidebar border-l border-border/40 overflow-hidden flex flex-col">
-        <DrawerClose className="absolute top-5 right-5 z-10 rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-card transition-colors">
-          <X className="size-5" />
-          <span className="sr-only">Close</span>
-        </DrawerClose>
-
-        <DrawerHeader className="p-6 pb-0">
-          <div className="flex items-center gap-3">
-            <div className={`flex items-center justify-center size-10 rounded-xl bg-muted/50 ${cfg.color}`}>
-              <Icon className="size-5" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <DrawerTitle className="text-lg font-semibold">{event.title}</DrawerTitle>
-                <Badge variant="outline" className={cfg.badgeCls}>{cfg.label}</Badge>
-              </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {new Date(event.timestamp).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'medium' })}
-                {event.durationMs > 0 && <span className="ml-2">· {formatDuration(event.durationMs)}</span>}
-              </p>
-            </div>
+    <div className="rounded-xl border border-border/40 bg-card/50 p-4 h-[480px] flex flex-col">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3 shrink-0">
+        <div className="min-w-0 flex items-center gap-2.5">
+          <div className={`shrink-0 flex items-center justify-center size-9 rounded-xl bg-muted/50 ${cfg.color}`}>
+            <Icon className="size-4.5" />
           </div>
-        </DrawerHeader>
-
-        <ScrollArea className="flex-1 min-h-0">
-          <div className="p-6 space-y-5">
-            {/* Summary */}
-            <div>
-              <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Summary</h4>
-              <p className="text-sm">{event.summary}</p>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold truncate">{event.title}</h3>
+              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 shrink-0 ${cfg.badgeCls}`}>
+                {cfg.label}
+              </Badge>
             </div>
-
-            {/* Type-specific content */}
-            {event.type === 'tool_call' && <ToolCallDetail meta={meta} />}
-            {event.type === 'file_change' && <FileChangeDetail meta={meta} />}
-            {event.type === 'command_exec' && <CommandExecDetail meta={meta} />}
-            {event.type === 'context_compaction' && <CompactionDetail meta={meta} />}
-            {event.type === 'error' && <ErrorDetail meta={meta} />}
-            {event.type === 'api_call' && <ApiCallDetail meta={meta} />}
-            {event.type === 'skill_invoked' && <SkillDetail meta={meta} />}
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {new Date(event.timestamp).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'medium' })}
+              {event.durationMs > 0 && <span className="ml-1.5">· {formatDuration(event.durationMs)}</span>}
+            </p>
           </div>
-        </ScrollArea>
-
-        <div className="border-t border-border/40 p-4">
-          <Button variant="outline" className="w-full" onClick={onClose}>Close</Button>
         </div>
-      </DrawerContent>
-    </Drawer>
+        <button
+          onClick={onClose}
+          className="shrink-0 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
+        >
+          <X className="size-3.5" />
+        </button>
+      </div>
+
+      {/* Content */}
+      <div className="mt-3 overflow-y-auto flex-1 min-h-0 space-y-4 text-xs text-muted-foreground">
+        {/* Summary */}
+        <div>
+          <h4 className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-wider mb-1.5">Summary</h4>
+          <p className="text-sm text-foreground/80">{event.summary}</p>
+        </div>
+
+        {/* Type-specific content */}
+        {event.type === 'tool_call' && <ToolCallDetail meta={meta} />}
+        {event.type === 'file_change' && <FileChangeDetail meta={meta} />}
+        {event.type === 'command_exec' && <CommandExecDetail meta={meta} />}
+        {event.type === 'context_compaction' && <CompactionDetail meta={meta} />}
+        {event.type === 'error' && <ErrorDetail meta={meta} />}
+        {event.type === 'api_call' && <ApiCallDetail meta={meta} />}
+        {event.type === 'skill_invoked' && <SkillDetail meta={meta} />}
+      </div>
+    </div>
   )
 }
 
@@ -369,7 +384,7 @@ function ActivityDetailDrawer({ event, onClose }: { event: ActivityEvent | null;
 function CodeBlock({ children, label }: { children: string; label?: string }) {
   return (
     <div>
-      {label && <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">{label}</h4>}
+      {label && <h4 className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-wider mb-1.5">{label}</h4>}
       <pre className="rounded-lg bg-muted/50 border border-border/30 p-3 text-xs font-mono overflow-x-auto whitespace-pre-wrap break-all">
         {children}
       </pre>
