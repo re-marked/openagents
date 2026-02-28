@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { MessageSquare, Loader2, Settings } from 'lucide-react'
+import { MessageSquare, Loader2, Settings, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -35,6 +35,9 @@ interface HiredAgentGridProps {
 export function HiredAgentGrid({ agents }: HiredAgentGridProps) {
   const router = useRouter()
 
+  const MIN_SLOTS = 3
+  const emptySlots = Math.max(0, MIN_SLOTS - agents.length)
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
       {agents.map((agent) => {
@@ -50,7 +53,7 @@ export function HiredAgentGrid({ agents }: HiredAgentGridProps) {
             className="group relative border-0 gap-0 py-0 cursor-pointer transition-colors hover:bg-card/80"
             onClick={() => router.push(homePath)}
           >
-            <CardContent className="p-5">
+            <CardContent className="p-5 min-h-[180px] flex flex-col">
               <div className="flex items-start gap-4 mb-4">
                 <AgentAvatar name={agent.name} category={agent.category} iconUrl={agent.iconUrl} size="md" />
                 <div className="flex-1 min-w-0">
@@ -63,6 +66,7 @@ export function HiredAgentGrid({ agents }: HiredAgentGridProps) {
                 </div>
               </div>
 
+              <div className="flex-1" />
               {!isProvisioning && !isDestroying && agent.status !== 'error' && (
                 <div className="flex gap-2">
                   <Button
@@ -119,6 +123,21 @@ export function HiredAgentGrid({ agents }: HiredAgentGridProps) {
           </Card>
         )
       })}
+
+      {Array.from({ length: emptySlots }).map((_, i) => (
+        <Link
+          key={`empty-${i}`}
+          href="/discover"
+          className="group/slot flex min-h-[180px] flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border/40 transition-colors hover:border-primary/40 hover:bg-primary/5"
+        >
+          <div className="flex size-10 items-center justify-center rounded-full border-2 border-dashed border-muted-foreground/30 transition-colors group-hover/slot:border-primary/50">
+            <Plus className="size-5 text-muted-foreground/40 transition-colors group-hover/slot:text-primary/70" />
+          </div>
+          <span className="text-sm text-muted-foreground/50 transition-colors group-hover/slot:text-muted-foreground">
+            Add an Agent to your team
+          </span>
+        </Link>
+      ))}
     </div>
   )
 }
