@@ -78,7 +78,7 @@ export async function getProjectAgents(userId: string, activeProjectId: string |
     .select('id, display_name, status, created_at, agents!inner(name, slug, category, tagline, icon_url)')
     .eq('user_id', userId)
     .in('id', instanceIds)
-    .not('status', 'eq', 'destroyed')
+    .not('status', 'in', '("destroyed","destroying")')
     .order('created_at', { ascending: false })
   return data ?? []
 }
