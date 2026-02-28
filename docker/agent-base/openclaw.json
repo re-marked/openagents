@@ -70,7 +70,8 @@
       "mode": "token"
     },
     "controlUi": {
-      "dangerouslyAllowHostHeaderOriginFallback": true
+      "dangerouslyAllowHostHeaderOriginFallback": true,
+      "dangerouslyDisableDeviceAuth": true
     },
     "http": {
       "endpoints": {
