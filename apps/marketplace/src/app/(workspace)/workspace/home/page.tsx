@@ -1,5 +1,4 @@
 import { getUser } from '@/lib/auth/get-user'
-import { createServiceClient } from '@agentbay/db/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
@@ -8,39 +7,20 @@ import { ProvisioningPoller } from '@/components/provisioning-poller'
 import { OnboardingWizard } from '@/components/onboarding-wizard'
 import { HiredAgentGrid, type HiredAgent } from '@/components/hired-agent-grid'
 import { getApiKeys } from '@/lib/settings/actions'
+import { getActiveProjectId, getProjectAgents, toAgentInfoList } from '@/lib/projects/queries'
 
 export default async function HomePage() {
   const user = await getUser()
   if (!user) redirect('/login')
 
-  const service = createServiceClient()
-
   // Check if user has API keys configured
   const apiKeys = await getApiKeys()
   const hasApiKeys = apiKeys.length > 0
 
-  // Load user's agents
-  const { data: instances } = await service
-    .from('agent_instances')
-    .select('id, display_name, status, created_at, agents!inner(name, slug, category, tagline, icon_url)')
-    .eq('user_id', user.id)
-    .not('status', 'eq', 'destroyed')
-    .order('created_at', { ascending: false })
-
-  const agents: HiredAgent[] = (instances ?? []).map((inst) => {
-    const agent = (inst as Record<string, unknown>).agents as {
-      name: string; slug: string; category: string; tagline: string; icon_url: string | null
-    }
-    return {
-      instanceId: inst.id,
-      name: inst.display_name ?? agent.name,
-      slug: agent.slug,
-      category: agent.category,
-      tagline: agent.tagline,
-      status: inst.status,
-      iconUrl: agent.icon_url,
-    }
-  })
+  // Load agents for the active project
+  const { activeProjectId } = await getActiveProjectId(user.id)
+  const instances = await getProjectAgents(user.id, activeProjectId)
+  const agents: HiredAgent[] = toAgentInfoList(instances)
 
   return (
     <div className="flex-1 overflow-y-auto px-8 py-8 lg:px-12">
