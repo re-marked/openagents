@@ -62,6 +62,7 @@ export interface AgentHomeProps {
   agentTagline: string | null
   agentIconUrl: string | null
   createdAt: string
+  testMode?: boolean
 }
 
 export function AgentHomePage(props: AgentHomeProps) {
@@ -69,11 +70,14 @@ export function AgentHomePage(props: AgentHomeProps) {
     instanceId,
     initialStatus,
     displayName,
+    testMode = false,
   } = props
   const [activeSection, setActiveSection] = useState<Section>('overview')
   const [currentName, setCurrentName] = useState(displayName)
 
-  const { status } = useAgentStatus({ instanceId, initialStatus })
+  const { status: realStatus } = useAgentStatus({ instanceId, initialStatus })
+  // In test mode, always show as running so all sections are accessible
+  const status = testMode ? 'running' : realStatus
 
   const isRunning = status === 'running'
 
@@ -104,20 +108,21 @@ export function AgentHomePage(props: AgentHomeProps) {
             currentName={currentName}
             onNameChange={setCurrentName}
             onNavigate={(s) => setActiveSection(s as Section)}
+            testMode={testMode}
           />
         )
       case 'config':
         return <ConfigSection instanceId={instanceId} agentName={currentName} />
       case 'personality':
-        return <PersonalitySection instanceId={instanceId} />
+        return <PersonalitySection instanceId={instanceId} testMode={testMode} />
       case 'skills':
-        return <SkillsSection instanceId={instanceId} />
+        return <SkillsSection instanceId={instanceId} testMode={testMode} />
       case 'memory':
-        return <MemorySection instanceId={instanceId} />
+        return <MemorySection instanceId={instanceId} testMode={testMode} />
       case 'usage':
-        return <UsageSection instanceId={instanceId} />
+        return <UsageSection instanceId={instanceId} testMode={testMode} />
       case 'activity':
-        return <ActivitySection instanceId={instanceId} />
+        return <ActivitySection instanceId={instanceId} testMode={testMode} />
       case 'actions':
         return (
           <ActionsSection

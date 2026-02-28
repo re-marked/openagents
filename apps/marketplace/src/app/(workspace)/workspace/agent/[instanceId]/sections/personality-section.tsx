@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Loader2, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { MarkdownEditor } from '@/components/markdown-editor'
+import { TEST_SOUL_CONTENT } from '../test-data'
 
 const SOUL_PATH = '/data/workspace/SOUL.md'
 
@@ -24,9 +25,10 @@ You are a helpful, knowledgeable assistant. You communicate clearly and concisel
 
 interface PersonalitySectionProps {
   instanceId: string
+  testMode?: boolean
 }
 
-export function PersonalitySection({ instanceId }: PersonalitySectionProps) {
+export function PersonalitySection({ instanceId, testMode = false }: PersonalitySectionProps) {
   const [content, setContent] = useState('')
   const [originalContent, setOriginalContent] = useState('')
   const [loading, setLoading] = useState(true)
@@ -34,6 +36,12 @@ export function PersonalitySection({ instanceId }: PersonalitySectionProps) {
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
+    if (testMode) {
+      setContent(TEST_SOUL_CONTENT)
+      setOriginalContent(TEST_SOUL_CONTENT)
+      setLoading(false)
+      return
+    }
     async function load() {
       try {
         const res = await fetch(
@@ -51,7 +59,7 @@ export function PersonalitySection({ instanceId }: PersonalitySectionProps) {
       }
     }
     load()
-  }, [instanceId])
+  }, [instanceId, testMode])
 
   async function handleSave() {
     setSaving(true)

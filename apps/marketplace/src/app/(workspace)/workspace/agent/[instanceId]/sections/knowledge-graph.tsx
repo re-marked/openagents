@@ -15,6 +15,7 @@ import { X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { TEST_KNOWLEDGE_FILES } from '../test-data'
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -175,9 +176,10 @@ function makeMdComponents(onNavigate: (slug: string) => void) {
 
 interface KnowledgeGraphProps {
   instanceId: string
+  testMode?: boolean
 }
 
-export function KnowledgeGraph({ instanceId }: KnowledgeGraphProps) {
+export function KnowledgeGraph({ instanceId, testMode = false }: KnowledgeGraphProps) {
   const [files, setFiles] = useState<FileData[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null)
@@ -204,6 +206,11 @@ export function KnowledgeGraph({ instanceId }: KnowledgeGraphProps) {
 
   // Fetch memory files
   useEffect(() => {
+    if (testMode) {
+      setFiles(TEST_KNOWLEDGE_FILES)
+      setLoading(false)
+      return
+    }
     async function fetchFiles() {
       try {
         // Fetch MEMORY.md
@@ -253,7 +260,7 @@ export function KnowledgeGraph({ instanceId }: KnowledgeGraphProps) {
       }
     }
     fetchFiles()
-  }, [instanceId])
+  }, [instanceId, testMode])
 
   // Build graph and run simulation
   const graph = useMemo(() => {
