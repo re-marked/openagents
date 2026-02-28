@@ -84,8 +84,8 @@ export function AppSidebar({
           <SidebarGroupContent>
             <SidebarMenu>
               {agents.map((agent) => {
-                const chatPath = `/workspace/agent/${agent.instanceId}/chat`
-                const isActive = pathname === chatPath
+                const agentBase = `/workspace/agent/${agent.instanceId}`
+                const isActive = pathname.startsWith(agentBase)
                 return (
                   <SidebarMenuItem key={agent.instanceId}>
                     <SidebarMenuButton
@@ -93,7 +93,7 @@ export function AppSidebar({
                       isActive={isActive}
                       className="gap-2.5"
                     >
-                      <Link href={chatPath}>
+                      <Link href={agentBase}>
                         <span className="relative flex shrink-0">
                           <AgentAvatar name={agent.name} category={agent.category} iconUrl={agent.iconUrl} size="xs" />
                           <span className={`absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-sidebar ${STATUS_DOT[agent.status] ?? "bg-zinc-400"}`} />
