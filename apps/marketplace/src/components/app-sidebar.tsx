@@ -5,7 +5,7 @@ import { Home, Settings, Plus, BarChart3, CreditCard, Key } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
-import { WorkspaceSwitcher } from "@/components/workspace-switcher"
+import { WorkspaceSwitcher, type ProjectInfo } from "@/components/workspace-switcher"
 import {
   Sidebar,
   SidebarContent,
@@ -35,6 +35,8 @@ interface AgentInfo {
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   userEmail?: string
   agents?: AgentInfo[]
+  projects?: ProjectInfo[]
+  activeProjectId?: string | null
 }
 
 const STATUS_DOT: Record<string, string> = {
@@ -47,6 +49,8 @@ const STATUS_DOT: Record<string, string> = {
 export function AppSidebar({
   userEmail,
   agents = [],
+  projects = [],
+  activeProjectId = null,
   ...props
 }: AppSidebarProps) {
   const pathname = usePathname()
@@ -54,7 +58,7 @@ export function AppSidebar({
   return (
     <Sidebar variant="inset" collapsible="icon" {...props}>
       <SidebarHeader>
-        <WorkspaceSwitcher />
+        <WorkspaceSwitcher projects={projects} activeProjectId={activeProjectId} />
       </SidebarHeader>
 
       <SidebarContent>
