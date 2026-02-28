@@ -177,6 +177,46 @@ services:
 
 Key note: The `rm -f *.lock` step removes stale lock files before starting — important for restart scenarios.
 
+## auth-profiles.json — Correct Format (VERIFIED 2026-02-28)
+
+File path: `/data/agents/main/agent/auth-profiles.json`
+(General pattern: `$OPENCLAW_STATE_DIR/agents/<agent-id>/agent/auth-profiles.json`)
+
+**Breaking change in 2026.2.19 (Issue #21448)**: credential field changed from `"token"` → `"key"`.
+
+Correct format as of 2026.2.19+:
+
+```json
+{
+  "version": 1,
+  "profiles": {
+    "google:default": {
+      "type": "api_key",
+      "provider": "google",
+      "key": "AIzaSy..."
+    },
+    "anthropic:default": {
+      "type": "api_key",
+      "provider": "anthropic",
+      "key": "sk-ant-api03-..."
+    },
+    "openai:default": {
+      "type": "api_key",
+      "provider": "openai",
+      "key": "sk-proj-..."
+    }
+  }
+}
+```
+
+Three silent failure modes that produce "ignored invalid auth profile entries during store load":
+1. `"apiKey"` or `"token"` instead of `"key"` — parser calls `cred.key?.trim()`, finds nothing, drops entry
+2. Bare provider names (`"google"`) instead of `"provider:name"` format (`"google:default"`)
+3. Missing `"version": 1` at top level
+4. Missing `"provider"` field inside each profile entry
+
+**Project fix**: `docker/agent-base/entrypoint.sh` was updated 2026-02-28 to use correct format.
+
 ## Issues / Gotchas
 
 1. **bind=lan + CLI commands**: Issue #19004 — CLI routes to LAN IP, fails local auth check. Don't use `bind=lan` if you need CLI access from inside the container.

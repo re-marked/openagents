@@ -302,7 +302,7 @@ export function OverviewSection({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 px-2 text-[11px]"
+                className="text-muted-foreground h-6 px-2 text-[11px]"
                 onClick={() => onNavigate?.('usage')}
               >
                 Full Breakdown →
