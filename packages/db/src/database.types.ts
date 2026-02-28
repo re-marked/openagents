@@ -1,3 +1,6 @@
+npm warn Unknown project config "shamefully-hoist". This will stop working in the next major version of npm.
+npm warn Unknown project config "strict-peer-dependencies". This will stop working in the next major version of npm.
+Initialising login role...
 export type Json =
   | string
   | number
@@ -303,6 +306,74 @@ export type Database = {
           },
         ]
       }
+      chat_agents: {
+        Row: {
+          added_at: string
+          chat_id: string
+          id: string
+          instance_id: string
+        }
+        Insert: {
+          added_at?: string
+          chat_id: string
+          id?: string
+          instance_id: string
+        }
+        Update: {
+          added_at?: string
+          chat_id?: string
+          id?: string
+          instance_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_agents_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "chats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_agents_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "agent_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chats: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          project_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name?: string
+          project_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          project_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chats_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       creator_earnings: {
         Row: {
           agent_id: string
@@ -528,6 +599,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      publish_tokens: {
+        Row: {
+          created_at: string
+          id: string
+          last_used_at: string | null
+          name: string
+          token_hash: string
+          token_prefix: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          name?: string
+          token_hash: string
+          token_prefix: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          name?: string
+          token_hash?: string
+          token_prefix?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       relay_connections: {
         Row: {
@@ -815,44 +916,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
-      }
-      publish_tokens: {
-        Row: {
-          id: string
-          user_id: string
-          name: string
-          token_hash: string
-          token_prefix: string
-          last_used_at: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          name?: string
-          token_hash: string
-          token_prefix: string
-          last_used_at?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          name?: string
-          token_hash?: string
-          token_prefix?: string
-          last_used_at?: string | null
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "publish_tokens_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       waitlist: {
         Row: {
