@@ -10,6 +10,7 @@ import {
   Settings,
   Power,
   BarChart3,
+  Activity,
   type LucideIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -22,6 +23,7 @@ import { SkillsSection } from './sections/skills-section'
 import { MemorySection } from './sections/memory-section'
 import { ActionsSection } from './sections/actions-section'
 import { UsageSection } from './sections/usage-section'
+import { ActivitySection } from './sections/activity-section'
 
 export const STATUS_CONFIG: Record<string, { label: string; dot: string; bg: string }> = {
   running: { label: 'Running', dot: 'bg-status-running', bg: 'bg-status-running/10 text-status-running ring-status-running/20' },
@@ -31,7 +33,7 @@ export const STATUS_CONFIG: Record<string, { label: string; dot: string; bg: str
   error: { label: 'Error', dot: 'bg-status-error', bg: 'bg-status-error/10 text-status-error ring-status-error/20' },
 }
 
-type Section = 'overview' | 'config' | 'personality' | 'skills' | 'memory' | 'usage' | 'actions'
+type Section = 'overview' | 'config' | 'personality' | 'skills' | 'memory' | 'usage' | 'activity' | 'actions'
 
 interface NavItem {
   id: Section
@@ -46,6 +48,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'skills', label: 'Skills', icon: Puzzle },
   { id: 'memory', label: 'Memory', icon: Brain },
   { id: 'usage', label: 'Usage', icon: BarChart3 },
+  { id: 'activity', label: 'Activity', icon: Activity },
   { id: 'actions', label: 'Actions', icon: Settings },
 ]
 
@@ -113,6 +116,8 @@ export function AgentHomePage(props: AgentHomeProps) {
         return <MemorySection instanceId={instanceId} />
       case 'usage':
         return <UsageSection instanceId={instanceId} />
+      case 'activity':
+        return <ActivitySection instanceId={instanceId} />
       case 'actions':
         return (
           <ActionsSection
