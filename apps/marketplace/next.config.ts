@@ -11,6 +11,11 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     optimizePackageImports: ['lucide-react', 'framer-motion'],
+    staleTimes: {
+      // Next.js 15 defaults dynamic to 0s, which causes the workspace layout
+      // to re-fetch on every sidebar click (10+ DB queries). Cache for 30s.
+      dynamic: 30,
+    },
   },
 }
 

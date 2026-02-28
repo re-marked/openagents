@@ -13,14 +13,16 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
   if (!user) redirect('/login')
 
   const { projects, activeProjectId } = await getActiveProjectId(user.id)
-  const instances = await getProjectAgents(user.id, activeProjectId)
-  const agents = toAgentInfoList(instances)
 
-  // Ensure default chat exists and load all chats
-  if (activeProjectId) {
-    await ensureDefaultChat(user.id, activeProjectId)
-  }
-  const chats = await getProjectChats(user.id, activeProjectId)
+  // Run all project-dependent queries in parallel to avoid sequential waterfall
+  const [instances, chats] = await Promise.all([
+    getProjectAgents(user.id, activeProjectId),
+    (async () => {
+      if (activeProjectId) await ensureDefaultChat(user.id, activeProjectId)
+      return getProjectChats(user.id, activeProjectId)
+    })(),
+  ])
+  const agents = toAgentInfoList(instances)
 
   return (
     <SidebarProvider className="h-svh !min-h-0">
