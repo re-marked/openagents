@@ -121,6 +121,23 @@ export async function hireAgent({ agentSlug }: HireAgentParams) {
     instance_id: instance.id,
   })
 
+  // 6b. Add to default chat (first chat in the project)
+  const { data: defaultChat } = await service
+    .from('chats')
+    .select('id')
+    .eq('project_id', projectId)
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .single()
+
+  if (defaultChat) {
+    await service.from('chat_agents').insert({
+      chat_id: defaultChat.id,
+      instance_id: instance.id,
+    })
+  }
+
   // 7. Fire Trigger.dev provision task
   await triggerProvision({
     userId: user.id,
