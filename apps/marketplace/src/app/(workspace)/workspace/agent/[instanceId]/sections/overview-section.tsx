@@ -286,12 +286,9 @@ export function OverviewSection({
             data={sliced}
             dataKey="cost"
             headerAction={
-              <Link
-                href="/workspace/usage"
-                className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground transition-colors"
-              >
-                Full Breakdown →
-              </Link>
+              <Button variant="ghost" size="sm" className="h-6 px-2 text-[11px]" asChild>
+                <Link href="/workspace/usage">Full Breakdown →</Link>
+              </Button>
             }
           />
 
