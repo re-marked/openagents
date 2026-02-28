@@ -62,31 +62,22 @@ export async function getProjectAgents(userId: string, activeProjectId: string |
     teamIds = (teams ?? []).map(t => t.id)
   }
 
-  if (teamIds.length > 0) {
-    const { data: teamAgents } = await service
-      .from('team_agents')
-      .select('instance_id')
-      .in('team_id', teamIds)
-    const instanceIds = (teamAgents ?? []).map(ta => ta.instance_id)
+  // Project exists but has no teams yet — no agents to show
+  if (teamIds.length === 0) return []
 
-    if (instanceIds.length > 0) {
-      const { data } = await service
-        .from('agent_instances')
-        .select('id, display_name, status, created_at, agents!inner(name, slug, category, tagline, icon_url)')
-        .eq('user_id', userId)
-        .in('id', instanceIds)
-        .not('status', 'eq', 'destroyed')
-        .order('created_at', { ascending: false })
-      return data ?? []
-    }
-    return []
-  }
+  const { data: teamAgents } = await service
+    .from('team_agents')
+    .select('instance_id')
+    .in('team_id', teamIds)
+  const instanceIds = (teamAgents ?? []).map(ta => ta.instance_id)
 
-  // No teams — show all user's agents (backwards compatible)
+  if (instanceIds.length === 0) return []
+
   const { data } = await service
     .from('agent_instances')
     .select('id, display_name, status, created_at, agents!inner(name, slug, category, tagline, icon_url)')
     .eq('user_id', userId)
+    .in('id', instanceIds)
     .not('status', 'eq', 'destroyed')
     .order('created_at', { ascending: false })
   return data ?? []
