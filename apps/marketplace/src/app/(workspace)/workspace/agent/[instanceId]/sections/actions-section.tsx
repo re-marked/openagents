@@ -141,7 +141,7 @@ export function ActionsSection({
       <div>
         <h2 className="text-lg font-semibold tracking-tight">Actions</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Control your agent&apos;s machine and manage settings.
+          Control your agent's machine and manage settings.
         </p>
       </div>
 

@@ -142,7 +142,7 @@ export function MemorySection({ instanceId }: MemorySectionProps) {
       <div className="shrink-0">
         <h2 className="text-lg font-semibold tracking-tight">Memory</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Manage your agent&apos;s long-term memory and auto-generated notes.
+          Manage your agent's long-term memory and auto-generated notes.
         </p>
       </div>
 

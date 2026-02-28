@@ -181,7 +181,7 @@ export function SkillsSection({ instanceId }: SkillsSectionProps) {
       <div>
         <h2 className="text-lg font-semibold tracking-tight">Skills</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Manage your Agent&apos;s skills. <strong>Each skill is a Markdown file with instructions that teach the Agent to use new tools and extend it&apos;s capabilities.</strong>
+          Manage your Agent's skills. <strong>Each skill is a Markdown file with instructions that teach the Agent new tools and extend its capabilities.</strong>
         </p>
       </div>
 

@@ -94,7 +94,7 @@ export function PersonalitySection({ instanceId }: PersonalitySectionProps) {
       <div className="shrink-0">
         <h2 className="text-lg font-semibold tracking-tight">Soul</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Edit your Agent&apos;s soul document. <strong>The soul document defines the Agent&apos;s personality, background, typical behavior and whatever makes the Agent unique.</strong>.
+          Edit your Agent's soul document. <strong>The soul document defines the Agent's personality, background, typical behavior and whatever makes the Agent unique.</strong>
         </p>
       </div>
 
