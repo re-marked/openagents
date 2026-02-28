@@ -206,7 +206,8 @@ export function UsageSection({ instanceId }: { instanceId: string }) {
                 stroke="hsl(var(--primary))"
                 fill="url(#creditsGrad)"
                 strokeWidth={2}
-                isAnimationActive={false}
+                animationDuration={800}
+                animationEasing="ease-out"
               />
             </AreaChart>
           </ChartContainer>

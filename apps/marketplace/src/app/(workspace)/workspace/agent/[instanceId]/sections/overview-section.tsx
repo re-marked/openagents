@@ -426,7 +426,8 @@ function SparklineCard({
                 dataKey={dataKey}
                 fill={`var(--color-${dataKey})`}
                 radius={[3, 3, 0, 0]}
-                isAnimationActive={false}
+                animationDuration={800}
+                animationEasing="ease-out"
               />
             </BarChart>
           </ChartContainer>
