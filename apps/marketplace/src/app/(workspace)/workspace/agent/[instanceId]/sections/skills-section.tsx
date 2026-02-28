@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Loader2, Plus, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { MarkdownEditor } from '@/components/markdown-editor'
 
 const SKILLS_DIR = '/data/workspace/skills'
 
@@ -214,17 +215,17 @@ export function SkillsSection({ instanceId }: SkillsSectionProps) {
 
                 {isExpanded && (
                   <div className="border-t border-border/40 p-4 space-y-3">
-                    <textarea
-                      value={displayContent}
-                      onChange={(e) =>
-                        setEditingContent((prev) => ({
-                          ...prev,
-                          [skill.name]: e.target.value,
-                        }))
-                      }
-                      className="w-full h-[280px] rounded-lg border border-border/40 bg-background px-3 py-2 text-sm font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-none"
-                      spellCheck={false}
-                    />
+                    <div className="h-[280px] rounded-lg border border-border/40 overflow-hidden">
+                      <MarkdownEditor
+                        value={displayContent}
+                        onChange={(v) =>
+                          setEditingContent((prev) => ({
+                            ...prev,
+                            [skill.name]: v,
+                          }))
+                        }
+                      />
+                    </div>
                     <div className="flex items-center gap-2">
                       {isEditing && (
                         <Button

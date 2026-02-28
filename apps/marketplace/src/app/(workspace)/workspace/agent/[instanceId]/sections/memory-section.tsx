@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Loader2, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { MarkdownEditor } from '@/components/markdown-editor'
 
 const MEMORY_MD_PATH = '/data/workspace/MEMORY.md'
 const MEMORY_DIR = '/data/memory'
@@ -174,17 +175,8 @@ export function MemorySection({ instanceId }: MemorySectionProps) {
           <p className="shrink-0 text-xs text-muted-foreground">
             Facts and context your agent remembers across conversations.
           </p>
-          <div className="flex-1 min-h-0 rounded-xl border border-border/40 bg-card/50 overflow-hidden">
-            <ScrollArea className="h-full">
-              <textarea
-                value={memoryMd}
-                onChange={(e) => setMemoryMd(e.target.value)}
-                placeholder="Add facts, context, and instructions your agent should remember..."
-                className="w-full border-none bg-transparent px-4 py-3 text-sm font-mono text-foreground placeholder:text-muted-foreground/50 focus:outline-none resize-none"
-                style={{ fieldSizing: 'content' } as React.CSSProperties}
-                spellCheck={false}
-              />
-            </ScrollArea>
+          <div className="flex-1 min-h-0 rounded-xl border border-border/40 overflow-hidden">
+            <MarkdownEditor value={memoryMd} onChange={setMemoryMd} />
           </div>
           <div className="shrink-0 flex items-center gap-3">
             <Button size="sm" onClick={handleSaveMemoryMd} disabled={!hasChanges || saving}>
