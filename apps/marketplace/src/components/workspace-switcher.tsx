@@ -106,7 +106,7 @@ export function WorkspaceSwitcher({ projects, activeProjectId, userEmail }: Work
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="min-w-[300px] rounded-xl border-white/[0.08] bg-popover p-0 shadow-2xl"
+            className="min-w-[300px] rounded-xl border-white/[0.08] bg-popover p-0 shadow-2xl data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 duration-200"
             align="start"
             sideOffset={8}
           >
