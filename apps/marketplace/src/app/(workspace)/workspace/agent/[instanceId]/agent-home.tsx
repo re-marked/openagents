@@ -100,6 +100,7 @@ export function AgentHomePage(props: AgentHomeProps) {
             status={status}
             currentName={currentName}
             onNameChange={setCurrentName}
+            onNavigate={(s) => setActiveSection(s as Section)}
           />
         )
       case 'config':

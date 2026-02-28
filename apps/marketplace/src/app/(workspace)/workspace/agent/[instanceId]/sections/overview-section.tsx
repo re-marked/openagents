@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import {
   MessageSquare,
   Power,
@@ -110,6 +109,7 @@ interface OverviewSectionProps {
   agentIconUrl: string | null
   createdAt: string
   onNameChange: (name: string) => void
+  onNavigate?: (section: string) => void
 }
 
 export function OverviewSection({
@@ -121,6 +121,7 @@ export function OverviewSection({
   agentTagline,
   agentIconUrl,
   createdAt,
+  onNavigate,
 }: OverviewSectionProps) {
   const router = useRouter()
   const [waking, setWaking] = useState(false)
@@ -286,8 +287,13 @@ export function OverviewSection({
             data={sliced}
             dataKey="cost"
             headerAction={
-              <Button variant="ghost" size="sm" className="h-6 px-2 text-[11px]" asChild>
-                <Link href="/workspace/usage">Full Breakdown →</Link>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-[11px]"
+                onClick={() => onNavigate?.('usage')}
+              >
+                Full Breakdown →
               </Button>
             }
           />
