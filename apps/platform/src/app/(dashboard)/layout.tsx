@@ -24,6 +24,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const agents = (agentRows ?? []).map((a) => ({
     id: a.id,
+    slug: a.slug,
     name: a.name,
     category: a.category ?? 'productivity',
     status: 'published',

@@ -23,6 +23,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
 interface AgentInfo {
   id: string
+  slug: string
   name: string
   category: string
   status: string
@@ -64,7 +65,7 @@ export function PlatformSidebar({
             <SidebarMenu>
               {agents.map((agent) => {
                 const bg = CATEGORY_COLOR[agent.category] ?? "bg-zinc-500"
-                const href = `/agents/${agent.id}`
+                const href = `/agents/${agent.slug}`
                 const isActive = pathname === href || pathname.startsWith(href + '/')
 
                 return (

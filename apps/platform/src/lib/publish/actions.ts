@@ -2,7 +2,8 @@
 
 import { createServiceClient } from '@agentbay/db/server'
 import { getUser } from '@/lib/auth/get-user'
-import { validateAgentBayYaml } from './validate'
+import { validateAgentBayYaml, scanForSecrets } from './validate'
+import { agentUpdateSchema } from './schema'
 
 interface PublishParams {
   repoFullName: string
@@ -11,9 +12,18 @@ interface PublishParams {
   readmeContent: string
 }
 
-export async function publishAgent({ repoFullName, yamlContent }: PublishParams) {
+export async function publishAgent({ repoFullName, yamlContent, readmeContent }: PublishParams) {
   const user = await getUser()
   if (!user) throw new Error('Not authenticated')
+
+  // Server-side secret scanning
+  const secrets = [
+    ...scanForSecrets(yamlContent),
+    ...scanForSecrets(readmeContent),
+  ]
+  if (secrets.length > 0) {
+    return { error: `Security check failed: ${secrets.join('; ')}` }
+  }
 
   // Validate YAML
   const validation = validateAgentBayYaml(yamlContent)
@@ -82,7 +92,7 @@ export async function publishAgent({ repoFullName, yamlContent }: PublishParams)
   return { success: true, agentId, slug: config.slug }
 }
 
-export async function unpublishAgent(agentId: string) {
+export async function unpublishAgent(slug: string) {
   const user = await getUser()
   if (!user) throw new Error('Not authenticated')
 
@@ -90,8 +100,119 @@ export async function unpublishAgent(agentId: string) {
   const { error } = await service
     .from('agents')
     .update({ status: 'draft', published_at: null })
-    .eq('id', agentId)
+    .eq('slug', slug)
     .eq('creator_id', user.id)
+
+  if (error) return { error: error.message }
+  return { success: true }
+}
+
+export async function republishAgent(slug: string) {
+  const user = await getUser()
+  if (!user) throw new Error('Not authenticated')
+
+  const service = createServiceClient()
+  const { error } = await service
+    .from('agents')
+    .update({ status: 'published', published_at: new Date().toISOString() })
+    .eq('slug', slug)
+    .eq('creator_id', user.id)
+
+  if (error) return { error: error.message }
+  return { success: true }
+}
+
+export async function updateAgent(slug: string, updates: unknown) {
+  const user = await getUser()
+  if (!user) throw new Error('Not authenticated')
+
+  const parsed = agentUpdateSchema.safeParse(updates)
+  if (!parsed.success) {
+    return {
+      error: `Invalid fields: ${parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join(', ')}`,
+    }
+  }
+
+  const service = createServiceClient()
+
+  const dbUpdates: Record<string, unknown> = {}
+  if (parsed.data.tagline !== undefined) dbUpdates.tagline = parsed.data.tagline
+  if (parsed.data.description !== undefined) dbUpdates.description = parsed.data.description
+  if (parsed.data.category !== undefined) dbUpdates.category = parsed.data.category
+  if (parsed.data.tags !== undefined) dbUpdates.tags = parsed.data.tags
+  if (parsed.data.icon !== undefined) dbUpdates.icon_url = parsed.data.icon
+
+  if (Object.keys(dbUpdates).length === 0) {
+    return { error: 'No valid fields to update' }
+  }
+
+  const { data, error } = await service
+    .from('agents')
+    .update(dbUpdates)
+    .eq('slug', slug)
+    .eq('creator_id', user.id)
+    .select('id, slug, name')
+    .single()
+
+  if (error || !data) return { error: 'Agent not found or update failed' }
+  return { success: true, agent: data }
+}
+
+export async function createPublishToken(name: string) {
+  const user = await getUser()
+  if (!user) throw new Error('Not authenticated')
+
+  // Generate 32 random hex chars
+  const bytes = new Uint8Array(16)
+  crypto.getRandomValues(bytes)
+  const hex = Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+
+  const token = `ab_pub_${hex}`
+  const tokenPrefix = `ab_pub_${hex.slice(0, 4)}...`
+
+  // SHA-256 hash
+  const encoder = new TextEncoder()
+  const data = encoder.encode(token)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  const tokenHash = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
+
+  const service = createServiceClient()
+  const { data: row, error } = await service
+    .from('publish_tokens')
+    .insert({
+      user_id: user.id,
+      name: name.trim() || 'default',
+      token_hash: tokenHash,
+      token_prefix: tokenPrefix,
+    })
+    .select('id, name, token_prefix, created_at')
+    .single()
+
+  if (error) return { error: error.message }
+
+  return {
+    success: true,
+    id: row.id,
+    name: row.name,
+    token,
+    token_prefix: row.token_prefix,
+    created_at: row.created_at,
+  }
+}
+
+export async function revokePublishToken(tokenId: string) {
+  const user = await getUser()
+  if (!user) throw new Error('Not authenticated')
+
+  const service = createServiceClient()
+  const { error } = await service
+    .from('publish_tokens')
+    .delete()
+    .eq('id', tokenId)
+    .eq('user_id', user.id)
 
   if (error) return { error: error.message }
   return { success: true }

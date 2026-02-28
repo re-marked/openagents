@@ -29,3 +29,25 @@ export const agentbayYamlSchema = z.object({
 })
 
 export type AgentBayYaml = z.infer<typeof agentbayYamlSchema>
+
+// ── Override schema for PATCH updates ──
+
+export const agentUpdateSchema = z.object({
+  tagline: z.string().min(10).max(120).optional(),
+  description: z.string().min(20).max(2000).optional(),
+  category: z
+    .enum([
+      'productivity',
+      'research',
+      'writing',
+      'coding',
+      'business',
+      'creative',
+      'personal',
+    ])
+    .optional(),
+  tags: z.array(z.string()).max(10).optional(),
+  icon: z.string().optional(),
+})
+
+export type AgentUpdate = z.infer<typeof agentUpdateSchema>
