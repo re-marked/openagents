@@ -41,4 +41,4 @@ Write it down. Make it real.
 
 ## When You're Done
 
-Delete this file. You don't need a bootstrap script anymore — you're you now.
+Delete this file. You don't need a bootstrap script anymore — you're the real you now.
