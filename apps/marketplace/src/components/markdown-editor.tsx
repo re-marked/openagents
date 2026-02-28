@@ -19,9 +19,9 @@ export function MarkdownEditor({ value, onChange }: MarkdownEditorProps) {
       inherit: true,
       rules: [
         { token: 'keyword.md', foreground: 'e5a84b' },           // headings — warm amber
-        { token: 'string.link.md', foreground: 'c8962a' },        // link URLs — amber accent
-        { token: 'markup.underline.link.md', foreground: 'c8962a' },
-        { token: 'string.md', foreground: 'c8962a' },
+        { token: 'string.link.md', foreground: '4e9aea' },        // link URLs — accent blue
+        { token: 'markup.underline.link.md', foreground: '4e9aea' },
+        { token: 'string.md', foreground: '4e9aea' },
         { token: 'markup.bold.md', foreground: 'f0e6d3', fontStyle: 'bold' },
         { token: 'markup.italic.md', foreground: 'ddd0c0', fontStyle: 'italic' },
         { token: 'variable.md', foreground: '6ec87a' },           // code spans — green
@@ -38,7 +38,7 @@ export function MarkdownEditor({ value, onChange }: MarkdownEditorProps) {
         'editorLineNumber.foreground': '#5c5550',
         'editorLineNumber.activeForeground': '#9a9088',
         'editor.inactiveSelectionBackground': '#252220',
-        'editorCursor.foreground': '#d4952a',
+        'editorCursor.foreground': '#4e9aea',
         'editorIndentGuide.background': '#2a2826',
         'editorWidget.background': '#1a1918',
         'editorWidget.border': '#2e2c2a',

@@ -40,7 +40,7 @@ interface FileData {
 
 // ── Constants ────────────────────────────────────────────────────────────
 
-const NODE_COLOR_ROOT = 'hsl(36, 90%, 54%)'
+const NODE_COLOR_ROOT = 'hsl(215, 90%, 58%)'
 const NODE_COLOR_DEFAULT = 'hsl(160, 60%, 45%)'
 const EDGE_COLOR = 'hsl(0, 0%, 30%)'
 const LABEL_COLOR = 'hsl(0, 0%, 70%)'
