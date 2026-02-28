@@ -285,10 +285,10 @@ export function OverviewSection({
             chartConfig={costChartConfig}
             data={sliced}
             dataKey="cost"
-            footer={
+            headerAction={
               <Link
                 href="/workspace/usage"
-                className="text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+                className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground transition-colors"
               >
                 Full Breakdown →
               </Link>
@@ -378,7 +378,7 @@ function SparklineCard({
   chartConfig,
   data,
   dataKey,
-  footer,
+  headerAction,
 }: {
   icon: typeof Clock
   value: string
@@ -387,7 +387,7 @@ function SparklineCard({
   chartConfig: ChartConfig
   data: TimeSeriesEntry[]
   dataKey: string
-  footer?: React.ReactNode
+  headerAction?: React.ReactNode
 }) {
   const hasData = data.some((d) => d[dataKey as keyof TimeSeriesEntry] as number > 0)
 
@@ -399,6 +399,7 @@ function SparklineCard({
         {unit && (
           <span className="text-sm text-muted-foreground/60 font-medium self-end mb-0.5">{unit}</span>
         )}
+        {headerAction && <div className="ml-auto">{headerAction}</div>}
       </div>
 
       {/* Sparkline with tooltip */}
@@ -433,10 +434,7 @@ function SparklineCard({
         )}
       </div>
 
-      <div className="flex items-center justify-between mt-2">
-        <p className="text-sm text-muted-foreground">{label}</p>
-        {footer}
-      </div>
+      <p className="text-sm text-muted-foreground mt-2">{label}</p>
     </div>
   )
 }
