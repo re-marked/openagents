@@ -328,13 +328,30 @@ export async function GET(request: Request) {
         daySessions.reduce((sum, s) => sum + (s.compute_seconds ?? 0), 0) / 60
       )
 
-      // TODO: Replace with real credit usage from usage_events/credit_transactions
-      const dayCost = 0
+      let dayCost = 0
+      if (daySessions.length > 0) {
+        const daySessionIds = daySessions.map(s => s.id)
+        const { data: usageData } = await service
+          .from('usage_events')
+          .select('credits_consumed')
+          .eq('instance_id', instanceId)
+          .in('session_id', daySessionIds)
+        dayCost = (usageData ?? []).reduce((sum, e) => sum + (e.credits_consumed ?? 0), 0)
+        dayCost = Math.round(dayCost * 10) / 10
+      }
 
       timeSeries.push({ date: dateStr, messages: dayMessages, minutes: dayMinutes, cost: dayCost })
     }
 
-    const totalCost = timeSeries.reduce((sum, d) => sum + d.cost, 0)
+    // Aggregate total cost from usage_events (more accurate than summing time series)
+    const { data: totalUsage } = await service
+      .from('usage_events')
+      .select('credits_consumed')
+      .eq('instance_id', instanceId)
+      .eq('user_id', user.id)
+    const totalCost = Math.round(
+      ((totalUsage ?? []).reduce((sum, e) => sum + (e.credits_consumed ?? 0), 0)) * 10
+    ) / 10
 
     const response: StatsResponse = {
       relationship: {
