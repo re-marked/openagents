@@ -32,7 +32,7 @@ export function DiscordChatInput({
         ref={textareaRef}
         placeholder="Message #team-chat"
         onKeyDown={handleKeyDown}
-        className="bg-muted/50 border-muted-foreground/20 min-h-14 max-h-40 resize-none rounded-lg text-sm focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-muted-foreground/30"
+        className="bg-muted/50 border-muted-foreground/20 min-h-14 max-h-40 resize-none rounded-lg text-base focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-muted-foreground/30"
         rows={1}
       />
     </div>

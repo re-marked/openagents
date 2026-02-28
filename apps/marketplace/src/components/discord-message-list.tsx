@@ -115,7 +115,7 @@ function ThreadView({ thread }: { thread: Thread }) {
                 <span className={`text-xs font-semibold ${colors.text} capitalize`}>
                   {msg.agent}
                 </span>
-                <MarkdownContent content={msg.content} className="text-foreground/90 text-[15px] break-words" />
+                <MarkdownContent content={msg.content} className="text-foreground/90 text-base break-words" />
               </div>
             </div>
           )
@@ -181,7 +181,7 @@ function MessageGroupView({ group, agentName, botBg, botText }: { group: Message
             {msg.toolUses && msg.toolUses.length > 0 && (
               <ToolUseBlockList toolUses={msg.toolUses} />
             )}
-            <MarkdownContent content={msg.content} className="text-foreground/90 text-[15px] break-words" />
+            <MarkdownContent content={msg.content} className="text-foreground/90 text-base break-words" />
             {msg.thread && <ThreadView thread={msg.thread} />}
           </div>
         ))}
