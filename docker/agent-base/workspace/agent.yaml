@@ -1,0 +1,127 @@
+# ╔══════════════════════════════════════════════════════════════════╗
+# ║  agent.yaml — OpenClaw Runtime Configuration                    ║
+# ║                                                                  ║
+# ║  This file controls how the agent runs inside its container.     ║
+# ║  The entrypoint reads it on first boot to generate openclaw.json ║
+# ║  Env var overrides (AGENT_OPENCLAW_OVERRIDES) take priority.     ║
+# ╚══════════════════════════════════════════════════════════════════╝
+
+# ── Identity ──────────────────────────────────────────────────────
+# Workspace files that shape the agent's personality and behavior.
+# Paths are relative to the workspace directory (/data/workspace/).
+
+name: "Personal AI"
+
+soul: SOUL.md                   # Core personality and values
+brain: BRAIN.md                 # Memory system instructions (knowledge graph)
+bootstrap: BOOTSTRAP.md         # First-session onboarding (auto-deleted after use)
+identity: IDENTITY.md           # Concrete behavioral field manual
+
+# ── Knowledge & Memory ────────────────────────────────────────────
+# Controls how the agent stores and retrieves long-term knowledge.
+
+memory:
+  dir: memory/                  # Knowledge graph directory (relative to workspace)
+  mode: persistent              # persistent — survives restarts
+                                # ephemeral  — cleared on restart
+                                # off        — no memory at all
+  compaction: safeguard         # safeguard  — compress old context, keep safety margin
+                                # aggressive — compress aggressively to save tokens
+                                # off        — never compress
+
+# ── Skills ────────────────────────────────────────────────────────
+# Skills are composable tools/prompts the agent can use.
+
+skills:
+  dir: skills/                  # Local skills directory
+  bundled: []                   # Allowed bundled OpenClaw skills (empty = none)
+                                # Example: ["web-search", "code-interpreter"]
+  install:
+    nodeManager: pnpm           # Package manager for skill dependencies
+
+# ── Model ─────────────────────────────────────────────────────────
+# LLM configuration. The platform injects API keys at boot —
+# you just declare which models to use.
+
+model:
+  primary: "google/gemini-2.5-flash"            # Default model for all tasks
+  fallback: "anthropic/claude-sonnet-4-20250514" # Used when primary is unavailable
+  aliases:                                       # Shorthand names for quick switching
+    fast: "google/gemini-2.0-flash-lite"
+    smart: "anthropic/claude-sonnet-4-20250514"
+
+# ── Tools ─────────────────────────────────────────────────────────
+# What the agent is allowed to do.
+
+tools:
+  profile: coding               # coding   — full dev toolset
+                                # general  — balanced everyday tools
+                                # research — read-heavy, limited writes
+                                # creative — writing-focused tools
+  allow:                        # Explicitly allowed tools
+    - exec                      # Run shell commands
+    - web_search                # Search the web
+    - read                      # Read files
+    - write                     # Write files
+    - edit                      # Edit files
+    - apply_patch               # Apply diffs
+  deny:                         # Explicitly denied tools
+    - browser                   # No headless browser
+    - gateway                   # No gateway management
+    - cron                      # No scheduled tasks
+  elevated: true                # Allow elevated (sudo-like) tool permissions
+
+# ── Sandbox ───────────────────────────────────────────────────────
+# Code execution sandboxing. Must be "off" on Fly.io (no Docker-in-Docker).
+
+sandbox: "off"                  # off         — no sandboxing (Fly.io default)
+                                # docker      — Docker sandbox (requires DinD)
+                                # firecracker — Firecracker microVM
+
+# ── Runtime ───────────────────────────────────────────────────────
+# Performance and concurrency tuning.
+
+runtime:
+  maxConcurrent: 4              # Max parallel tool executions
+  subagents:
+    maxConcurrent: 8            # Max parallel sub-agent tasks
+  verbose: full                 # full    — detailed reasoning in logs
+                                # minimal — condensed output
+                                # off     — silent
+  blockStreaming: true          # true  — wait for full response before streaming
+                                # false — stream tokens as they arrive
+
+# ── Auth Providers ────────────────────────────────────────────────
+# Declare which API keys this agent needs. The platform looks up the
+# user's keys from the database and injects them as env vars at boot.
+# NEVER put actual keys here — just declare requirements.
+
+providers:
+  - google                      # → GEMINI_API_KEY
+  - anthropic                   # → ANTHROPIC_API_KEY
+  - openai                      # → OPENAI_API_KEY
+
+# ── Gateway ───────────────────────────────────────────────────────
+# HTTP gateway settings. The SSE gateway connects to this endpoint.
+
+gateway:
+  port: 18789                   # Listen port (must match Fly.io service config)
+  bind: lan                     # lan      — 0.0.0.0 (required for containers)
+                                # loopback — 127.0.0.1 (local dev only)
+                                # auto     — let OpenClaw decide
+  auth: token                   # token — require OPENCLAW_GATEWAY_TOKEN
+                                # none  — no auth (NOT recommended)
+  http:
+    chatCompletions: true       # Enable /v1/chat/completions endpoint
+    responses: true             # Enable /v1/responses endpoint
+  trustedProxies:               # CIDRs for Fly.io internal networking
+    - "172.16.0.0/12"
+    - "fdaa::/16"
+
+# ── Hooks ─────────────────────────────────────────────────────────
+# Internal OpenClaw hooks that run automatically.
+
+hooks:
+  bootMd: true                  # Load boot markdown on startup
+  commandLogger: true           # Log all tool/command invocations
+  sessionMemory: true           # Persist memory between sessions

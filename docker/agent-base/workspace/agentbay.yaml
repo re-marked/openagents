@@ -1,0 +1,101 @@
+# ╔══════════════════════════════════════════════════════════════════╗
+# ║  agentbay.yaml — Marketplace Listing Configuration               ║
+# ║                                                                   ║
+# ║  This file controls how your agent appears on AgentBay.           ║
+# ║  The publish API reads and validates it when you push to GitHub.  ║
+# ║  It does NOT affect runtime behavior — that's agent.yaml.         ║
+# ╚══════════════════════════════════════════════════════════════════╝
+
+# ── Required ──────────────────────────────────────────────────────
+# These fields must be present or publishing will fail.
+
+name: "Personal AI"                   # Display name on the marketplace (2–50 chars)
+slug: "personal-ai"                   # URL-safe identifier (lowercase, hyphens, 2–60 chars)
+                                      # → agentbay.cc/agents/personal-ai
+tagline: >-                           # One-liner shown on cards (10–120 chars)
+  A self-aware personal agent that learns, remembers, and grows with you
+description: |                        # Full description shown on detail page (20–2000 chars)
+  A personal AI companion with genuine personality, persistent memory, and
+  multi-agent teamwork. It maintains a knowledge graph brain across sessions,
+  develops its own identity through conversation, and coordinates with
+  specialist agents (@researcher, @coder, @analyst, @writer) to handle
+  complex tasks. Not a generic chatbot — an entity that becomes more
+  useful the longer you work together.
+category: personal                    # One of:
+                                      #   productivity — task management, scheduling, automation
+                                      #   research     — information gathering, analysis, citations
+                                      #   writing      — content creation, editing, copywriting
+                                      #   coding       — development, debugging, code review
+                                      #   business     — strategy, finance, operations
+                                      #   creative     — design, art, brainstorming
+                                      #   personal     — general assistant, companion, coaching
+
+# ── Pricing ───────────────────────────────────────────────────────
+# How users pay for this agent.
+
+pricing:
+  model: per_session                  # per_session — charge per chat session
+                                      # per_task    — charge per completed task
+                                      # free        — no charge
+  credits: 5                          # Credits charged per session (null for free agents)
+
+# ── Identity ──────────────────────────────────────────────────────
+
+version: "1.0.0"                      # Semver — increment on updates
+icon: "🧠"                            # Emoji or URL to icon image
+                                      # Examples: "🔬", "https://example.com/icon.png"
+author:                               # Creator info (optional — auto-filled from GitHub profile)
+  name: "AgentBay Team"
+  url: "https://github.com/re-marked"
+
+# ── Marketplace Display ───────────────────────────────────────────
+# These enhance your listing and help users find your agent.
+
+capabilities:                         # Up to 10 bullet points (shown on detail page)
+  - "Persistent memory across sessions via knowledge graph"
+  - "Self-evolving personality and identity"
+  - "Multi-agent teamwork with @mention coordination"
+  - "Daily notes, micro-notes, and decision logging"
+  - "Platform-aware formatting (Discord, WhatsApp, web)"
+
+tags:                                 # Up to 10 searchable tags
+  - "personal"
+  - "memory"
+  - "multi-agent"
+  - "companion"
+  - "knowledge-graph"
+
+screenshots:                          # Screenshots shown on detail page
+  - path: "screenshots/chat.png"      # Path relative to repo root
+    caption: "Conversation with memory recall"
+  - path: "screenshots/brain.png"
+    caption: "Knowledge graph visualization"
+
+# ── Runtime Requirements ──────────────────────────────────────────
+# Tells the platform what this agent needs to run.
+
+models:
+  primary: "google/gemini-2.5-flash"         # Recommended model
+  minimum: "google/gemini-2.0-flash-lite"    # Cheapest model that still works
+
+relays:                               # Supported messaging platforms
+  - telegram
+  - discord
+  - whatsapp
+  - slack
+
+# ── Infrastructure ────────────────────────────────────────────────
+# Optional. The platform has sensible defaults for all of these.
+# Only override if your agent has specific resource requirements.
+
+infra:
+  machine: shared-cpu-2x              # Fly.io machine size
+                                      # Options: shared-cpu-1x, shared-cpu-2x,
+                                      #          shared-cpu-4x, performance-1x
+  memoryMb: 2048                      # Minimum RAM in MB (min: 2048)
+  volumeGb: 1                         # Persistent storage in GB (1–10)
+  region: iad                         # Preferred region or "auto"
+                                      # Common: iad (Virginia), lax (LA), ams (Amsterdam)
+  # docker:                           # Custom Docker image (advanced creators only)
+  #   image: "registry.fly.io/my-custom-agent"
+  #   tag: "v1.2.0"

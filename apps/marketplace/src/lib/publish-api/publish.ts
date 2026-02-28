@@ -2,9 +2,11 @@ import { createServiceClient } from '@agentbay/db/server'
 import { fetchRepoFile, validateRepoFiles } from './github'
 import {
   validateAgentBayYaml,
+  validateAgentYaml,
   scanForSecrets,
   agentUpdateSchema,
   type AgentBayYaml,
+  type AgentYaml,
   type AgentUpdate,
 } from './schema'
 
@@ -48,16 +50,18 @@ export async function publishAgentFromRepo(
     )
   }
 
-  // 2. Fetch agentbay.yaml and README.md
+  // 2. Fetch agentbay.yaml, agent.yaml, and README.md
   const ref = fileCheck.branch
-  const [yamlContent, readmeContent] = await Promise.all([
+  const [yamlContent, agentYamlContent, readmeContent] = await Promise.all([
     fetchRepoFile(repo, 'agentbay.yaml', ref, githubToken),
+    fetchRepoFile(repo, 'agent.yaml', ref, githubToken),
     fetchRepoFile(repo, 'README.md', ref, githubToken),
   ])
 
   // 3. Scan for secrets
   const secrets = [
     ...scanForSecrets(yamlContent),
+    ...scanForSecrets(agentYamlContent),
     ...scanForSecrets(readmeContent),
   ]
   if (secrets.length > 0) {
@@ -67,7 +71,7 @@ export async function publishAgentFromRepo(
     )
   }
 
-  // 4. Validate YAML schema
+  // 4. Validate agentbay.yaml schema
   const validation = validateAgentBayYaml(yamlContent)
   if (!validation.valid || !validation.parsed) {
     throw new PublishError(
@@ -76,7 +80,19 @@ export async function publishAgentFromRepo(
     )
   }
 
+  // 4b. Validate agent.yaml schema
+  const agentValidation = validateAgentYaml(agentYamlContent)
+  if (!agentValidation.valid || !agentValidation.parsed) {
+    throw new PublishError(
+      `Invalid agent.yaml: ${agentValidation.errors.join(', ')}`,
+      422
+    )
+  }
+
   const config = validation.parsed
+  // agentConfig is validated but not used server-side yet —
+  // it's parsed by the Docker entrypoint at runtime
+  void agentValidation.parsed
 
   // 5. Apply overrides
   if (overrides) {
@@ -119,6 +135,11 @@ export async function publishAgentFromRepo(
         ]
       : [],
     supported_relays: config.relays ?? [],
+    fly_machine_size: config.infra?.machine ?? 'shared-cpu-2x',
+    fly_machine_memory_mb: config.infra?.memoryMb ?? 2048,
+    docker_image: config.infra?.docker
+      ? `${config.infra.docker.image}:${config.infra.docker.tag ?? 'latest'}`
+      : null,
     status: 'published' as const,
     published_at: new Date().toISOString(),
   }
@@ -183,15 +204,11 @@ export async function previewAgentFromRepo(input: {
   const ref = fileCheck.branch
 
   let metadata: AgentBayYaml | null = null
+  let agentConfig: AgentYaml | null = null
   let errors: string[] = []
 
   if (fileCheck.files.find((f) => f.path === 'agentbay.yaml')?.found) {
-    const yamlContent = await fetchRepoFile(
-      repo,
-      'agentbay.yaml',
-      ref,
-      githubToken
-    )
+    const yamlContent = await fetchRepoFile(repo, 'agentbay.yaml', ref, githubToken)
     const validation = validateAgentBayYaml(yamlContent)
     metadata = validation.parsed
     errors = validation.errors
@@ -199,7 +216,16 @@ export async function previewAgentFromRepo(input: {
     errors.push('agentbay.yaml not found')
   }
 
-  return { files: fileCheck.files, metadata, errors, branch: ref }
+  if (fileCheck.files.find((f) => f.path === 'agent.yaml')?.found) {
+    const agentYamlContent = await fetchRepoFile(repo, 'agent.yaml', ref, githubToken)
+    const agentValidation = validateAgentYaml(agentYamlContent)
+    agentConfig = agentValidation.parsed
+    errors.push(...agentValidation.errors)
+  } else {
+    errors.push('agent.yaml not found')
+  }
+
+  return { files: fileCheck.files, metadata, agentConfig, errors, branch: ref }
 }
 
 // ── List ──
