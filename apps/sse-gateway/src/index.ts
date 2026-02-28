@@ -256,6 +256,7 @@ app.post('/v1/chat', async (c) => {
 
           // Track chat content parts to detect tool calls embedded in message
           let lastSeenPartsCount = 0
+          let hadToolOutput = false
 
           const onTimeout = () => {
             console.error('[chat] Turn timed out — no agent response received')
@@ -346,6 +347,7 @@ app.post('/v1/chat', async (c) => {
                     deltaBuffer = ''
                   }
                   resetTurnTimer()
+                  hadToolOutput = true
 
                   // Normalize OpenClaw tool event to consistent shape for frontend
                   // OpenClaw sends: { phase, name, toolCallId, args, result }
@@ -382,6 +384,12 @@ app.post('/v1/chat', async (c) => {
                   if (deltaBuffer) {
                     await emitDone(deltaBuffer)
                     finalize(deltaBuffer)
+                    return
+                  }
+                  // Tool-only turns (e.g. file edits with no text reply) are valid
+                  if (hadToolOutput) {
+                    await emitDone('')
+                    finalize(null)
                     return
                   }
                   await stream.writeSSE({
@@ -421,6 +429,7 @@ app.post('/v1/chat', async (c) => {
                     }
 
                     // Emit as a tool event
+                    hadToolOutput = true
                     const isResult = part.type === 'tool_result' || part.type === 'tool-result'
                     await stream.writeSSE({
                       event: 'tool',
