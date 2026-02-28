@@ -96,11 +96,24 @@ export function HiredAgentGrid({ agents }: HiredAgentGridProps) {
                 </Button>
               )}
               {agent.status === 'error' && (
-                <Alert variant="destructive" className="border-0 bg-status-error/10 py-2">
-                  <AlertDescription className="text-center text-status-error text-sm">
-                    Setup failed — remove from Agent Config
-                  </AlertDescription>
-                </Alert>
+                <div className="space-y-2">
+                  <Alert variant="destructive" className="border-0 bg-status-error/10 py-2">
+                    <AlertDescription className="text-center text-status-error text-sm">
+                      Setup failed — remove from Agent Config
+                    </AlertDescription>
+                  </Alert>
+                  <Button
+                    variant="secondary"
+                    asChild
+                    className="w-full"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Link href={homePath}>
+                      <Settings className="size-4 mr-2" />
+                      Agent Config
+                    </Link>
+                  </Button>
+                </div>
               )}
             </CardContent>
           </Card>
