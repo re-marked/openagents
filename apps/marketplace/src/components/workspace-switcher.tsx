@@ -92,45 +92,55 @@ export function WorkspaceSwitcher({ projects, activeProjectId }: WorkspaceSwitch
       <SidebarMenuItem>
         <DropdownMenu onOpenChange={(open) => { if (!open) setCreating(false) }}>
           <DropdownMenuTrigger asChild>
-            <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent">
-              <div className={`flex aspect-square size-8 items-center justify-center rounded-lg text-white ${getProjectColor(activeIndex)}`}>
+            <SidebarMenuButton size="lg" className="transition-colors data-[state=open]:bg-sidebar-accent">
+              <div className={`flex aspect-square size-8 items-center justify-center rounded-lg text-white shadow-sm ${getProjectColor(activeIndex)}`}>
                 <FolderKanban className="size-4" />
               </div>
               <div className="flex flex-1 flex-col gap-0.5 leading-none">
                 <span className="font-medium truncate">{active.name}</span>
                 {active.description && (
-                  <span className="text-xs text-sidebar-foreground/50 truncate">{active.description}</span>
+                  <span className="text-[11px] text-sidebar-foreground/40 truncate">{active.description}</span>
                 )}
               </div>
-              <ChevronsUpDown className="ml-auto size-4 text-sidebar-foreground/50" />
+              <ChevronsUpDown className="ml-auto size-4 text-sidebar-foreground/30" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]" align="start">
-            <DropdownMenuLabel>Projects</DropdownMenuLabel>
-            <DropdownMenuSeparator />
+          <DropdownMenuContent
+            className="min-w-[280px] rounded-xl border-white/[0.08] bg-popover/95 p-1.5 shadow-2xl backdrop-blur-xl"
+            align="start"
+            sideOffset={8}
+          >
+            <DropdownMenuLabel className="px-2 pb-1.5 text-[11px] uppercase tracking-widest text-muted-foreground/60">
+              Projects
+            </DropdownMenuLabel>
             {projects.map((project, i) => (
               <DropdownMenuItem
                 key={project.id}
                 onClick={() => switchProject(project.id)}
-                className="gap-2.5"
+                className="gap-3 rounded-lg px-2.5 py-2.5"
               >
-                <div className={`flex aspect-square size-6 items-center justify-center rounded text-white text-xs ${getProjectColor(i)}`}>
-                  <FolderKanban className="size-3" />
+                <div className={`flex aspect-square size-7 items-center justify-center rounded-md text-white ${getProjectColor(i)}`}>
+                  <FolderKanban className="size-3.5" />
                 </div>
-                <span className="truncate">{project.name}</span>
+                <div className="flex flex-1 flex-col">
+                  <span className="text-sm font-medium">{project.name}</span>
+                  {project.description && (
+                    <span className="text-[11px] text-muted-foreground">{project.description}</span>
+                  )}
+                </div>
                 {project.id === active.id && (
                   <Check className="ml-auto size-4 text-primary" />
                 )}
               </DropdownMenuItem>
             ))}
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator className="my-1.5 bg-white/[0.06]" />
             {creating ? (
-              <div className="flex items-center gap-2 px-2 py-1.5" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-2 px-2.5 py-2" onClick={(e) => e.stopPropagation()}>
                 <input
                   ref={inputRef}
                   autoFocus
-                  placeholder="Project name"
-                  className="h-7 flex-1 rounded-md border border-input bg-transparent px-2 text-sm outline-none placeholder:text-muted-foreground focus:border-primary/50"
+                  placeholder="Project name..."
+                  className="h-8 flex-1 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-primary/40 focus:bg-white/[0.06]"
                   onKeyDown={(e) => {
                     e.stopPropagation()
                     if (e.key === 'Enter') handleCreate()
@@ -141,21 +151,23 @@ export function WorkspaceSwitcher({ projects, activeProjectId }: WorkspaceSwitch
                 <button
                   onClick={handleCreate}
                   disabled={pending}
-                  className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-50"
+                  className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground disabled:opacity-50"
                 >
                   {pending ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
                 </button>
               </div>
             ) : (
               <DropdownMenuItem
-                className="gap-2.5 text-muted-foreground"
+                className="gap-3 rounded-lg px-2.5 py-2.5 text-muted-foreground"
                 onSelect={(e) => {
                   e.preventDefault()
                   setCreating(true)
                 }}
               >
-                <Plus className="size-4" />
-                <span>New project</span>
+                <div className="flex aspect-square size-7 items-center justify-center rounded-md border border-dashed border-white/[0.12]">
+                  <Plus className="size-3.5" />
+                </div>
+                <span className="text-sm">New project</span>
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>
