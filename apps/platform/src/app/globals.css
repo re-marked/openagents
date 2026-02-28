@@ -3,52 +3,52 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * AgentBay design system — warm dark palette.
+ * AgentBay Developer Platform — cool dark palette (inverted from marketplace).
  *
  * Surface hierarchy (3 levels):
- *   Level 0 — sidebar + header:  hsl(30, 3%, 7%)   deepest
- *   Level 1 — page background:   hsl(30, 3%, 10%)  mid
- *   Level 2 — cards / elevated:  hsl(30, 3%, 13%)  lightest surface
- *   Hover:                       hsl(30, 4%, 16%)
+ *   Level 0 — sidebar + header:  hsl(220, 8%, 6%)   deepest
+ *   Level 1 — page background:   hsl(220, 8%, 9%)   mid
+ *   Level 2 — cards / elevated:  hsl(220, 8%, 12%)  lightest surface
+ *   Hover:                       hsl(220, 8%, 15%)
  *
- * All grays use hue 30 (warm) at very low saturation (3-4%).
- * Accent: warm blue hsl(215, 90%, 58%) — not electric, slightly muted.
+ * All grays use hue 220 (cool blue-gray) at low saturation (6-8%).
+ * Accent: emerald hsl(160, 84%, 39%) — developer green, terminal vibes.
  */
 @layer base {
   :root {
-    --background: 30 3% 10%;
-    --foreground: 40 10% 95%;
-    --card: 30 3% 13%;
-    --card-foreground: 40 10% 95%;
-    --popover: 30 3% 13%;
-    --popover-foreground: 40 10% 95%;
-    --primary: 215 90% 58%;
+    --background: 220 8% 9%;
+    --foreground: 210 20% 95%;
+    --card: 220 8% 12%;
+    --card-foreground: 210 20% 95%;
+    --popover: 220 8% 12%;
+    --popover-foreground: 210 20% 95%;
+    --primary: 160 84% 39%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 30 3% 16%;
-    --secondary-foreground: 40 6% 75%;
-    --muted: 30 3% 16%;
-    --muted-foreground: 30 5% 50%;
-    --accent: 30 3% 18%;
-    --accent-foreground: 40 10% 95%;
+    --secondary: 220 8% 15%;
+    --secondary-foreground: 210 10% 72%;
+    --muted: 220 8% 15%;
+    --muted-foreground: 220 6% 48%;
+    --accent: 220 8% 17%;
+    --accent-foreground: 210 20% 95%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 30 3% 18%;
-    --input: 30 3% 18%;
-    --ring: 215 90% 58%;
-    --chart-1: 215 90% 58%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --border: 220 8% 17%;
+    --input: 220 8% 17%;
+    --ring: 160 84% 39%;
+    --chart-1: 160 84% 39%;
+    --chart-2: 190 80% 45%;
+    --chart-3: 270 60% 55%;
+    --chart-4: 340 65% 55%;
+    --chart-5: 45 80% 55%;
     --radius: 0.75rem;
-    --sidebar-background: 30 3% 7%;
-    --sidebar-foreground: 30 5% 55%;
-    --sidebar-primary: 215 90% 58%;
+    --sidebar-background: 220 8% 6%;
+    --sidebar-foreground: 220 6% 50%;
+    --sidebar-primary: 160 84% 39%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 30 3% 13%;
-    --sidebar-accent-foreground: 40 10% 95%;
-    --sidebar-border: 30 3% 14%;
-    --sidebar-ring: 215 90% 58%;
+    --sidebar-accent: 220 8% 12%;
+    --sidebar-accent-foreground: 210 20% 95%;
+    --sidebar-border: 220 8% 13%;
+    --sidebar-ring: 160 84% 39%;
   }
 }
 
@@ -113,12 +113,12 @@
 }
 
 :root {
-  --sidebar: hsl(30 3% 7%);
-  --sidebar-foreground: hsl(30 5% 55%);
-  --sidebar-primary: hsl(215 90% 58%);
+  --sidebar: hsl(220 8% 6%);
+  --sidebar-foreground: hsl(220 6% 50%);
+  --sidebar-primary: hsl(160 84% 39%);
   --sidebar-primary-foreground: hsl(0 0% 100%);
-  --sidebar-accent: hsl(30 3% 13%);
-  --sidebar-accent-foreground: hsl(40 10% 95%);
-  --sidebar-border: hsl(30 3% 14%);
-  --sidebar-ring: hsl(215 90% 58%);
+  --sidebar-accent: hsl(220 8% 12%);
+  --sidebar-accent-foreground: hsl(210 20% 95%);
+  --sidebar-border: hsl(220 8% 13%);
+  --sidebar-ring: hsl(160 84% 39%);
 }
