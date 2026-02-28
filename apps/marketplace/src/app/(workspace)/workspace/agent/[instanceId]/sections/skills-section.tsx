@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Loader2, Plus, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Loader2, Plus, Trash2, ChevronDown, ChevronRight, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { MarkdownEditor } from '@/components/markdown-editor'
@@ -34,6 +34,8 @@ export function SkillsSection({ instanceId }: SkillsSectionProps) {
   const [expanded, setExpanded] = useState<string | null>(null)
   const [editingContent, setEditingContent] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState<string | null>(null)
+  const [savedSkills, setSavedSkills] = useState<Set<string>>(new Set())
+  const savedTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
   const [adding, setAdding] = useState(false)
   const [newSkillName, setNewSkillName] = useState('')
 
@@ -111,6 +113,21 @@ export function SkillsSection({ instanceId }: SkillsSectionProps) {
           delete next[skillName]
           return next
         })
+        // Show "Saved" state for 3 seconds
+        setSavedSkills((prev) => new Set(prev).add(skillName))
+        const existing = savedTimers.current.get(skillName)
+        if (existing) clearTimeout(existing)
+        savedTimers.current.set(
+          skillName,
+          setTimeout(() => {
+            setSavedSkills((prev) => {
+              const next = new Set(prev)
+              next.delete(skillName)
+              return next
+            })
+            savedTimers.current.delete(skillName)
+          }, 3000)
+        )
       }
     } catch {
       // fail silently
@@ -137,10 +154,22 @@ export function SkillsSection({ instanceId }: SkillsSectionProps) {
           content,
         }),
       })
-      // Mkdir may be needed — use exec to ensure dir exists first
       setSkills((prev) => [...prev, { name, content }])
       setNewSkillName('')
       setExpanded(name)
+      // Show saved state for newly added skill
+      setSavedSkills((prev) => new Set(prev).add(name))
+      savedTimers.current.set(
+        name,
+        setTimeout(() => {
+          setSavedSkills((prev) => {
+            const next = new Set(prev)
+            next.delete(name)
+            return next
+          })
+          savedTimers.current.delete(name)
+        }, 3000)
+      )
     } catch {
       // fail silently
     } finally {
@@ -150,14 +179,12 @@ export function SkillsSection({ instanceId }: SkillsSectionProps) {
 
   async function handleDeleteSkill(skillName: string) {
     try {
-      // Remove the skill directory by deleting SKILL.md and the dir
       await fetch('/api/agent/files', {
-        method: 'PUT',
+        method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           instanceId,
-          path: `${SKILLS_DIR}/${skillName}/SKILL.md`,
-          content: '', // Clear the file
+          path: `${SKILLS_DIR}/${skillName}`,
         }),
       })
       setSkills((prev) => prev.filter((s) => s.name !== skillName))
@@ -218,25 +245,35 @@ export function SkillsSection({ instanceId }: SkillsSectionProps) {
                     <div className="h-[280px] rounded-lg border border-border/40 overflow-hidden">
                       <MarkdownEditor
                         value={displayContent}
-                        onChange={(v) =>
+                        onChange={(v) => {
                           setEditingContent((prev) => ({
                             ...prev,
                             [skill.name]: v,
                           }))
-                        }
+                          // Clear saved state when user edits again
+                          if (savedSkills.has(skill.name)) {
+                            setSavedSkills((prev) => {
+                              const next = new Set(prev)
+                              next.delete(skill.name)
+                              return next
+                            })
+                          }
+                        }}
                       />
                     </div>
                     <div className="flex items-center gap-2">
-                      {isEditing && (
+                      {(isEditing || savedSkills.has(skill.name)) && (
                         <Button
                           size="sm"
                           onClick={() => handleSaveSkill(skill.name)}
-                          disabled={saving === skill.name}
+                          disabled={saving === skill.name || savedSkills.has(skill.name)}
                         >
-                          {saving === skill.name && (
+                          {saving === skill.name ? (
                             <Loader2 className="size-3 mr-1.5 animate-spin" />
-                          )}
-                          Save
+                          ) : savedSkills.has(skill.name) ? (
+                            <Check className="size-3 mr-1.5" />
+                          ) : null}
+                          {savedSkills.has(skill.name) ? 'Saved' : 'Save'}
                         </Button>
                       )}
                       <Button

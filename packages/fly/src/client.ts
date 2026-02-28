@@ -250,8 +250,13 @@ export class FlyClient {
     return result.stdout
   }
 
-  /** Write a file on a running machine. */
+  /** Write a file on a running machine (creates parent dirs if needed). */
   async writeFile(appName: string, machineId: string, path: string, content: string): Promise<void> {
+    // Extract parent directory and ensure it exists
+    const parentDir = path.replace(/\/[^/]+$/, '')
+    if (parentDir && parentDir !== path) {
+      await this.execCommand(appName, machineId, ['mkdir', '-p', parentDir])
+    }
     // Use printf to write content to avoid heredoc shell escaping issues
     const escaped = content.replace(/\\/g, '\\\\').replace(/'/g, "'\\''")
     const result = await this.execCommand(appName, machineId, [
@@ -259,6 +264,14 @@ export class FlyClient {
     ])
     if (result.exit_code !== 0) {
       throw new Error(`Failed to write ${path}: ${result.stderr}`)
+    }
+  }
+
+  /** Delete a file or directory on a running machine. */
+  async deletePath(appName: string, machineId: string, path: string): Promise<void> {
+    const result = await this.execCommand(appName, machineId, ['rm', '-rf', path])
+    if (result.exit_code !== 0) {
+      throw new Error(`Failed to delete ${path}: ${result.stderr}`)
     }
   }
 

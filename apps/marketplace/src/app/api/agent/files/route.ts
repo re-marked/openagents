@@ -386,3 +386,30 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }
+
+export async function DELETE(request: Request) {
+  const user = await getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const body = await request.json().catch(() => null)
+  if (!body?.instanceId || !body?.path) {
+    return NextResponse.json({ error: 'Missing instanceId or path' }, { status: 400 })
+  }
+
+  const instance = await getInstance(body.instanceId, user.id)
+  if (!instance) return NextResponse.json({ error: 'Agent not found' }, { status: 404 })
+
+  // Mock mode — accept deletes silently
+  if (isMock(instance.fly_app_name)) {
+    return NextResponse.json({ ok: true })
+  }
+
+  try {
+    const fly = new FlyClient()
+    await fly.deletePath(instance.fly_app_name, instance.fly_machine_id, body.path)
+    return NextResponse.json({ ok: true })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to delete path'
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
+}
