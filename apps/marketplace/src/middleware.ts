@@ -16,6 +16,11 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // ── Public API routes — always accessible (token-authed, not session-authed) ──
+  if (pathname.startsWith('/api/v1/')) {
+    return updateSession(request as any)
+  }
+
   // ── Launch lockdown: only the landing page is public ──
   // Set NEXT_PUBLIC_LAUNCH_LOCKDOWN=false (or remove it) to open the full app.
   if (process.env.NEXT_PUBLIC_LAUNCH_LOCKDOWN !== 'false' && pathname !== '/') {
