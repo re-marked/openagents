@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Loader2, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
+import { MarkdownEditor } from '@/components/markdown-editor'
 
 const SOUL_PATH = '/data/workspace/SOUL.md'
 
@@ -98,17 +98,8 @@ export function PersonalitySection({ instanceId }: PersonalitySectionProps) {
         </p>
       </div>
 
-      <div className="flex-1 min-h-0 rounded-xl border border-border/40 bg-card/50 overflow-hidden">
-        <ScrollArea className="h-full">
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="Write your agent's personality here (Markdown supported)..."
-            className="w-full border-none bg-transparent px-4 py-3 text-sm font-mono text-foreground placeholder:text-muted-foreground/50 focus:outline-none resize-none"
-            style={{ fieldSizing: 'content' } as React.CSSProperties}
-            spellCheck={false}
-          />
-        </ScrollArea>
+      <div className="flex-1 min-h-0 rounded-xl border border-border/40 overflow-hidden">
+        <MarkdownEditor value={content} onChange={setContent} />
       </div>
 
       <div className="shrink-0 flex items-center gap-3">
