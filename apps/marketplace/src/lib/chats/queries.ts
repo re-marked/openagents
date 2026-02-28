@@ -97,7 +97,7 @@ export async function ensureDefaultChat(userId: string, projectId: string): Prom
     .eq('user_id', userId)
     .order('created_at', { ascending: true })
     .limit(1)
-    .single()
+    .maybeSingle()
 
   if (existing) return existing.id
 
@@ -107,6 +107,19 @@ export async function ensureDefaultChat(userId: string, projectId: string): Prom
     .insert({ project_id: projectId, user_id: userId, name: 'General' })
     .select('id')
     .single()
+
+  // Race condition guard — if another request created one concurrently, use that
+  if (!chat) {
+    const { data: fallback } = await service
+      .from('chats')
+      .select('id')
+      .eq('project_id', projectId)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .single()
+    if (fallback) return fallback.id
+  }
 
   if (!chat) throw new Error('Failed to create default chat')
 
