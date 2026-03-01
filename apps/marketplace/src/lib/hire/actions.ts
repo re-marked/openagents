@@ -74,35 +74,12 @@ export async function hireAgent({ agentSlug }: HireAgentParams) {
 
   if (!projectId) throw new Error('Failed to create project')
 
-  // 4. Ensure team exists
-  const { data: existingTeam } = await service
-    .from('teams')
-    .select('id')
-    .eq('project_id', projectId)
-    .eq('name', 'team-chat')
-    .limit(1)
-    .single()
-
-  let teamId = existingTeam?.id
-
-  if (!teamId) {
-    const { data: newTeam } = await service
-      .from('teams')
-      .insert({ project_id: projectId, name: 'team-chat' })
-      .select('id')
-      .single()
-    teamId = newTeam?.id
-  }
-
-  if (!teamId) throw new Error('Failed to create team')
-
-  // 5. Create agent instance with provisioning status
+  // 4. Create agent instance with provisioning status
   const { data: instance, error: instanceErr } = await service
     .from('agent_instances')
     .insert({
       user_id: user.id,
       agent_id: agent.id,
-      team_id: teamId,
       display_name: agent.name,
       fly_app_name: 'pending',
       fly_machine_id: 'pending',
@@ -115,13 +92,7 @@ export async function hireAgent({ agentSlug }: HireAgentParams) {
     throw new Error(`Failed to create instance: ${instanceErr?.message}`)
   }
 
-  // 6. Link to team
-  await service.from('team_agents').insert({
-    team_id: teamId,
-    instance_id: instance.id,
-  })
-
-  // 6b. Add to default chat (first chat in the project)
+  // 5. Add to default chat (first chat in the project)
   const { data: defaultChat } = await service
     .from('chats')
     .select('id')

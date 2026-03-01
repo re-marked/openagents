@@ -47,42 +47,22 @@ export async function getActiveProjectId(userId: string) {
 }
 
 /**
- * Load agent instances for the active project (filtered by team membership).
- * Uses a single nested query instead of 3 sequential round-trips.
+ * Load agent instances for the user.
+ * Queries agent_instances directly by user_id.
  */
-export async function getProjectAgents(_userId: string, activeProjectId: string | null) {
-  if (!activeProjectId) return []
-
+export async function getProjectAgents(userId: string, _activeProjectId: string | null) {
   const service = createServiceClient()
 
-  // Single query: teams → team_agents → agent_instances → agents
-  // Team membership already scopes to the user's project
-  const { data: teams } = await service
-    .from('teams')
-    .select('team_agents(agent_instances!inner(id, display_name, status, created_at, agents!inner(name, slug, category, tagline, icon_url)))')
-    .eq('project_id', activeProjectId)
+  const { data: instances } = await service
+    .from('agent_instances')
+    .select('id, display_name, status, created_at, agents!inner(name, slug, category, tagline, icon_url)')
+    .eq('user_id', userId)
+    .not('status', 'in', '("destroyed","destroying")')
+    .order('created_at', { ascending: false })
 
-  if (!teams || teams.length === 0) return []
+  if (!instances || instances.length === 0) return []
 
-  // Flatten nested structure and deduplicate
-  const seen = new Set<string>()
-  const instances: ProjectAgentInstance[] = []
-
-  for (const team of teams) {
-    const teamAgents = (team as any).team_agents ?? []
-    for (const ta of teamAgents) {
-      const inst = ta.agent_instances
-      if (!inst || seen.has(inst.id)) continue
-      if (inst.status === 'destroyed' || inst.status === 'destroying') continue
-      if (inst.agents?.name == null) continue
-      seen.add(inst.id)
-      instances.push(inst)
-    }
-  }
-
-  // Sort newest first
-  instances.sort((a, b) => b.created_at.localeCompare(a.created_at))
-  return instances
+  return instances as unknown as ProjectAgentInstance[]
 }
 
 /**

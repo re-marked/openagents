@@ -113,38 +113,20 @@ export async function ensureDefaultChat(userId: string, projectId: string): Prom
 
   if (!chat) throw new Error('Failed to create default chat')
 
-  // Add all existing agent instances for this project
-  // Find instances via team_agents → teams → project
-  const { data: teams } = await service
-    .from('teams')
+  // Add all existing agent instances for this user
+  const { data: activeInstances } = await service
+    .from('agent_instances')
     .select('id')
-    .eq('project_id', projectId)
+    .eq('user_id', userId)
+    .not('status', 'in', '("destroyed","destroying")')
 
-  const teamIds = (teams ?? []).map(t => t.id)
-  if (teamIds.length > 0) {
-    const { data: teamAgents } = await service
-      .from('team_agents')
-      .select('instance_id')
-      .in('team_id', teamIds)
+  const rows = (activeInstances ?? []).map(inst => ({
+    chat_id: chat.id,
+    instance_id: inst.id,
+  }))
 
-    const instanceIds = (teamAgents ?? []).map(ta => ta.instance_id)
-    if (instanceIds.length > 0) {
-      // Filter to non-destroyed instances
-      const { data: activeInstances } = await service
-        .from('agent_instances')
-        .select('id')
-        .in('id', instanceIds)
-        .not('status', 'in', '("destroyed","destroying")')
-
-      const rows = (activeInstances ?? []).map(inst => ({
-        chat_id: chat.id,
-        instance_id: inst.id,
-      }))
-
-      if (rows.length > 0) {
-        await service.from('chat_agents').insert(rows)
-      }
-    }
+  if (rows.length > 0) {
+    await service.from('chat_agents').insert(rows)
   }
 
   return chat.id
