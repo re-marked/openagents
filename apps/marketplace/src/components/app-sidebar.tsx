@@ -5,7 +5,9 @@ import { Home, Settings, Plus, BarChart3, CreditCard, Key, MoreHorizontal, Penci
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 
+import { toast } from "sonner"
 import { WorkspaceSwitcher, type ProjectInfo } from "@/components/workspace-switcher"
+import { ConfirmDialog } from "@/components/confirm-dialog"
 import {
   Sidebar,
   SidebarContent,
@@ -85,6 +87,7 @@ export function AppSidebar({
   const [newChatName, setNewChatName] = React.useState("")
   const [renamingId, setRenamingId] = React.useState<string | null>(null)
   const [renameValue, setRenameValue] = React.useState("")
+  const [deletingChatId, setDeletingChatId] = React.useState<string | null>(null)
   const inputRef = React.useRef<HTMLInputElement>(null)
   const renameRef = React.useRef<HTMLInputElement>(null)
 
@@ -127,11 +130,12 @@ export function AppSidebar({
       return
     }
     try {
-      await fetch(`/api/chats/${chatId}`, {
+      const res = await fetch(`/api/chats/${chatId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name }),
       })
+      if (res.ok) toast.success(`Channel renamed to #${name}`)
       setRenamingId(null)
       setRenameValue("")
       router.refresh()
@@ -336,7 +340,7 @@ export function AppSidebar({
                           Rename
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => handleDeleteChat(chat.id)}
+                          onClick={() => setDeletingChatId(chat.id)}
                           className="text-destructive focus:text-destructive"
                         >
                           <Trash2 className="size-4 mr-2" />
@@ -448,6 +452,21 @@ export function AppSidebar({
       )}
 
       <SidebarRail />
+
+      {/* Chat delete confirmation */}
+      <ConfirmDialog
+        open={deletingChatId !== null}
+        onOpenChange={(open) => { if (!open) setDeletingChatId(null) }}
+        title={`Delete #${deletingChatId ? toChannelName(chats.find((c) => c.id === deletingChatId)?.name ?? '') : ''}?`}
+        description="This will permanently delete the channel and all its messages. This cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={() => {
+          if (deletingChatId) {
+            handleDeleteChat(deletingChatId)
+            setDeletingChatId(null)
+          }
+        }}
+      />
     </Sidebar>
   )
 }

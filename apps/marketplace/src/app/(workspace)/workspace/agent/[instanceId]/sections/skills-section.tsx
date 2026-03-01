@@ -5,6 +5,7 @@ import { Loader2, Plus, Trash2, ChevronDown, ChevronRight, Check } from 'lucide-
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { MarkdownEditor } from '@/components/markdown-editor'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { TEST_SKILLS } from '../test-data'
 
 const SKILLS_DIR = '/data/workspace/skills'
@@ -40,6 +41,7 @@ export function SkillsSection({ instanceId, testMode = false }: SkillsSectionPro
   const savedTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
   const [adding, setAdding] = useState(false)
   const [newSkillName, setNewSkillName] = useState('')
+  const [deletingSkill, setDeletingSkill] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -296,7 +298,7 @@ export function SkillsSection({ instanceId, testMode = false }: SkillsSectionPro
                         size="sm"
                         variant="ghost"
                         className="text-destructive hover:text-destructive"
-                        onClick={() => handleDeleteSkill(skill.name)}
+                        onClick={() => setDeletingSkill(skill.name)}
                       >
                         <Trash2 className="size-3 mr-1.5" />
                         Delete
@@ -333,6 +335,21 @@ export function SkillsSection({ instanceId, testMode = false }: SkillsSectionPro
           Add Skill
         </Button>
       </div>
+
+      {/* Skill delete confirmation */}
+      <ConfirmDialog
+        open={deletingSkill !== null}
+        onOpenChange={(open) => { if (!open) setDeletingSkill(null) }}
+        title={`Delete skill '${deletingSkill ?? ''}'?`}
+        description="This will permanently remove the skill from the agent. This cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={() => {
+          if (deletingSkill) {
+            handleDeleteSkill(deletingSkill)
+            setDeletingSkill(null)
+          }
+        }}
+      />
     </div>
   )
 }
