@@ -68,23 +68,41 @@ if [ -f /data/openclaw.json ] && grep -q '"gemini-2.0-flash"' /data/openclaw.jso
   echo "[entrypoint] Migrated model from gemini-2.0-flash → gemini-2.5-flash"
 fi
 
-# ── 1d. Auto-migrate model to Routeway default when only ROUTEWAY_API_KEY is set
-# Prevents agents provisioned before free-tier logic from trying to use Google
-# with no Google key configured.
-if [ -f /data/openclaw.json ] && [ -n "$ROUTEWAY_API_KEY" ] && [ -z "$GEMINI_API_KEY" ] && [ -z "$OPENAI_API_KEY" ] && [ -z "$ANTHROPIC_API_KEY" ]; then
+# ── 1d. Always ensure Routeway provider is registered (on every boot so existing volumes get it)
+# Also migrates model to routeway/minimax-m2.5 when machine has only Routeway key.
+if [ -f /data/openclaw.json ] && [ -n "$ROUTEWAY_API_KEY" ]; then
   export ROUTEWAY_MODEL="${PLATFORM_ROUTEWAY_DEFAULT_MODEL:-routeway/minimax-m2.5}"
   node -e "\
     const fs = require('fs');\
     const cfg = JSON.parse(fs.readFileSync('/data/openclaw.json', 'utf8'));\
+    let changed = false;\
+    \
+    cfg.models = cfg.models || {};\
+    cfg.models.mode = 'merge';\
+    cfg.models.providers = cfg.models.providers || {};\
+    if (!cfg.models.providers.routeway) {\
+      cfg.models.providers.routeway = {\
+        baseUrl: 'https://api.routeway.ai/v1',\
+        apiKey: '\${ROUTEWAY_API_KEY}',\
+        api: 'openai-completions',\
+        models: [{ id: 'minimax-m2.5', name: 'MiniMax M2.5' }]\
+      };\
+      changed = true;\
+      console.log('[entrypoint] Registered routeway provider in openclaw.json');\
+    }\
+    \
+    const noByok = !process.env.GEMINI_API_KEY && !process.env.OPENAI_API_KEY && !process.env.ANTHROPIC_API_KEY;\
     const current = cfg.agents?.defaults?.model?.primary ?? '';\
-    if (current !== process.env.ROUTEWAY_MODEL) {\
+    if (noByok && current !== process.env.ROUTEWAY_MODEL) {\
       cfg.agents = cfg.agents || {};\
       cfg.agents.defaults = cfg.agents.defaults || {};\
       cfg.agents.defaults.model = cfg.agents.defaults.model || {};\
       cfg.agents.defaults.model.primary = process.env.ROUTEWAY_MODEL;\
-      fs.writeFileSync('/data/openclaw.json', JSON.stringify(cfg, null, 2));\
-      console.log('[entrypoint] Routeway-only: migrated model to', process.env.ROUTEWAY_MODEL);\
+      changed = true;\
+      console.log('[entrypoint] Routeway-only: set model to', process.env.ROUTEWAY_MODEL);\
     }\
+    \
+    if (changed) fs.writeFileSync('/data/openclaw.json', JSON.stringify(cfg, null, 2));\
   "
 fi
 
