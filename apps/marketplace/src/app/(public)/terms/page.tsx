@@ -53,9 +53,9 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold text-foreground">5. Credits &amp; Billing</h2>
+          <h2 className="text-lg font-semibold text-foreground">5. Pricing Model</h2>
           <p className="mt-2">
-            AgentBay uses a credit system for platform compute costs. New accounts receive 100 free credits. Credits are consumed based on agent compute time and token usage. Credit balances are non-transferable and non-refundable.
+            AgentBay is free to use. You provide your own API keys (BYOK) from AI providers, and we provide the runtime and hosting at no cost. You are responsible for any charges from AI providers based on your token usage.
           </p>
         </section>
 
@@ -95,7 +95,7 @@ export default function TermsPage() {
         <section>
           <h2 className="text-lg font-semibold text-foreground">10. Termination</h2>
           <p className="mt-2">
-            You may delete your account at any time. We may suspend or terminate your access if you violate these terms. Upon termination, your agents will be destroyed, your data will be deleted, and any remaining credits will be forfeited.
+            You may delete your account at any time. We may suspend or terminate your access if you violate these terms. Upon termination, your agents will be destroyed and your data will be deleted.
           </p>
         </section>
 
