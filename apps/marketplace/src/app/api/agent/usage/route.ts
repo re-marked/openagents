@@ -155,16 +155,102 @@ export async function GET(request: Request) {
     return NextResponse.json(generateMockUsage(days))
   }
 
-  // Real agents — return empty for now (same pattern as stats)
+  // Real agents — query usage_events table
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - days)
+
+  const { data: rawEvents } = await service
+    .from('usage_events')
+    .select('id, session_id, input_tokens, output_tokens, compute_seconds, cost_usd, created_at')
+    .eq('instance_id', instanceId)
+    .gte('created_at', cutoff.toISOString())
+    .order('created_at', { ascending: true })
+
+  const events = rawEvents ?? []
+
+  // Build summary
+  let totalCostUsd = 0
+  let totalInputTokens = 0
+  let totalOutputTokens = 0
+  let totalComputeSeconds = 0
+  const sessionIds = new Set<string>()
+
+  for (const e of events) {
+    totalCostUsd += e.cost_usd
+    totalInputTokens += e.input_tokens
+    totalOutputTokens += e.output_tokens
+    totalComputeSeconds += e.compute_seconds
+    if (e.session_id) sessionIds.add(e.session_id)
+  }
+
+  totalCostUsd = Math.round(totalCostUsd * 10000) / 10000
+
+  // Build daily/hourly buckets
+  const isHourly = days === 1
+  const buckets: Record<string, { cost: number; tokens: number; sessions: Set<string> }> = {}
+
+  if (isHourly) {
+    const now = new Date()
+    for (let i = 23; i >= 0; i--) {
+      const d = new Date(now)
+      d.setHours(d.getHours() - i, 0, 0, 0)
+      buckets[d.toISOString()] = { cost: 0, tokens: 0, sessions: new Set() }
+    }
+  } else {
+    const now = new Date()
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(now)
+      d.setDate(d.getDate() - i)
+      buckets[d.toISOString().slice(0, 10)] = { cost: 0, tokens: 0, sessions: new Set() }
+    }
+  }
+
+  for (const e of events) {
+    const eventDate = new Date(e.created_at)
+    let key: string
+    if (isHourly) {
+      eventDate.setMinutes(0, 0, 0)
+      key = eventDate.toISOString()
+    } else {
+      key = e.created_at.slice(0, 10)
+    }
+    if (key in buckets) {
+      buckets[key].cost += e.cost_usd
+      buckets[key].tokens += e.input_tokens + e.output_tokens
+      if (e.session_id) buckets[key].sessions.add(e.session_id)
+    }
+  }
+
+  const daily: DailyEntry[] = Object.entries(buckets).map(([date, b]) => ({
+    date,
+    cost: Math.round(b.cost * 10000) / 10000,
+    tokens: b.tokens,
+    sessions: b.sessions.size,
+  }))
+
+  // Build events list (newest first, limit 50)
+  const usageEvents: UsageEvent[] = events
+    .slice()
+    .reverse()
+    .slice(0, 50)
+    .map((e) => ({
+      date: isHourly ? e.created_at : e.created_at.slice(0, 10),
+      sessionId: e.session_id ?? '',
+      inputTokens: e.input_tokens,
+      outputTokens: e.output_tokens,
+      computeSeconds: e.compute_seconds,
+      costUsd: e.cost_usd,
+    }))
+
   return NextResponse.json({
     summary: {
-      totalCostUsd: 0,
-      totalInputTokens: 0,
-      totalOutputTokens: 0,
-      totalComputeSeconds: 0,
-      totalSessions: 0,
+      totalCostUsd,
+      totalInputTokens,
+      totalOutputTokens,
+      totalComputeSeconds,
+      totalSessions: sessionIds.size,
     },
-    daily: [],
-    events: [],
+    daily,
+    events: usageEvents,
   } satisfies UsageResponse)
 }

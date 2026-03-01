@@ -205,6 +205,80 @@ export async function POST(request: Request) {
 
   // currentEvent must be closure-scoped so it survives across chunk boundaries
   let currentEvent = ''
+  let usageRecorded = false
+
+  /** Save assistant messages + record usage event. Safe to call multiple times — only runs once. */
+  async function recordUsage() {
+    if (usageRecorded) return
+    usageRecorded = true
+
+    // Flush any remaining content into the messages array
+    if (currentTurnContent) {
+      assistantMessages.push(currentTurnContent)
+      currentTurnContent = ''
+    }
+
+    if (assistantMessages.length === 0) return
+
+    // Save messages and get IDs back for token update
+    const { data: savedMessages } = await supabase
+      .from('messages')
+      .insert(
+        assistantMessages.map((content, idx) => {
+          const thread = threadsByTurnIndex.get(idx) ?? null
+          const tools = toolsByTurnIndex.get(idx) ?? null
+          let toolUseJson: Record<string, unknown> | null = null
+          if (thread || (tools && tools.length > 0)) {
+            toolUseJson = {}
+            if (thread) {
+              Object.assign(toolUseJson, thread)
+            }
+            if (tools && tools.length > 0) {
+              toolUseJson.tools = tools
+            }
+          }
+          return {
+            session_id: sessionId,
+            role: 'assistant' as const,
+            content,
+            tool_use: (toolUseJson ?? null) as never,
+          }
+        }),
+      )
+      .select('id')
+
+    // Record usage — estimate tokens and API cost
+    const inputTokens = estimateTokens(message)
+    const outputTokens = assistantMessages.reduce(
+      (sum, msg) => sum + estimateTokens(msg),
+      0,
+    )
+    const computeSeconds = Math.round((Date.now() - streamStartTime) / 1000 * 100) / 100
+    const costUsd = estimateApiCost(inputTokens, outputTokens)
+
+    const serviceClient = createServiceClient()
+    await serviceClient.rpc('record_usage_event', {
+      p_session_id: sessionId,
+      p_user_id: user!.id,
+      p_instance_id: agentInstanceId,
+      p_input_tokens: inputTokens,
+      p_output_tokens: outputTokens,
+      p_compute_seconds: computeSeconds,
+      p_credits_consumed: 0,
+      p_cost_usd: costUsd,
+    })
+
+    // Update tokens_used on each saved assistant message
+    if (savedMessages && savedMessages.length > 0) {
+      for (let i = 0; i < savedMessages.length; i++) {
+        const msgTokens = estimateTokens(assistantMessages[i])
+        await supabase
+          .from('messages')
+          .update({ tokens_used: msgTokens })
+          .eq('id', (savedMessages[i] as { id: string }).id)
+      }
+    }
+  }
 
   const transformStream = new TransformStream({
     transform(chunk, controller) {
@@ -301,6 +375,13 @@ export async function POST(request: Request) {
               if (thread && thread.id === data.threadId) {
                 thread.complete = true
               }
+            } else if (currentEvent === 'end') {
+              // Stream complete — fire-and-forget DB writes so data is saved
+              // even if the client disconnects before flush() runs
+              recordUsage().catch(() => {})
+            } else if (currentEvent === 'error') {
+              // Agent error — still record partial usage for completed turns
+              recordUsage().catch(() => {})
             }
           } catch {
             // Not JSON, pass through
@@ -312,72 +393,8 @@ export async function POST(request: Request) {
       controller.enqueue(chunk)
     },
     async flush() {
-      // 9. On stream end, save any remaining content and insert all turns
-      if (currentTurnContent) {
-        assistantMessages.push(currentTurnContent)
-      }
-      if (assistantMessages.length > 0) {
-        // Save messages and get IDs back for token update
-        const { data: savedMessages } = await supabase
-          .from('messages')
-          .insert(
-            assistantMessages.map((content, idx) => {
-              const thread = threadsByTurnIndex.get(idx) ?? null
-              const tools = toolsByTurnIndex.get(idx) ?? null
-              // Combine thread and tool data into tool_use JSON
-              let toolUseJson: Record<string, unknown> | null = null
-              if (thread || (tools && tools.length > 0)) {
-                toolUseJson = {}
-                if (thread) {
-                  // Preserve thread data at top level for backward compatibility
-                  Object.assign(toolUseJson, thread)
-                }
-                if (tools && tools.length > 0) {
-                  toolUseJson.tools = tools
-                }
-              }
-              return {
-                session_id: sessionId,
-                role: 'assistant' as const,
-                content,
-                tool_use: (toolUseJson ?? null) as never,
-              }
-            }),
-          )
-          .select('id')
-
-        // 10. Record usage — estimate tokens and API cost
-        const inputTokens = estimateTokens(message)
-        const outputTokens = assistantMessages.reduce(
-          (sum, msg) => sum + estimateTokens(msg),
-          0,
-        )
-        const computeSeconds = Math.round((Date.now() - streamStartTime) / 1000 * 100) / 100
-        const costUsd = estimateApiCost(inputTokens, outputTokens)
-
-        const serviceClient = createServiceClient()
-        await serviceClient.rpc('record_usage_event', {
-          p_session_id: sessionId,
-          p_user_id: user.id,
-          p_instance_id: agentInstanceId,
-          p_input_tokens: inputTokens,
-          p_output_tokens: outputTokens,
-          p_compute_seconds: computeSeconds,
-          p_credits_consumed: 0,
-          p_cost_usd: costUsd,
-        })
-
-        // Update tokens_used on each saved assistant message
-        if (savedMessages && savedMessages.length > 0) {
-          for (let i = 0; i < savedMessages.length; i++) {
-            const msgTokens = estimateTokens(assistantMessages[i])
-            await supabase
-              .from('messages')
-              .update({ tokens_used: msgTokens })
-              .eq('id', (savedMessages[i] as { id: string }).id)
-          }
-        }
-      }
+      // Backup: if recordUsage() didn't fire from an 'end' event, run it now
+      await recordUsage()
     },
   })
 
