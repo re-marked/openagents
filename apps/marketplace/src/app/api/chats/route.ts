@@ -1,7 +1,13 @@
 import { createClient } from '@agentbay/db/server'
 import { createServiceClient } from '@agentbay/db/server'
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
 import { getActiveProjectId } from '@/lib/projects/queries'
+
+const createChatSchema = z.object({
+  name: z.string().trim().min(1).max(200).optional(),
+  projectId: z.string().uuid().optional(),
+})
 
 export async function GET() {
   const supabase = await createClient()
@@ -46,8 +52,17 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await request.json()
-  const { name, projectId } = body as { name?: string; projectId?: string }
+  let body: unknown
+  try { body = await request.json() } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+  }
+
+  const parsed = createChatSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues.map(i => i.message).join(', ') }, { status: 422 })
+  }
+
+  const { name, projectId } = parsed.data
 
   const { activeProjectId } = await getActiveProjectId(user.id)
   const targetProjectId = projectId ?? activeProjectId

@@ -1,30 +1,40 @@
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
 import { getUser } from '@/lib/auth/get-user'
 import { createServiceClient } from '@agentbay/db/server'
+
+const renameSchema = z.object({
+  instanceId: z.string().uuid(),
+  name: z.string().trim().min(1, 'Name cannot be empty').max(100),
+})
 
 export async function POST(request: Request) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await request.json().catch(() => null)
-  if (!body?.instanceId || !body?.name?.trim()) {
-    return NextResponse.json({ error: 'Missing instanceId or name' }, { status: 400 })
+  let body: unknown
+  try { body = await request.json() } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const name = body.name.trim()
+  const parsed = renameSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues.map(i => i.message).join(', ') }, { status: 422 })
+  }
+
+  const name = parsed.data.name
     .replace(/<[^>]*>/g, '')     // strip HTML tags
     .replace(/[\x00-\x1F]/g, '') // strip control chars
-    .slice(0, 100)
 
   if (!name) {
-    return NextResponse.json({ error: 'Name cannot be empty' }, { status: 400 })
+    return NextResponse.json({ error: 'Name cannot be empty after sanitization' }, { status: 400 })
   }
   const service = createServiceClient()
 
   const { data: instance } = await service
     .from('agent_instances')
     .select('id')
-    .eq('id', body.instanceId)
+    .eq('id', parsed.data.instanceId)
     .eq('user_id', user.id)
     .single()
 
@@ -33,7 +43,7 @@ export async function POST(request: Request) {
   const { error } = await service
     .from('agent_instances')
     .update({ display_name: name })
-    .eq('id', body.instanceId)
+    .eq('id', parsed.data.instanceId)
 
   if (error) {
     return NextResponse.json({ error: 'Failed to rename agent' }, { status: 500 })
