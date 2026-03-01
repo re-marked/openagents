@@ -34,6 +34,44 @@ app.get('/health', (c) =>
 )
 
 /**
+ * Agent heartbeat — verify that the OpenClaw gateway on a Fly machine is
+ * responsive by performing the full WebSocket handshake. The WS is closed
+ * immediately after a successful handshake.
+ *
+ * The caller (Next.js) should poll this endpoint until it gets HEARTBEAT_OK.
+ * Each call tries a single connection attempt with a 15s timeout — no internal
+ * retries, so it returns fast whether the agent is ready or not.
+ */
+app.post('/v1/heartbeat', async (c) => {
+  const gatewayToken = c.req.header('x-gateway-token')
+  if (!gatewayToken || gatewayToken !== process.env.GATEWAY_SECRET) {
+    return c.json({ error: 'Unauthorized' }, 401)
+  }
+
+  const targetApp = c.req.header('x-fly-app')
+  const agentToken = c.req.header('x-agent-token')
+
+  if (!targetApp) {
+    return c.json({ error: 'Missing x-fly-app header' }, 400)
+  }
+
+  const wsUrl = `wss://${targetApp}.fly.dev/`
+  console.log(`[heartbeat] Checking ${wsUrl}`)
+
+  try {
+    const ws = await connectAndHandshake(wsUrl, targetApp, agentToken, 15_000)
+    // Handshake succeeded — agent is responsive. Close immediately.
+    ws.close()
+    console.log(`[heartbeat] HEARTBEAT_OK for ${targetApp}`)
+    return c.json({ status: 'HEARTBEAT_OK' })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.log(`[heartbeat] NOT_READY for ${targetApp}: ${msg}`)
+    return c.json({ status: 'NOT_READY', error: msg }, 503)
+  }
+})
+
+/**
  * Legacy SSE routing endpoint (fly-replay).
  * Kept for backward compatibility with stateless /v1/responses flow.
  */
