@@ -35,7 +35,7 @@
     --destructive-foreground: 0 0% 100%;
     --border: 30 3% 18%;
     --input: 30 3% 18%;
-    --ring: 215 90% 58%;
+    --ring: 0 0% 50% / 0.5;
     --chart-1: 215 90% 58%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
@@ -139,7 +139,7 @@
   --sidebar-accent: hsl(30 3% 13%);
   --sidebar-accent-foreground: hsl(40 10% 95%);
   --sidebar-border: hsl(30 3% 14%);
-  --sidebar-ring: hsl(215 90% 58%);
+  --ring: 0 0% 50% / 0.5;
 }
 
 /* Slightly larger sidebar text (14px → 15px) */
@@ -213,10 +213,11 @@ html.lenis, html.lenis body {
 }
 
 /* ── Phase 1: Spring timing for all shadcn animate-in / animate-out ── */
+/* !important needed to override Tailwind v4 `duration-200` utility on shadcn components */
 [data-state="open"][class*="animate-in"],
 [data-state="closed"][class*="animate-out"] {
-  animation-timing-function: var(--spring-easing);
-  animation-duration: var(--spring-duration);
+  animation-timing-function: var(--spring-easing) !important;
+  animation-duration: var(--spring-duration) !important;
 }
 
 /* ── Phase 2: Sidebar collapse/expand spring ── */
@@ -227,8 +228,8 @@ html.lenis, html.lenis body {
 }
 
 [data-slot="sidebar-group-label"] {
-  transition-timing-function: var(--spring-easing);
-  transition-duration: var(--spring-duration);
+  transition-timing-function: var(--spring-easing) !important;
+  transition-duration: var(--spring-duration) !important;
 }
 
 /* ── Phase 5: Button press spring ── */
@@ -261,6 +262,6 @@ html.lenis, html.lenis body {
 }
 
 [data-slot="accordion-trigger"] svg {
-  transition-timing-function: var(--spring-easing);
-  transition-duration: 0.35s;
+  transition-timing-function: var(--spring-easing) !important;
+  transition-duration: 0.35s !important;
 }
