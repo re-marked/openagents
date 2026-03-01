@@ -181,7 +181,7 @@ export const provisionAgentMachine = task({
       // When only Routeway is configured (no BYOK keys), default to a free tier model.
       const isRouteOnlySetup = keyEnv.ROUTEWAY_API_KEY && !keyEnv.GEMINI_API_KEY && !keyEnv.OPENAI_API_KEY && !keyEnv.ANTHROPIC_API_KEY
       const resolvedModel = isRouteOnlySetup && !userDefaultModel
-        ? (process.env.PLATFORM_ROUTEWAY_DEFAULT_MODEL ?? 'google/gemini-2.0-flash-exp:free')
+        ? (process.env.PLATFORM_ROUTEWAY_DEFAULT_MODEL ?? 'minimax-m2.5')
         : defaultModel
       const modelOverrides = {
         agents: { defaults: { model: { primary: resolvedModel }, sandbox: { mode: 'off' } } },
