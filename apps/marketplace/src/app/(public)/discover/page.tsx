@@ -60,7 +60,7 @@ async function fetchAgents(searchParams: {
   const { data } = await query
   if (!data) return []
 
-  return data.map((a) => ({
+  const mapped = data.map((a) => ({
     id: a.id,
     slug: a.slug,
     name: a.name,
@@ -73,6 +73,11 @@ async function fetchAgents(searchParams: {
     icon_url: a.icon_url,
     creator_name: null,
   }))
+
+  // Pin Personal AI to the top always
+  const pinned = mapped.filter(a => a.slug === 'personal-ai')
+  const rest = mapped.filter(a => a.slug !== 'personal-ai')
+  return [...pinned, ...rest]
 }
 
 export default async function DiscoverPage({ searchParams }: Props) {
