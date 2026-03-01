@@ -45,8 +45,7 @@ export async function POST(request: Request) {
       .eq('id', body.instanceId)
 
     return NextResponse.json({ ok: true })
-  } catch (err) {
-    console.error('Failed to restart agent:', err)
+  } catch {
     return NextResponse.json({ error: 'Failed to restart agent' }, { status: 500 })
   }
 }

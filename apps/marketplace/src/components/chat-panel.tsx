@@ -26,8 +26,8 @@ export function ChatPanel({ agentInstanceId }: { agentInstanceId: string }) {
             })),
           )
         }
-      } catch (err) {
-        console.error('Failed to load chat history:', err)
+      } catch {
+        // Failed to load history — start with empty messages
       } finally {
         setIsLoading(false)
       }
@@ -194,7 +194,6 @@ export function ChatPanel({ agentInstanceId }: { agentInstanceId: string }) {
           timeoutId = null
         }
       } catch (err) {
-        console.error('Chat error:', err)
         if (timeoutId) {
           clearTimeout(timeoutId)
           timeoutId = null
