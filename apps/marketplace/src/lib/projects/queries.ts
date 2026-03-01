@@ -48,39 +48,41 @@ export async function getActiveProjectId(userId: string) {
 
 /**
  * Load agent instances for the active project (filtered by team membership).
- * Falls back to all user agents if no teams exist yet.
+ * Uses a single nested query instead of 3 sequential round-trips.
  */
-export async function getProjectAgents(userId: string, activeProjectId: string | null) {
+export async function getProjectAgents(_userId: string, activeProjectId: string | null) {
+  if (!activeProjectId) return []
+
   const service = createServiceClient()
 
-  let teamIds: string[] = []
-  if (activeProjectId) {
-    const { data: teams } = await service
-      .from('teams')
-      .select('id')
-      .eq('project_id', activeProjectId)
-    teamIds = (teams ?? []).map(t => t.id)
+  // Single query: teams → team_agents → agent_instances → agents
+  // Team membership already scopes to the user's project
+  const { data: teams } = await service
+    .from('teams')
+    .select('team_agents(agent_instances!inner(id, display_name, status, created_at, agents!inner(name, slug, category, tagline, icon_url)))')
+    .eq('project_id', activeProjectId)
+
+  if (!teams || teams.length === 0) return []
+
+  // Flatten nested structure and deduplicate
+  const seen = new Set<string>()
+  const instances: ProjectAgentInstance[] = []
+
+  for (const team of teams) {
+    const teamAgents = (team as any).team_agents ?? []
+    for (const ta of teamAgents) {
+      const inst = ta.agent_instances
+      if (!inst || seen.has(inst.id)) continue
+      if (inst.status === 'destroyed' || inst.status === 'destroying') continue
+      if (inst.agents?.name == null) continue
+      seen.add(inst.id)
+      instances.push(inst)
+    }
   }
 
-  // Project exists but has no teams yet — no agents to show
-  if (teamIds.length === 0) return []
-
-  const { data: teamAgents } = await service
-    .from('team_agents')
-    .select('instance_id')
-    .in('team_id', teamIds)
-  const instanceIds = (teamAgents ?? []).map(ta => ta.instance_id)
-
-  if (instanceIds.length === 0) return []
-
-  const { data } = await service
-    .from('agent_instances')
-    .select('id, display_name, status, created_at, agents!inner(name, slug, category, tagline, icon_url)')
-    .eq('user_id', userId)
-    .in('id', instanceIds)
-    .not('status', 'in', '("destroyed","destroying")')
-    .order('created_at', { ascending: false })
-  return data ?? []
+  // Sort newest first
+  instances.sort((a, b) => b.created_at.localeCompare(a.created_at))
+  return instances
 }
 
 /**
