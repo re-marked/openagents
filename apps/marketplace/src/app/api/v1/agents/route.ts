@@ -1,10 +1,18 @@
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
 import { authenticatePublishToken, AuthError } from '@/lib/publish-api/auth'
 import {
   publishAgentFromRepo,
   listCreatorAgents,
   PublishError,
 } from '@/lib/publish-api/publish'
+
+const publishSchema = z.object({
+  repo: z.string().min(3).regex(/^[^/]+\/[^/]+$/, 'Must be in "owner/repo" format'),
+  branch: z.string().min(1).optional(),
+  github_token: z.string().min(1).optional(),
+  overrides: z.record(z.unknown()).optional(),
+})
 
 /**
  * POST /api/v1/agents — Publish an agent from a GitHub repo.
@@ -15,19 +23,20 @@ export async function POST(request: Request) {
     const { userId } = await authenticatePublishToken(request)
     const body = await request.json()
 
-    if (!body.repo || typeof body.repo !== 'string') {
+    const parsed = publishSchema.safeParse(body)
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Missing required field: repo (e.g., "owner/repo-name")' },
+        { error: parsed.error.issues.map(i => i.message).join(', ') },
         { status: 422 }
       )
     }
 
     const result = await publishAgentFromRepo({
       userId,
-      repo: body.repo,
-      branch: body.branch,
-      githubToken: body.github_token,
-      overrides: body.overrides,
+      repo: parsed.data.repo,
+      branch: parsed.data.branch,
+      githubToken: parsed.data.github_token,
+      overrides: parsed.data.overrides,
     })
 
     return NextResponse.json(result, { status: 201 })
