@@ -23,6 +23,7 @@ interface GraphNode extends SimulationNodeDatum {
   id: string
   label: string
   isRoot: boolean
+  isFolder: boolean
   content: string
   tags: string[]
   incomingCount: number
@@ -42,6 +43,7 @@ interface FileData {
 // ── Constants ────────────────────────────────────────────────────────────
 
 const NODE_COLOR_ROOT = 'hsl(215, 90%, 58%)'
+const NODE_COLOR_FOLDER = 'hsl(35, 80%, 55%)'
 const NODE_COLOR_DEFAULT = 'hsl(160, 60%, 45%)'
 const EDGE_COLOR = 'hsl(0, 0%, 30%)'
 const LABEL_COLOR = 'hsl(0, 0%, 70%)'
@@ -67,22 +69,52 @@ function slugFromFilename(filename: string): string {
 function buildGraph(files: FileData[]): { nodes: GraphNode[]; links: GraphLink[] } {
   const nodeMap = new Map<string, GraphNode>()
   const links: GraphLink[] = []
+  const folderChildren = new Map<string, string[]>()
 
-  // Create nodes for all files
+  // Create nodes for all files, tracking folder membership
   for (const file of files) {
     const slug = slugFromFilename(file.name)
     const isRoot = file.name === 'MEMORY.md'
-    const label = isRoot ? 'MEMORY' : slug
+    const label = isRoot ? 'MEMORY' : slug.split('/').pop() ?? slug
     const tags = parseTags(file.content)
+
+    // Track folder → children mapping for files inside directories
+    const parts = file.name.split('/')
+    if (parts.length > 1) {
+      const folder = parts[0]
+      if (!folderChildren.has(folder)) folderChildren.set(folder, [])
+      folderChildren.get(folder)!.push(slug)
+    }
 
     nodeMap.set(slug, {
       id: slug,
       label,
       isRoot,
+      isFolder: false,
       content: file.content,
       tags,
       incomingCount: 0,
     })
+  }
+
+  // Create folder nodes and link children to them
+  for (const [folder, children] of folderChildren) {
+    if (!nodeMap.has(folder)) {
+      nodeMap.set(folder, {
+        id: folder,
+        label: folder,
+        isRoot: false,
+        isFolder: true,
+        content: '',
+        tags: [],
+        incomingCount: 0,
+      })
+    }
+    for (const child of children) {
+      links.push({ source: folder, target: child })
+      const childNode = nodeMap.get(child)!
+      childNode.incomingCount++
+    }
   }
 
   // Build edges from wikilinks
@@ -92,10 +124,16 @@ function buildGraph(files: FileData[]): { nodes: GraphNode[]; links: GraphLink[]
 
     for (const target of wikilinks) {
       const targetSlug = target.toLowerCase()
-      if (nodeMap.has(targetSlug) && targetSlug !== sourceSlug) {
-        links.push({ source: sourceSlug, target: targetSlug })
-        const targetNode = nodeMap.get(targetSlug)!
-        targetNode.incomingCount++
+      // Match by: exact slug, filename part, or folder name (for folder nodes)
+      const matchNode = nodeMap.get(targetSlug)
+        ?? [...nodeMap.values()].find((n) =>
+          n.label === targetSlug
+          || n.id.endsWith('/' + targetSlug)
+          || (n.isFolder && n.id === targetSlug)
+        )
+      if (matchNode && matchNode.id !== sourceSlug) {
+        links.push({ source: sourceSlug, target: matchNode.id })
+        matchNode.incomingCount++
       }
     }
   }
@@ -282,7 +320,7 @@ export function KnowledgeGraph({ instanceId, testMode = false }: KnowledgeGraphP
       )
       .force('charge', forceManyBody().strength(-400))
       .force('center', forceCenter(0, 0).strength(0.02))
-      .force('collide', forceCollide<GraphNode>().radius((d) => nodeRadius(d) + 4))
+      .force('collide', forceCollide<GraphNode>().radius((d) => nodeRadius(d) + 6))
       .alpha(0.8)
       .alphaDecay(0.012)
 
@@ -306,9 +344,10 @@ export function KnowledgeGraph({ instanceId, testMode = false }: KnowledgeGraphP
     }
   }, [graph])
 
-  // Node radius based on incoming links
+  // Node radius based on type and incoming links
   function nodeRadius(node: GraphNode): number {
     if (node.isRoot) return 16
+    if (node.isFolder) return 12 + node.incomingCount * 1.5
     return 7 + node.incomingCount * 2
   }
 
@@ -514,7 +553,11 @@ export function KnowledgeGraph({ instanceId, testMode = false }: KnowledgeGraphP
             if (node.x == null || node.y == null) return null
             const r = nodeRadius(node)
             const isSelected = selectedNode?.id === node.id
-            const fill = node.isRoot ? NODE_COLOR_ROOT : NODE_COLOR_DEFAULT
+            const fill = node.isRoot
+              ? NODE_COLOR_ROOT
+              : node.isFolder
+                ? NODE_COLOR_FOLDER
+                : NODE_COLOR_DEFAULT
 
             return (
               <g
@@ -554,8 +597,8 @@ export function KnowledgeGraph({ instanceId, testMode = false }: KnowledgeGraphP
                   y={(node.y ?? 0) + r + 14}
                   textAnchor="middle"
                   fill={LABEL_COLOR}
-                  fontSize={node.isRoot ? 12 : 10}
-                  fontWeight={node.isRoot ? 600 : 400}
+                  fontSize={node.isRoot ? 12 : node.isFolder ? 11 : 10}
+                  fontWeight={node.isRoot ? 600 : node.isFolder ? 500 : 400}
                   className="pointer-events-none"
                 >
                   {node.label}
@@ -604,12 +647,38 @@ export function KnowledgeGraph({ instanceId, testMode = false }: KnowledgeGraphP
                 </button>
               </div>
               <div className="mt-3 text-xs text-muted-foreground overflow-y-auto flex-1 min-h-0">
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  components={mdComponents}
-                >
-                  {wikilinkify(selectedNode.content.trim())}
-                </ReactMarkdown>
+                {selectedNode.isFolder ? (
+                  <div className="space-y-2">
+                    <p className="text-muted-foreground/70 italic">Folder containing {
+                      links.filter((l) => (l.source as GraphNode).id === selectedNode.id).length
+                    } files</p>
+                    <ul className="ml-3 list-disc space-y-1">
+                      {links
+                        .filter((l) => (l.source as GraphNode).id === selectedNode.id)
+                        .map((l) => {
+                          const target = l.target as GraphNode
+                          return (
+                            <li key={target.id}>
+                              <a
+                                href="#"
+                                onClick={(e) => { e.preventDefault(); navigateToNode(target.id) }}
+                                className="text-primary hover:underline cursor-pointer"
+                              >
+                                {target.label}
+                              </a>
+                            </li>
+                          )
+                        })}
+                    </ul>
+                  </div>
+                ) : (
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={mdComponents}
+                  >
+                    {wikilinkify(selectedNode.content.trim())}
+                  </ReactMarkdown>
+                )}
               </div>
             </div>
           </motion.div>

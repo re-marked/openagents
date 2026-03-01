@@ -6,8 +6,9 @@ import { Search } from "lucide-react"
 import { AgentCardLarge } from "@/components/agent-card"
 import { AgentDetailSheet } from "@/components/agent-detail-sheet"
 import type { AgentListItem } from "@/lib/agents"
+import type { User } from "@supabase/supabase-js"
 
-export function DiscoverContent({ agents }: { agents: AgentListItem[] }) {
+export function DiscoverContent({ agents, user }: { agents: AgentListItem[]; user: User | null }) {
   const searchParams = useSearchParams()
   const query = searchParams.get("q")
   const category = searchParams.get("category")
@@ -50,6 +51,7 @@ export function DiscoverContent({ agents }: { agents: AgentListItem[] }) {
         agent={selectedAgent}
         open={!!selectedAgent}
         onOpenChange={(open) => { if (!open) setSelectedAgent(null) }}
+        user={user}
       />
     </main>
   )

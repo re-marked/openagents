@@ -337,6 +337,7 @@ export async function GET(request: Request) {
   // Mock mode — skip status check, return canned data
   if (isMock(instance.fly_app_name)) {
     if (find) {
+      // Simulate recursive find for mock data
       const pattern = find.replace('*', '.*')
       const matching = Object.keys(MOCK_MEMORY_FILES)
         .filter((k) => k.startsWith(path) && new RegExp(pattern).test(k))
