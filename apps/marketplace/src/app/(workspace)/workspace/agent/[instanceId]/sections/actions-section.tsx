@@ -12,6 +12,7 @@ interface ActionsSectionProps {
   agentName: string
   status: string
   onNameChange: (name: string) => void
+  onWake?: () => void
 }
 
 export function ActionsSection({
@@ -19,8 +20,8 @@ export function ActionsSection({
   agentName,
   status,
   onNameChange,
+  onWake,
 }: ActionsSectionProps) {
-  const [waking, setWaking] = useState(false)
   const [restarting, setRestarting] = useState(false)
   const [stopping, setStopping] = useState(false)
   const [suspending, setSuspending] = useState(false)
@@ -29,22 +30,8 @@ export function ActionsSection({
   const [exportingLogs, setExportingLogs] = useState(false)
 
   const isRunning = status === 'running'
+  const isStarting = status === 'starting'
   const canWake = status === 'suspended' || status === 'stopped'
-
-  async function handleWake() {
-    setWaking(true)
-    try {
-      await fetch('/api/agent/wake', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agentInstanceId: instanceId }),
-      })
-    } catch {
-      // polling picks up
-    } finally {
-      setWaking(false)
-    }
-  }
 
   async function handleRestart() {
     setRestarting(true)
@@ -149,12 +136,20 @@ export function ActionsSection({
       <div className="space-y-3">
         <h3 className="text-sm font-medium">Machine Controls</h3>
         <div className="flex flex-wrap gap-2">
-          {canWake && (
+          {canWake && onWake && (
             <ActionButton
               icon={Power}
               label={status === 'stopped' ? 'Start Up' : 'Wake Up'}
-              loading={waking}
-              onClick={handleWake}
+              loading={false}
+              onClick={onWake}
+            />
+          )}
+          {isStarting && (
+            <ActionButton
+              icon={Power}
+              label="Starting up..."
+              loading={true}
+              onClick={() => {}}
             />
           )}
           {isRunning && (

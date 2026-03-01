@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   LayoutDashboard,
   SlidersHorizontal,
@@ -27,6 +27,7 @@ import { ActivitySection } from './sections/activity-section'
 
 export const STATUS_CONFIG: Record<string, { label: string; dot: string; bg: string }> = {
   running: { label: 'Running', dot: 'bg-status-running', bg: 'bg-status-running/10 text-status-running ring-status-running/20' },
+  starting: { label: 'Starting up...', dot: 'bg-status-provisioning animate-pulse', bg: 'bg-status-provisioning/10 text-status-provisioning ring-status-provisioning/20' },
   suspended: { label: 'Suspended', dot: 'bg-status-suspended', bg: 'bg-status-suspended/10 text-status-suspended ring-status-suspended/20' },
   stopped: { label: 'Stopped', dot: 'bg-status-stopped', bg: 'bg-status-stopped/10 text-status-stopped ring-status-stopped/20' },
   provisioning: { label: 'Provisioning', dot: 'bg-status-provisioning animate-pulse', bg: 'bg-status-provisioning/10 text-status-provisioning ring-status-provisioning/20' },
@@ -74,12 +75,33 @@ export function AgentHomePage(props: AgentHomeProps) {
   } = props
   const [activeSection, setActiveSection] = useState<Section>('overview')
   const [currentName, setCurrentName] = useState(displayName)
+  const [waking, setWaking] = useState(false)
 
   const { status: realStatus } = useAgentStatus({ instanceId, initialStatus })
   // In test mode, always show as running so all sections are accessible
-  const status = testMode ? 'running' : realStatus
+  const polledStatus = testMode ? 'running' : realStatus
 
+  // Clear waking once polling confirms running
+  useEffect(() => {
+    if (polledStatus === 'running' && waking) setWaking(false)
+  }, [polledStatus, waking])
+
+  // Effective status: show "starting" while waiting for machine to come up
+  const status = waking ? 'starting' : polledStatus
   const isRunning = status === 'running'
+
+  const handleWake = useCallback(async () => {
+    setWaking(true)
+    try {
+      await fetch('/api/agent/wake', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agentInstanceId: instanceId }),
+      })
+    } catch {
+      setWaking(false)
+    }
+  }, [instanceId])
 
   // Sections that require the machine to be running
   const requiresRunning = ['config', 'personality', 'skills', 'memory']
@@ -93,8 +115,8 @@ export function AgentHomePage(props: AgentHomeProps) {
     if (sectionNeedsWake) {
       return (
         <MachineRequiredBanner
-          instanceId={instanceId}
           status={status}
+          onWake={handleWake}
         />
       )
     }
@@ -108,6 +130,7 @@ export function AgentHomePage(props: AgentHomeProps) {
             currentName={currentName}
             onNameChange={setCurrentName}
             onNavigate={(s) => setActiveSection(s as Section)}
+            onWake={handleWake}
             testMode={testMode}
           />
         )
@@ -130,6 +153,7 @@ export function AgentHomePage(props: AgentHomeProps) {
             agentName={currentName}
             status={status}
             onNameChange={setCurrentName}
+            onWake={handleWake}
           />
         )
     }
@@ -185,28 +209,14 @@ export function AgentHomePage(props: AgentHomeProps) {
 }
 
 function MachineRequiredBanner({
-  instanceId,
   status,
+  onWake,
 }: {
-  instanceId: string
   status: string
+  onWake: () => void
 }) {
-  const [waking, setWaking] = useState(false)
-
-  async function handleWake() {
-    setWaking(true)
-    try {
-      await fetch('/api/agent/wake', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agentInstanceId: instanceId }),
-      })
-    } catch {
-      // Status polling will pick up the change
-    } finally {
-      setWaking(false)
-    }
-  }
+  const isStarting = status === 'starting'
+  const canWake = status === 'suspended' || status === 'stopped'
 
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
@@ -214,15 +224,23 @@ function MachineRequiredBanner({
         <Power className="size-6 text-muted-foreground" />
       </div>
       <div>
-        <h3 className="text-sm font-medium">Agent is {status}</h3>
+        <h3 className="text-sm font-medium">
+          Agent is {isStarting ? 'starting up' : status}
+        </h3>
         <p className="text-xs text-muted-foreground mt-1">
-          Start your agent to access this setting
+          {isStarting ? 'Please wait while your agent boots up...' : 'Start your agent to access this setting'}
         </p>
       </div>
-      {(status === 'suspended' || status === 'stopped') && (
-        <Button size="sm" onClick={handleWake} disabled={waking}>
-          {waking ? 'Starting...' : status === 'stopped' ? 'Start Up' : 'Wake Up'}
+      {canWake && (
+        <Button size="sm" onClick={onWake}>
+          {status === 'stopped' ? 'Start Up' : 'Wake Up'}
         </Button>
+      )}
+      {isStarting && (
+        <div className="flex items-center gap-2 text-sm text-status-provisioning">
+          <span className="h-2 w-2 rounded-full bg-status-provisioning animate-pulse" />
+          Starting up...
+        </div>
       )}
     </div>
   )

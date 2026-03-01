@@ -120,6 +120,7 @@ interface OverviewSectionProps {
   createdAt: string
   onNameChange: (name: string) => void
   onNavigate?: (section: string) => void
+  onWake?: () => void
   testMode?: boolean
 }
 
@@ -133,10 +134,10 @@ export function OverviewSection({
   agentIconUrl,
   createdAt,
   onNavigate,
+  onWake,
   testMode = false,
 }: OverviewSectionProps) {
   const router = useRouter()
-  const [waking, setWaking] = useState(false)
   const [restarting, setRestarting] = useState(false)
   const [stats, setStats] = useState<StatsData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -148,6 +149,7 @@ export function OverviewSection({
     bg: 'bg-zinc-500/10 text-zinc-400 ring-zinc-500/20',
   }
   const isRunning = status === 'running'
+  const isStarting = status === 'starting'
   const canWake = status === 'suspended' || status === 'stopped'
 
   useEffect(() => {
@@ -171,21 +173,6 @@ export function OverviewSection({
     }
     fetchStats()
   }, [instanceId, testMode])
-
-  async function handleWake() {
-    setWaking(true)
-    try {
-      await fetch('/api/agent/wake', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agentInstanceId: instanceId }),
-      })
-    } catch {
-      // polling will pick up
-    } finally {
-      setWaking(false)
-    }
-  }
 
   async function handleRestart() {
     setRestarting(true)
@@ -259,10 +246,16 @@ export function OverviewSection({
                 Open Chat
               </Button>
             )}
-            {canWake && (
-              <Button size="sm" onClick={handleWake} disabled={waking}>
+            {canWake && onWake && (
+              <Button size="sm" onClick={onWake}>
                 <Power className="size-3.5 mr-1.5" />
-                {waking ? 'Starting...' : status === 'stopped' ? 'Start Up' : 'Wake Up'}
+                {status === 'stopped' ? 'Start Up' : 'Wake Up'}
+              </Button>
+            )}
+            {isStarting && (
+              <Button size="sm" disabled>
+                <Power className="size-3.5 mr-1.5 animate-pulse" />
+                Starting up...
               </Button>
             )}
             {isRunning && (
