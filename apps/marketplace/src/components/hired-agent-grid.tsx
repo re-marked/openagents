@@ -1,8 +1,9 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { MessageSquare, Loader2, Settings, Plus } from 'lucide-react'
+import { MessageSquare, Loader2, Settings, Plus, Power } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -21,6 +22,7 @@ export interface HiredAgent {
 
 const STATUS_BADGE: Record<string, { text: string; className: string }> = {
   running: { text: "Running", className: "bg-status-running/10 text-status-running border-0" },
+  starting: { text: "Starting up...", className: "bg-status-provisioning/10 text-status-provisioning border-0" },
   suspended: { text: "Suspended", className: "bg-status-suspended/10 text-status-suspended border-0" },
   stopped: { text: "Stopped", className: "bg-status-stopped/10 text-status-stopped border-0" },
   provisioning: { text: "Provisioning...", className: "bg-status-provisioning/10 text-status-provisioning border-0" },
@@ -34,6 +36,37 @@ interface HiredAgentGridProps {
 
 export function HiredAgentGrid({ agents }: HiredAgentGridProps) {
   const router = useRouter()
+  const [wakingIds, setWakingIds] = useState<Set<string>>(new Set())
+
+  async function handleWake(instanceId: string) {
+    setWakingIds((prev) => new Set(prev).add(instanceId))
+    try {
+      await fetch('/api/agent/wake', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agentInstanceId: instanceId }),
+      })
+    } catch {
+      setWakingIds((prev) => {
+        const next = new Set(prev)
+        next.delete(instanceId)
+        return next
+      })
+    }
+  }
+
+  // Clear waking state when an agent becomes running (via parent re-render with fresh data)
+  useEffect(() => {
+    for (const agent of agents) {
+      if (agent.status === 'running' && wakingIds.has(agent.instanceId)) {
+        setWakingIds((prev) => {
+          const next = new Set(prev)
+          next.delete(agent.instanceId)
+          return next
+        })
+      }
+    }
+  }, [agents, wakingIds])
 
   const MIN_SLOTS = 6
   const emptySlots = Math.max(0, MIN_SLOTS - agents.length)
@@ -41,11 +74,14 @@ export function HiredAgentGrid({ agents }: HiredAgentGridProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
       {agents.map((agent) => {
-        const statusBadge = STATUS_BADGE[agent.status] ?? { text: agent.status, className: "bg-secondary" }
+        const isWaking = wakingIds.has(agent.instanceId)
+        const effectiveStatus = isWaking && agent.status !== 'running' ? 'starting' : agent.status
+        const statusBadge = STATUS_BADGE[effectiveStatus] ?? { text: effectiveStatus, className: "bg-secondary" }
         const homePath = `/workspace/agent/${agent.instanceId}`
         const chatPath = `${homePath}/chat`
-        const isProvisioning = agent.status === "provisioning"
-        const isDestroying = agent.status === "destroying"
+        const isProvisioning = effectiveStatus === "provisioning"
+        const isStarting = effectiveStatus === "starting"
+        const canWake = effectiveStatus === "suspended" || effectiveStatus === "stopped"
 
         return (
           <Card
@@ -60,14 +96,14 @@ export function HiredAgentGrid({ agents }: HiredAgentGridProps) {
                   <h3 className="text-[15px] font-semibold leading-tight truncate">{agent.name}</h3>
                   <p className="text-[13px] text-muted-foreground mt-0.5 truncate">{agent.tagline}</p>
                   <Badge variant="secondary" className={`mt-1.5 text-[10px] ${statusBadge.className}`}>
-                    {isProvisioning && <Loader2 className="inline size-3 mr-1 animate-spin" />}
+                    {(isProvisioning || isStarting) && <Loader2 className="inline size-3 mr-1 animate-spin" />}
                     {statusBadge.text}
                   </Badge>
                 </div>
               </div>
 
               <div className="flex-1" />
-              {!isProvisioning && !isDestroying && agent.status !== 'error' && (
+              {effectiveStatus === 'running' && (
                 <div className="flex gap-2">
                   <Button
                     variant="secondary"
@@ -92,6 +128,35 @@ export function HiredAgentGrid({ agents }: HiredAgentGridProps) {
                     </Link>
                   </Button>
                 </div>
+              )}
+              {canWake && (
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    className="flex-1 bg-primary/15 text-primary hover:bg-primary/25"
+                    onClick={(e) => { e.stopPropagation(); handleWake(agent.instanceId) }}
+                  >
+                    <Power className="size-4 mr-2" />
+                    {effectiveStatus === 'stopped' ? 'Start Up' : 'Wake Up'}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    asChild
+                    className="flex-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Link href={homePath}>
+                      <Settings className="size-4 mr-2" />
+                      Agent Config
+                    </Link>
+                  </Button>
+                </div>
+              )}
+              {isStarting && (
+                <Button variant="secondary" disabled className="w-full">
+                  <Loader2 className="size-4 mr-2 animate-spin" />
+                  Starting up...
+                </Button>
               )}
               {isProvisioning && (
                 <Button variant="secondary" disabled className="w-full">

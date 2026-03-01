@@ -30,6 +30,7 @@ export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCa
   const [isLoading, setIsLoading] = useState(true)
   const [isTyping, setIsTyping] = useState(false)
   const [showSleepingAlert, setShowSleepingAlert] = useState(agentStatus === 'suspended' || agentStatus === 'stopped')
+  const [waking, setWaking] = useState(false)
 
   // Queue for non-blocking sends
   const queueRef = useRef<string[]>([])
@@ -539,20 +540,67 @@ export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCa
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {agentStatus === 'stopped' ? 'Agent is shut down' : 'Agent is sleeping'}
+              {waking
+                ? 'Starting up...'
+                : agentStatus === 'stopped' ? 'Agent is shut down' : 'Agent is sleeping'}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {agentStatus === 'stopped'
-                ? 'This agent was shut down. Start it up to begin chatting — this may take a moment.'
-                : 'This agent was suspended after 30 minutes of inactivity. Wake it up to start chatting.'}
+              {waking
+                ? 'Your agent is booting up. This usually takes a few seconds.'
+                : agentStatus === 'stopped'
+                  ? 'This agent was shut down. Start it up to begin chatting — this may take a moment.'
+                  : 'This agent was suspended after 30 minutes of inactivity. Wake it up to start chatting.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => router.push('/workspace/home')}>
-              Go Back
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={() => router.push(`/workspace/agent/${agentInstanceId}`)}>
-              Wake Up
+            {!waking && (
+              <AlertDialogCancel onClick={() => router.push('/workspace/home')}>
+                Go Back
+              </AlertDialogCancel>
+            )}
+            <AlertDialogAction
+              disabled={waking}
+              onClick={async (e) => {
+                if (waking) { e.preventDefault(); return }
+                e.preventDefault()
+                setWaking(true)
+                try {
+                  await fetch('/api/agent/wake', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ agentInstanceId }),
+                  })
+                  // Poll until running, then dismiss
+                  for (let i = 0; i < 30; i++) {
+                    await new Promise((r) => setTimeout(r, 2000))
+                    const res = await fetch(`/api/agent/status?instanceId=${agentInstanceId}`)
+                    if (res.ok) {
+                      const data = await res.json()
+                      if (data.status === 'running') {
+                        setShowSleepingAlert(false)
+                        setWaking(false)
+                        router.refresh()
+                        return
+                      }
+                    }
+                  }
+                  // Timed out — redirect to agent home
+                  setWaking(false)
+                  router.push(`/workspace/agent/${agentInstanceId}`)
+                } catch {
+                  setWaking(false)
+                  router.push(`/workspace/agent/${agentInstanceId}`)
+                }
+              }}
+            >
+              {waking ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Starting up...
+                </span>
+              ) : (
+                agentStatus === 'stopped' ? 'Start Up' : 'Wake Up'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
