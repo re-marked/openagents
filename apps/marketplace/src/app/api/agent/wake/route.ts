@@ -42,8 +42,7 @@ export async function POST(request: Request) {
       .eq('id', agentInstanceId)
 
     return NextResponse.json({ ok: true })
-  } catch (err) {
-    console.error('Failed to wake agent:', err)
+  } catch {
     return NextResponse.json(
       { error: 'Failed to wake agent machine' },
       { status: 500 }
