@@ -24,7 +24,8 @@ export async function middleware(request: NextRequest) {
   // ── Launch lockdown: only the landing page is public ──
   // Set NEXT_PUBLIC_LAUNCH_LOCKDOWN=true to lock the app (only '/' is accessible).
   // Default: unlocked (app is open). Explicit opt-in prevents accidental lockouts.
-  if (process.env.NEXT_PUBLIC_LAUNCH_LOCKDOWN === 'true' && pathname !== '/') {
+  // Auth callback must always be excluded — lockdown breaks OAuth code exchange.
+  if (process.env.NEXT_PUBLIC_LAUNCH_LOCKDOWN === 'true' && pathname !== '/' && !pathname.startsWith('/auth/')) {
     const url = request.nextUrl.clone()
     url.pathname = '/'
     return NextResponse.redirect(url)
