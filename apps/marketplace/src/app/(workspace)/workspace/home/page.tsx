@@ -17,6 +17,9 @@ export default async function HomePage() {
   const apiKeys = await getApiKeys()
   const hasApiKeys = apiKeys.length > 0
 
+  // Platform free tier: if PLATFORM_ROUTEWAY_API_KEY is set, new users can start without configuring keys
+  const hasPlatformKey = !!process.env.PLATFORM_ROUTEWAY_API_KEY
+
   // Load agents for the active project
   const { activeProjectId } = await getActiveProjectId(user.id)
   const instances = await getProjectAgents(user.id, activeProjectId)
@@ -44,7 +47,7 @@ export default async function HomePage() {
 
       {/* Onboarding / Empty state / Agent grid */}
       {!hasApiKeys && agents.length === 0 ? (
-        <OnboardingWizard />
+        <OnboardingWizard activeProjectId={activeProjectId} hasPlatformKey={hasPlatformKey} />
       ) : agents.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-32 text-center">
           <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-card mb-5">

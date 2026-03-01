@@ -105,7 +105,10 @@ export const provisionAgentMachine = task({
         .eq('id', userId)
         .single()
 
-      const defaultModel = (userRow as { default_model: string } | null)?.default_model ?? 'google/gemini-2.5-flash'
+      // If user has explicitly set a default model, use it; otherwise choose based on available keys.
+      // When only Routeway is configured, use a free Routeway model to avoid unexpected costs.
+      const userDefaultModel = (userRow as { default_model: string } | null)?.default_model
+      const defaultModel = userDefaultModel ?? 'google/gemini-2.5-flash'
 
       const keyEnv: Record<string, string> = {}
       for (const row of apiKeys ?? []) {
@@ -113,10 +116,20 @@ export const provisionAgentMachine = task({
         if (row.provider === 'openai') keyEnv.OPENAI_API_KEY = row.api_key
         // OpenClaw reads GEMINI_API_KEY, not GOOGLE_API_KEY
         if (row.provider === 'google') keyEnv.GEMINI_API_KEY = row.api_key
+        // Routeway: OpenAI-compatible gateway — entrypoint writes it as openai:routeway profile with custom baseUrl
+        if (row.provider === 'routeway') keyEnv.ROUTEWAY_API_KEY = row.api_key
       }
 
+      // Platform fallback: if user has no keys, use the platform Routeway key for free-tier access
+      // This lets new users get started immediately without configuring any API keys
       if (Object.keys(keyEnv).length === 0) {
-        throw new Error('No API keys configured. Add at least one key in Settings.')
+        const platformRouteKey = process.env.PLATFORM_ROUTEWAY_API_KEY
+        if (platformRouteKey) {
+          keyEnv.ROUTEWAY_API_KEY = platformRouteKey
+          logger.info('Using platform Routeway key as fallback (user has no API keys configured)')
+        } else {
+          throw new Error('No API keys configured. Add at least one key in Settings.')
+        }
       }
 
       const image = agent.docker_image ?? BASE_IMAGE
@@ -164,9 +177,14 @@ export const provisionAgentMachine = task({
         roleEnv.AGENT_OPENCLAW_OVERRIDES = JSON.stringify(role.openclawOverrides)
       }
 
-      // Build OpenClaw config overrides to set the user's preferred model
+      // Build OpenClaw config overrides to set the user's preferred model.
+      // When only Routeway is configured (no BYOK keys), default to a free tier model.
+      const isRouteOnlySetup = keyEnv.ROUTEWAY_API_KEY && !keyEnv.GEMINI_API_KEY && !keyEnv.OPENAI_API_KEY && !keyEnv.ANTHROPIC_API_KEY
+      const resolvedModel = isRouteOnlySetup && !userDefaultModel
+        ? (process.env.PLATFORM_ROUTEWAY_DEFAULT_MODEL ?? 'google/gemini-2.0-flash-exp:free')
+        : defaultModel
       const modelOverrides = {
-        agents: { defaults: { model: { primary: defaultModel }, sandbox: { mode: 'off' } } },
+        agents: { defaults: { model: { primary: resolvedModel }, sandbox: { mode: 'off' } } },
       }
 
       const machine = await fly.createMachine(appName, {

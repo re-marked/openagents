@@ -29,8 +29,10 @@ else
   echo "[entrypoint] Existing openclaw.json found — preserving user config"
 fi
 
-# ── 1b. Strip problematic keys that crash or hang OpenClaw v2026.2.25
+# ── 1b. Strip/fix problematic keys in OpenClaw v2026.2.25
 #   - tools.elevated.autoApprove: deprecated, crashes newer versions
+#   - tools.elevated.enabled: must be false — gateway can't handle approval requests
+#   - agents.defaults.elevatedDefault: remove to avoid elevated mode
 #   - agents.defaults.subagents: causes gateway init hang, corrupts volume state
 if [ -f /data/openclaw.json ]; then
   node -e "\
@@ -41,15 +43,29 @@ if [ -f /data/openclaw.json ]; then
       delete cfg.tools.elevated.autoApprove;\
       changed = true;\
     }\
+    if (cfg.tools?.elevated?.enabled === true) {\
+      cfg.tools.elevated.enabled = false;\
+      changed = true;\
+    }\
+    if (cfg.agents?.defaults?.elevatedDefault !== undefined) {\
+      delete cfg.agents.defaults.elevatedDefault;\
+      changed = true;\
+    }\
     if (cfg.agents?.defaults?.subagents !== undefined) {\
       delete cfg.agents.defaults.subagents;\
       changed = true;\
     }\
     if (changed) {\
       fs.writeFileSync('/data/openclaw.json', JSON.stringify(cfg, null, 2));\
-      console.log('[entrypoint] Stripped problematic config keys from openclaw.json');\
+      console.log('[entrypoint] Fixed problematic config keys in openclaw.json');\
     }\
   "
+fi
+
+# ── 1c. Migrate deprecated model names on existing volumes
+if [ -f /data/openclaw.json ] && grep -q '"gemini-2.0-flash"' /data/openclaw.json; then
+  sed -i 's/gemini-2.0-flash/gemini-2.5-flash/g' /data/openclaw.json
+  echo "[entrypoint] Migrated model from gemini-2.0-flash → gemini-2.5-flash"
 fi
 
 # ── 2. Seed workspace files on first boot
@@ -86,6 +102,9 @@ node -e "\
   if (process.env.GEMINI_API_KEY) profiles['google:default'] = { type: 'api_key', provider: 'google', key: process.env.GEMINI_API_KEY };\
   if (process.env.ANTHROPIC_API_KEY) profiles['anthropic:default'] = { type: 'api_key', provider: 'anthropic', key: process.env.ANTHROPIC_API_KEY };\
   if (process.env.OPENAI_API_KEY) profiles['openai:default'] = { type: 'api_key', provider: 'openai', key: process.env.OPENAI_API_KEY };\
+  if (process.env.ROUTEWAY_API_KEY) {\
+    profiles['openai:routeway'] = { type: 'api_key', provider: 'openai', key: process.env.ROUTEWAY_API_KEY, baseUrl: 'https://api.routeway.ai/v1' };\
+  }\
   if (Object.keys(profiles).length > 0) {\
     fs.writeFileSync('$AUTH_FILE', JSON.stringify({ version: 1, profiles }, null, 2));\
     console.log('auth-profiles.json written with providers:', Object.keys(profiles).join(', '));\
