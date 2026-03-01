@@ -1,8 +1,7 @@
 import { createClient, createServiceClient } from '@agentbay/db/server'
 import { NextResponse } from 'next/server'
 import type { Tables } from '@agentbay/db'
-import { getUserCredits } from '@/lib/usage/credit-check'
-import { estimateTokens, calculateCredits, estimateCostUsd } from '@/lib/usage/token-estimator'
+import { estimateTokens, estimateApiCost } from '@/lib/usage/token-estimator'
 
 export const runtime = 'nodejs'
 
@@ -62,15 +61,6 @@ export async function POST(request: Request) {
 
   if (!instance.fly_app_name) {
     return NextResponse.json({ error: 'Agent has no Fly app configured' }, { status: 500 })
-  }
-
-  // 3b. Credit pre-check — block if zero credits
-  const userCredits = await getUserCredits(user.id)
-  if (userCredits <= 0) {
-    return NextResponse.json(
-      { error: 'No credits remaining. Please add credits to continue.' },
-      { status: 402 },
-    )
   }
 
   // 4. Find or create session for this user + instance
@@ -360,15 +350,14 @@ export async function POST(request: Request) {
           )
           .select('id')
 
-        // 10. Record usage — estimate tokens, deduct credits
+        // 10. Record usage — estimate tokens and API cost
         const inputTokens = estimateTokens(message)
         const outputTokens = assistantMessages.reduce(
           (sum, msg) => sum + estimateTokens(msg),
           0,
         )
         const computeSeconds = Math.round((Date.now() - streamStartTime) / 1000 * 100) / 100
-        const creditsConsumed = calculateCredits(inputTokens, outputTokens)
-        const costUsd = estimateCostUsd(creditsConsumed)
+        const costUsd = estimateApiCost(inputTokens, outputTokens)
 
         const serviceClient = createServiceClient()
         await serviceClient.rpc('record_usage_event', {
@@ -378,7 +367,7 @@ export async function POST(request: Request) {
           p_input_tokens: inputTokens,
           p_output_tokens: outputTokens,
           p_compute_seconds: computeSeconds,
-          p_credits_consumed: creditsConsumed,
+          p_credits_consumed: 0,
           p_cost_usd: costUsd,
         })
 
