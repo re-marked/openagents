@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { saveApiKey, deleteApiKey, type ApiKeyProvider } from '@/lib/settings/actions'
-import { Key, Trash2, Check, Loader2, Plus } from 'lucide-react'
+import { Key, Trash2, Check, Loader2, Plus, Zap } from 'lucide-react'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 
 interface MaskedKey {
@@ -22,7 +22,7 @@ const PROVIDERS: { id: ApiKeyProvider; name: string; placeholder: string; prefix
   { id: 'anthropic', name: 'Anthropic', placeholder: 'sk-ant-...', prefix: 'sk-ant-' },
 ]
 
-export function ApiKeysSettings({ initialKeys }: { initialKeys: MaskedKey[] }) {
+export function ApiKeysSettings({ initialKeys, hasPlatformKey = false }: { initialKeys: MaskedKey[]; hasPlatformKey?: boolean }) {
   const [keys, setKeys] = useState(initialKeys)
   const [editingProvider, setEditingProvider] = useState<ApiKeyProvider | null>(null)
   const [inputValue, setInputValue] = useState('')
@@ -90,6 +90,28 @@ export function ApiKeysSettings({ initialKeys }: { initialKeys: MaskedKey[] }) {
       )}
 
       <div className="space-y-3">
+        {/* Free tier — read-only, shown when platform provides a shared key */}
+        {hasPlatformKey && (
+          <Card className="border-0 gap-0 py-0 ring-1 ring-emerald-500/20">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10">
+                    <Zap className="size-5 text-emerald-400" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium">Free (limited)</p>
+                      <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-400">Active</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">10 messages included — add your own key for unlimited access</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {PROVIDERS.map((provider) => {
           const existing = keys.find((k) => k.provider === provider.id)
           const isEditing = editingProvider === provider.id
