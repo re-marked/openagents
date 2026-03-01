@@ -33,6 +33,7 @@ export type Database = {
           team_id: string | null
           updated_at: string
           user_id: string
+          workspace_files: Json | null
         }
         Insert: {
           agent_id: string
@@ -52,6 +53,7 @@ export type Database = {
           team_id?: string | null
           updated_at?: string
           user_id: string
+          workspace_files?: Json | null
         }
         Update: {
           agent_id?: string
@@ -71,6 +73,7 @@ export type Database = {
           team_id?: string | null
           updated_at?: string
           user_id?: string
+          workspace_files?: Json | null
         }
         Relationships: [
           {
