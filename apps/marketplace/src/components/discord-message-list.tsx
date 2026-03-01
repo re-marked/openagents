@@ -213,7 +213,7 @@ function MessageGroupView({ group, agentName, agentCategory, agentIconUrl, agent
                   <p className="text-sm font-semibold text-amber-300">Free limit reached</p>
                   <p className="text-sm text-muted-foreground mt-0.5">
                     You&apos;ve used your 10 free messages.{' '}
-                    <Link href="/workspace/settings/api-keys" className="text-amber-400 underline underline-offset-2 hover:text-amber-300 transition-colors">
+                    <Link href="/workspace/settings" className="text-amber-400 underline underline-offset-2 hover:text-amber-300 transition-colors">
                       Add an API key
                     </Link>
                     {' '}to keep chatting with no limits.
