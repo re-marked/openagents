@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronRight, Terminal, FileText, Pencil, Globe, FileCode, Loader2 } from 'lucide-react'
+import { spring } from '@/lib/spring'
 
 export interface ToolUse {
   id: string
@@ -20,9 +21,6 @@ const TOOL_CONFIG: Record<string, { label: string; icon: typeof Terminal }> = {
   apply_patch: { label: 'Patch', icon: FileCode },
   web_search: { label: 'Web Search', icon: Globe },
 }
-
-// Apple-style spring — snappy response, minimal overshoot
-const appleSpring = { type: 'spring' as const, stiffness: 380, damping: 30, mass: 0.8 }
 
 function getToolConfig(tool: string) {
   return TOOL_CONFIG[tool] ?? { label: tool, icon: Terminal }
@@ -55,7 +53,7 @@ function ToolUseItem({ toolUse }: { toolUse: ToolUse }) {
           {hasOutput && (
             <motion.span
               animate={{ rotate: expanded ? 90 : 0 }}
-              transition={appleSpring}
+              transition={spring}
               className="flex"
             >
               <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
@@ -71,7 +69,7 @@ function ToolUseItem({ toolUse }: { toolUse: ToolUse }) {
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{
-              height: appleSpring,
+              height: spring,
               opacity: { duration: 0.15, ease: 'easeOut' },
             }}
             className="overflow-hidden"

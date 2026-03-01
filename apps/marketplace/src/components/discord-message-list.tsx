@@ -1,6 +1,8 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { motion } from 'framer-motion'
+import { fadeSlideUp, spring } from '@/lib/spring'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -257,12 +259,34 @@ export function DiscordMessageList({ messages, agentName = 'Agent', agentCategor
 
   const groups = groupMessages(messages)
 
+  // Track which group keys were present on initial mount — don't animate those
+  const [initialKeys] = useState(() => {
+    const keys = new Set<string>()
+    const initialGroups = groupMessages(messages)
+    initialGroups.forEach((g, i) => keys.add(`${g.role}-${g.messages[0].id}-${i}`))
+    return keys
+  })
+
   return (
     <ScrollArea ref={scrollAreaRef} className="min-h-0 flex-1" data-lenis-prevent>
       <div className="flex flex-col gap-1 py-4">
-        {groups.map((group, i) => (
-          <MessageGroupView key={`${group.role}-${group.messages[0].id}-${i}`} group={group} agentName={agentName} agentCategory={agentCategory} agentIconUrl={agentIconUrl} agentInstanceId={agentInstanceId} botBg={botBg} botText={botText} />
-        ))}
+        {groups.map((group, i) => {
+          const key = `${group.role}-${group.messages[0].id}-${i}`
+          const shouldAnimate = !initialKeys.has(key)
+          return shouldAnimate ? (
+            <motion.div
+              key={key}
+              variants={fadeSlideUp}
+              initial="initial"
+              animate="animate"
+              transition={{ ...spring, opacity: { duration: 0.15 } }}
+            >
+              <MessageGroupView group={group} agentName={agentName} agentCategory={agentCategory} agentIconUrl={agentIconUrl} agentInstanceId={agentInstanceId} botBg={botBg} botText={botText} />
+            </motion.div>
+          ) : (
+            <MessageGroupView key={key} group={group} agentName={agentName} agentCategory={agentCategory} agentIconUrl={agentIconUrl} agentInstanceId={agentInstanceId} botBg={botBg} botText={botText} />
+          )
+        })}
       </div>
     </ScrollArea>
   )
