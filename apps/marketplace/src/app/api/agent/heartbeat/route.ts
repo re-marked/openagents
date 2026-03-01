@@ -67,7 +67,13 @@ export async function GET(request: Request) {
     )
   }
 
-  const agentToken = instance.gateway_token ?? process.env.TEST_AGENT_GATEWAY_TOKEN
+  const agentToken = instance.gateway_token
+  if (!agentToken) {
+    return NextResponse.json(
+      { status: 'NOT_READY', error: 'Agent has no gateway token configured' },
+      { status: 503 },
+    )
+  }
 
   try {
     const res = await fetch(`${gatewayUrl}/v1/heartbeat`, {

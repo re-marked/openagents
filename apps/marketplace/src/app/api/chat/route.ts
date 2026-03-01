@@ -65,9 +65,7 @@ export async function POST(request: Request) {
 
   // 3b. Free tier hard limit — 10 messages total for users with no BYOK keys
   const FREE_MESSAGE_LIMIT = 10
-  const platformKey = process.env.PLATFORM_ROUTEWAY_API_KEY
-  if (platformKey) {
-    // Check if user has any BYOK keys
+  {
     const service = createServiceClient()
     const { count: keyCount } = await service
       .from('user_api_keys')
@@ -152,7 +150,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Gateway not configured' }, { status: 500 })
   }
 
-  const agentToken = instance.gateway_token ?? process.env.TEST_AGENT_GATEWAY_TOKEN
+  const agentToken = instance.gateway_token
+  if (!agentToken) {
+    return NextResponse.json({ error: 'Agent has no gateway token configured' }, { status: 500 })
+  }
 
   const streamStartTime = Date.now()
 
