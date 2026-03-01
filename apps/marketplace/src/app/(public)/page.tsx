@@ -243,11 +243,11 @@ function UnlockedLandingPage() {
   }, [])
 
   return (
-    <ScrollArea ref={scrollAreaRef} className="h-[calc(100svh-3.5rem)]">
+    <ScrollArea ref={scrollAreaRef} className="h-svh -mt-14">
       {viewport && <SmoothScrollInner wrapper={viewport} />}
       <main className="w-full">
         {/* ─── Section 1: Hero ─── */}
-        <section className="relative flex h-[calc(100svh-3.5rem)] w-full flex-col items-center justify-center overflow-hidden px-6">
+        <section className="relative flex h-svh w-full flex-col items-center justify-center overflow-hidden px-6">
           <div className="absolute inset-0 z-0">
             <AuroraHero className="h-full w-full" />
           </div>
