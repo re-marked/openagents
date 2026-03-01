@@ -18,7 +18,7 @@ async function getAgent(slugOrId: string) {
 
   const { data } = await supabase
     .from('agents')
-    .select('id, slug, name, tagline, description, category, avg_rating, total_hires, total_reviews, pricing_model, credits_per_session, icon_url')
+    .select('id, slug, name, tagline, description, category, avg_rating, total_hires, total_reviews, icon_url')
     .eq('status', 'published')
     .or(`slug.eq.${slugOrId},id.eq.${slugOrId}`)
     .limit(1)
@@ -59,11 +59,6 @@ export default async function AgentPage({ params }: Props) {
   const agent = await getAgent(id)
   if (!agent) notFound()
 
-  const price =
-    agent.pricing_model === 'free' || !agent.credits_per_session
-      ? 'Free'
-      : `${agent.credits_per_session} credits/session`
-
   return (
     <div className="min-h-screen bg-background">
       <PublicSiteHeader />
@@ -81,7 +76,7 @@ export default async function AgentPage({ params }: Props) {
                 {agent.category}
               </Badge>
               <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-400 border-0">
-                {price}
+                Free
               </Badge>
             </div>
           </div>

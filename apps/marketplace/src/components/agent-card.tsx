@@ -77,15 +77,6 @@ export function AgentCardLarge({
         </div>
 
         <div className="flex gap-2 overflow-x-auto no-scrollbar">
-        {agent.pricing_model === "free" ? (
-          <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-400 border-0">
-            Free
-          </Badge>
-        ) : (
-          <Badge variant="secondary" className="bg-primary/10 text-primary border-0">
-            {agent.credits_per_session} credits
-          </Badge>
-        )}
             <Badge variant="secondary">{agent.category}</Badge>
             {agent.total_hires > 0 && (
               <Badge variant="secondary">{formatCount(agent.total_hires)} hires</Badge>

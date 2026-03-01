@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Home, Settings, Plus, BarChart3, CreditCard, Key, MoreHorizontal, Pencil, Trash2, CompassIcon, Hash } from "lucide-react"
+import { Home, Settings, Plus, BarChart3, Key, MoreHorizontal, Pencil, Trash2, CompassIcon, Hash } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 
@@ -404,14 +404,6 @@ export function AppSidebar({
                   <Link href="/workspace/usage">
                     <BarChart3 className="size-4" />
                     <span>Usage</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === "/workspace/billing"}>
-                  <Link href="/workspace/billing">
-                    <CreditCard className="size-4" />
-                    <span>Billing</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
