@@ -57,11 +57,11 @@ function formatTotalTime(minutes: number): string {
   return m > 0 ? `${h}h ${m}m` : `${h}h`
 }
 
-function formatCost(credits: number): string {
-  if (credits === 0) return '0'
-  if (credits < 1) return `${credits.toFixed(1)}`
-  if (credits < 10) return `${credits.toFixed(1)}`
-  return `${Math.round(credits)}`
+function formatCost(usd: number): string {
+  if (usd === 0) return '$0'
+  if (usd < 0.01) return `$${usd.toFixed(4)}`
+  if (usd < 1) return `$${usd.toFixed(2)}`
+  return `$${usd.toFixed(2)}`
 }
 
 function formatTooltipDate(dateStr: string, isHourly: boolean): string {
@@ -95,7 +95,7 @@ function sumField(data: TimeSeriesEntry[], field: keyof Omit<TimeSeriesEntry, 'd
 // ── Chart configs (one per stat, different colors) ───────────────────────
 
 const costChartConfig = {
-  cost: { label: 'Credits', color: 'hsl(var(--primary))' },
+  cost: { label: 'Est. API Cost', color: 'hsl(var(--primary))' },
 } satisfies ChartConfig
 
 const minutesChartConfig = {
@@ -289,12 +289,11 @@ export function OverviewSection({
         </div>
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* Cost */}
+          {/* Estimated API Cost */}
           <SparklineCard
             icon={DollarSign}
             value={formatCost(costTotal)}
-            unit="credits"
-            label="Cost"
+            label="Est. API Cost"
             chartConfig={costChartConfig}
             data={sliced}
             dataKey="cost"

@@ -10,20 +10,18 @@ interface UsageEvent {
   inputTokens: number
   outputTokens: number
   computeSeconds: number
-  credits: number
   costUsd: number
 }
 
 interface DailyEntry {
   date: string
-  credits: number
+  cost: number
   tokens: number
   sessions: number
 }
 
 interface UsageResponse {
   summary: {
-    totalCredits: number
     totalCostUsd: number
     totalInputTokens: number
     totalOutputTokens: number
@@ -50,7 +48,7 @@ function generateMockUsage(days: number): UsageResponse {
   const daily: DailyEntry[] = []
   const events: UsageEvent[] = []
 
-  let totalCredits = 0
+  let totalCostUsd = 0
   let totalInput = 0
   let totalOutput = 0
   let totalCompute = 0
@@ -77,21 +75,21 @@ function generateMockUsage(days: number): UsageResponse {
       ? (rand() > 0.5 ? 1 : 0)
       : Math.round(rand() * 4 * mult) + (isWeekend ? 0 : 1)
 
-    let periodCredits = 0
+    let periodCost = 0
     let periodTokens = 0
 
     for (let s = 0; s < sessionsThisPeriod; s++) {
       const input = Math.round(rand() * (isHourly ? 3000 : 8000) * mult + 200)
       const output = Math.round(rand() * (isHourly ? 1500 : 4000) * mult + 100)
       const compute = Math.round(rand() * (isHourly ? 120 : 300) * mult + 10)
-      const credits = Math.round((input * 0.0003 + output * 0.0012 + compute * 0.001) * 100) / 100
-      const costUsd = Math.round(credits * 0.01 * 100) / 100
+      // Estimate cost: ~$3/1M input, ~$15/1M output (mid-range model pricing)
+      const costUsd = Math.round(((input / 1_000_000) * 3 + (output / 1_000_000) * 15) * 10000) / 10000
 
       totalInput += input
       totalOutput += output
       totalCompute += compute
-      totalCredits += credits
-      periodCredits += credits
+      totalCostUsd += costUsd
+      periodCost += costUsd
       periodTokens += input + output
 
       events.push({
@@ -100,21 +98,19 @@ function generateMockUsage(days: number): UsageResponse {
         inputTokens: input,
         outputTokens: output,
         computeSeconds: compute,
-        credits,
         costUsd,
       })
     }
 
     totalSessions += sessionsThisPeriod
-    daily.push({ date: dateStr, credits: Math.round(periodCredits * 100) / 100, tokens: periodTokens, sessions: sessionsThisPeriod })
+    daily.push({ date: dateStr, cost: Math.round(periodCost * 10000) / 10000, tokens: periodTokens, sessions: sessionsThisPeriod })
   }
 
-  totalCredits = Math.round(totalCredits * 100) / 100
+  totalCostUsd = Math.round(totalCostUsd * 10000) / 10000
 
   return {
     summary: {
-      totalCredits,
-      totalCostUsd: Math.round(totalCredits * 0.01 * 100) / 100,
+      totalCostUsd,
       totalInputTokens: totalInput,
       totalOutputTokens: totalOutput,
       totalComputeSeconds: totalCompute,
@@ -162,7 +158,6 @@ export async function GET(request: Request) {
   // Real agents — return empty for now (same pattern as stats)
   return NextResponse.json({
     summary: {
-      totalCredits: 0,
       totalCostUsd: 0,
       totalInputTokens: 0,
       totalOutputTokens: 0,
