@@ -5,17 +5,54 @@ import { logger } from 'hono/logger'
 import { streamSSE } from 'hono/streaming'
 import WebSocket from 'ws'
 
+// ---------------------------------------------------------------------------
+// Startup validation
+// ---------------------------------------------------------------------------
+
+if (!process.env.GATEWAY_SECRET) {
+  throw new Error('GATEWAY_SECRET environment variable is required')
+}
+
+// ---------------------------------------------------------------------------
+// Structured logger — adds timestamps + levels, suppresses debug in production
+// ---------------------------------------------------------------------------
+
+const LOG_LEVEL = process.env.LOG_LEVEL ?? (process.env.NODE_ENV === 'production' ? 'info' : 'debug')
+const LEVELS = { debug: 0, info: 1, warn: 2, error: 3 } as const
+const currentLevel = LEVELS[LOG_LEVEL as keyof typeof LEVELS] ?? LEVELS.info
+
+const log = {
+  debug: (...args: unknown[]) => { if (currentLevel <= LEVELS.debug) console.debug(new Date().toISOString(), '[DEBUG]', ...args) },
+  info:  (...args: unknown[]) => { if (currentLevel <= LEVELS.info)  log.info(new Date().toISOString(), '[INFO]', ...args) },
+  warn:  (...args: unknown[]) => { if (currentLevel <= LEVELS.warn)  log.warn(new Date().toISOString(), '[WARN]', ...args) },
+  error: (...args: unknown[]) => { if (currentLevel <= LEVELS.error) log.error(new Date().toISOString(), '[ERROR]', ...args) },
+}
+
+// ---------------------------------------------------------------------------
+// Configurable timeouts (env-overridable)
+// ---------------------------------------------------------------------------
+
+const HEARTBEAT_TIMEOUT_MS = Number(process.env.HEARTBEAT_TIMEOUT_MS ?? 30_000)
+const CHAT_TURN_TIMEOUT_MS = Number(process.env.CHAT_TURN_TIMEOUT_MS ?? 90_000)
+const CHAT_SESSION_TIMEOUT_MS = Number(process.env.CHAT_SESSION_TIMEOUT_MS ?? 5 * 60 * 1000)
+const CONNECT_MAX_ATTEMPTS = Number(process.env.CONNECT_MAX_ATTEMPTS ?? 8)
+const SUB_AGENT_TIMEOUT_MS = Number(process.env.SUB_AGENT_TIMEOUT_MS ?? 60_000)
+
+// ---------------------------------------------------------------------------
+// CORS — configurable via CORS_ORIGINS (comma-separated) or falls back to app URL
+// ---------------------------------------------------------------------------
+
+const corsOrigins: string[] = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',').map(s => s.trim()).filter(Boolean)
+  : [process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000']
+
 const app = new Hono()
 
 app.use('*', logger())
 app.use(
   '*',
   cors({
-    origin: [
-      process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000',
-      'https://agentbay.com',
-      'https://*.vercel.app',
-    ],
+    origin: corsOrigins,
     allowMethods: ['GET', 'POST', 'OPTIONS'],
     allowHeaders: [
       'Content-Type',
@@ -59,7 +96,7 @@ app.post('/v1/heartbeat', async (c) => {
   }
 
   const wsUrl = `wss://${targetApp}.fly.dev/`
-  console.log(`[heartbeat] Checking ${wsUrl}`)
+  log.info(`[heartbeat] Checking ${wsUrl}`)
 
   let ws: WebSocket | null = null
 
@@ -81,11 +118,11 @@ app.post('/v1/heartbeat', async (c) => {
     }
 
     ws.send(JSON.stringify(heartbeatReq))
-    console.log(`[heartbeat] Sent HEARTBEAT to ${targetApp}`)
+    log.info(`[heartbeat] Sent HEARTBEAT to ${targetApp}`)
 
     // Wait for the agent to respond — collect text from assistant deltas
     // and chat done events until we see HEARTBEAT_OK or timeout (30s).
-    const HEARTBEAT_TIMEOUT_MS = 30_000
+    // Uses configured HEARTBEAT_TIMEOUT_MS
     const responseText = await new Promise<string>((resolve, reject) => {
       let buffer = ''
       let resolved = false
@@ -147,19 +184,19 @@ app.post('/v1/heartbeat', async (c) => {
     ws.close()
 
     if (responseText.includes('HEARTBEAT_OK')) {
-      console.log(`[heartbeat] HEARTBEAT_OK from ${targetApp}`)
+      log.info(`[heartbeat] HEARTBEAT_OK from ${targetApp}`)
       return c.json({ status: 'HEARTBEAT_OK' })
     }
 
     // Agent responded but not with HEARTBEAT_OK
-    console.log(`[heartbeat] Unexpected response from ${targetApp}: ${responseText.slice(0, 200)}`)
+    log.info(`[heartbeat] Unexpected response from ${targetApp}: ${responseText.slice(0, 200)}`)
     return c.json(
       { status: 'NOT_READY', error: `Agent responded but not HEARTBEAT_OK: ${responseText.slice(0, 100)}` },
       503,
     )
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    console.log(`[heartbeat] NOT_READY for ${targetApp}: ${msg}`)
+    log.info(`[heartbeat] NOT_READY for ${targetApp}: ${msg}`)
     if (ws && ws.readyState === WebSocket.OPEN) ws.close()
     return c.json({ status: 'NOT_READY', error: msg }, 503)
   }
@@ -275,7 +312,7 @@ app.post('/v1/chat', async (c) => {
   // Use public URL — OpenClaw only binds IPv4, but Fly 6PN uses IPv6.
   // Public URL also triggers autostart for suspended machines.
   const wsUrl = `wss://${targetApp}.fly.dev/`
-  console.log(`[chat] Connecting to ${wsUrl} for session ${sessionKey}`)
+  log.info(`[chat] Connecting to ${wsUrl} for session ${sessionKey}`)
 
   return streamSSE(c, async (stream) => {
     let ws: WebSocket | null = null
@@ -294,24 +331,23 @@ app.post('/v1/chat', async (c) => {
 
     // 5-minute timeout
     const timeout = setTimeout(() => {
-      console.log('[chat] Timeout reached, closing')
+      log.info('[chat] Timeout reached, closing')
       stream.writeSSE({ event: 'error', data: JSON.stringify({ error: 'Timeout' }) })
       cleanup()
-    }, 5 * 60 * 1000)
+    }, CHAT_SESSION_TIMEOUT_MS)
 
     try {
       // Retry the full handshake — suspended Fly.io machines auto-resume
       // but OpenClaw takes ~50s to initialize. Fly's proxy returns
       // ECONNREFUSED fast when the port isn't ready, so retries cycle
       // quickly and the total budget (~90s) covers the startup window.
-      const MAX_ATTEMPTS = 8
       const RETRY_DELAYS_MS = [0, 2_000, 5_000, 10_000, 15_000, 20_000, 25_000, 30_000]
       let lastConnectError: string | null = null
 
-      for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      for (let attempt = 0; attempt < CONNECT_MAX_ATTEMPTS; attempt++) {
         if (attempt > 0) {
           const delay = RETRY_DELAYS_MS[attempt]
-          console.log(`[chat] Retrying connection (${attempt}/${MAX_ATTEMPTS - 1}) after ${delay}ms...`)
+          log.info(`[chat] Retrying connection (${attempt}/${CONNECT_MAX_ATTEMPTS - 1}) after ${delay}ms...`)
           await sleep(delay)
         }
 
@@ -321,11 +357,11 @@ app.post('/v1/chat', async (c) => {
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err)
           lastConnectError = msg
-          console.warn(`[chat] Attempt ${attempt + 1} failed: ${msg}`)
+          log.warn(`[chat] Attempt ${attempt + 1} failed: ${msg}`)
 
-          if (attempt === MAX_ATTEMPTS - 1) {
+          if (attempt === CONNECT_MAX_ATTEMPTS - 1) {
             throw new Error(
-              `Agent unavailable after ${MAX_ATTEMPTS} connection attempts — it may still be starting up. Last error: ${lastConnectError ?? 'Unknown error'}`,
+              `Agent unavailable after ${CONNECT_MAX_ATTEMPTS} connection attempts — it may still be starting up. Last error: ${lastConnectError ?? 'Unknown error'}`,
             )
           }
         }
@@ -348,7 +384,7 @@ app.post('/v1/chat', async (c) => {
       }
 
       connectedWs.send(JSON.stringify(chatRequest))
-      console.log('[chat] Sent chat.send')
+      log.info('[chat] Sent chat.send')
 
       // Ensure tool events stream for this session (belt-and-suspenders
       // alongside openclaw.json verboseDefault). "full" = tool calls + outputs.
@@ -358,7 +394,7 @@ app.post('/v1/chat', async (c) => {
         method: 'sessions.patch',
         params: { key: sessionKey, verboseLevel: 'full' },
       }))
-      console.log('[chat] Sent sessions.patch verboseLevel=full')
+      log.info('[chat] Sent sessions.patch verboseLevel=full')
 
       // --- Multi-turn @mention loop ---
       // We listen for the agent's response. When a "done" event arrives with
@@ -373,10 +409,10 @@ app.post('/v1/chat', async (c) => {
        * Returns the completed text from the "done" event, or null on error/close.
        *
        * Includes a per-turn inactivity timeout: if no meaningful agent/chat
-       * events arrive within TURN_TIMEOUT_MS, we assume the agent silently
+       * events arrive within CHAT_TURN_TIMEOUT_MS, we assume the agent silently
        * failed (e.g., missing API key) and resolve with null + error event.
        */
-      const TURN_TIMEOUT_MS = 90_000
+      // Uses configured CHAT_CHAT_TURN_TIMEOUT_MS
       const listenForTurn = (): Promise<string | null> => {
         return new Promise<string | null>((resolve) => {
           let lifecycleEnded = false
@@ -391,7 +427,7 @@ app.post('/v1/chat', async (c) => {
           let hadToolOutput = false
 
           const onTimeout = () => {
-            console.error('[chat] Turn timed out — no agent response received')
+            log.error('[chat] Turn timed out — no agent response received')
             if (!closed) {
               stream.writeSSE({
                 event: 'error',
@@ -402,11 +438,11 @@ app.post('/v1/chat', async (c) => {
           }
 
           // Inactivity timer — reset on every meaningful event
-          let turnTimer = setTimeout(onTimeout, TURN_TIMEOUT_MS)
+          let turnTimer = setTimeout(onTimeout, CHAT_TURN_TIMEOUT_MS)
 
           const resetTurnTimer = () => {
             clearTimeout(turnTimer)
-            turnTimer = setTimeout(onTimeout, TURN_TIMEOUT_MS)
+            turnTimer = setTimeout(onTimeout, CHAT_TURN_TIMEOUT_MS)
           }
 
           /** Emit a done SSE event exactly once, then reset deltaBuffer. */
@@ -452,7 +488,7 @@ app.post('/v1/chat', async (c) => {
                 msg.type === 'event'
                   ? `event=${msg.event} ${payload_summary}`
                   : `type=${msg.type} ok=${msg.ok}`
-              console.log(`[chat] WS msg: ${summary}`)
+              log.info(`[chat] WS msg: ${summary}`)
 
               // Agent events — assistant deltas, tool calls, lifecycle
               if (msg.type === 'event' && msg.event === 'agent') {
@@ -543,7 +579,7 @@ app.post('/v1/chat', async (c) => {
                 // Log content part types for debugging
                 if (parts.length > 0) {
                   const types = parts.map((p: { type: string }) => p.type)
-                  console.log(`[chat] content parts (${parts.length}): ${types.join(', ')}`)
+                  log.info(`[chat] content parts (${parts.length}): ${types.join(', ')}`)
                 }
 
                 // Scan for NEW non-text parts (tool calls, tool results)
@@ -592,7 +628,7 @@ app.post('/v1/chat', async (c) => {
                   // (e.g. tool calls). Keep listening.
                 } else if (payload.state === 'error') {
                   const errorDetail = payload.error ?? payload.errorMessage ?? payload.message?.error ?? 'Agent encountered an error'
-                  console.error(`[chat] Chat error from agent:`, JSON.stringify(payload))
+                  log.error(`[chat] Chat error from agent:`, JSON.stringify(payload))
                   await stream.writeSSE({
                     event: 'error',
                     data: JSON.stringify({ error: errorDetail }),
@@ -610,12 +646,12 @@ app.post('/v1/chat', async (c) => {
                 finalize(null)
               }
             } catch (err) {
-              console.error('[chat] Failed to parse WS message:', err)
+              log.error('[chat] Failed to parse WS message:', err)
             }
           }
 
           const onClose = (code: number, reason: Buffer) => {
-            console.log(
+            log.info(
               `[chat] WebSocket closed code=${code} reason=${reason?.toString() ?? 'none'}`,
             )
             if (!doneSent && !closed) {
@@ -628,7 +664,7 @@ app.post('/v1/chat', async (c) => {
           }
 
           const onError = (err: Error) => {
-            console.error('[chat] WebSocket error:', err)
+            log.error('[chat] WebSocket error:', err)
             if (!closed) {
               stream.writeSSE({
                 event: 'error',
@@ -666,7 +702,7 @@ app.post('/v1/chat', async (c) => {
 
         mentionDepth++
         for (const m of mentions) mentionedAgents.add(m.agent)
-        console.log(`[chat] Detected ${mentions.length} new @mention(s), depth=${mentionDepth}`)
+        log.info(`[chat] Detected ${mentions.length} new @mention(s), depth=${mentionDepth}`)
 
         // Process mentions in parallel — emit thread_start immediately,
         // then query sub-agents concurrently, emitting results as they arrive.
@@ -698,11 +734,11 @@ app.post('/v1/chat', async (c) => {
 
             if (sub) {
               // Real sub-agent connection
-              console.log(`[chat] Querying real sub-agent ${mention.agent} at ${sub.flyApp}`)
+              log.info(`[chat] Querying real sub-agent ${mention.agent} at ${sub.flyApp}`)
               response = await querySubAgent(sub.flyApp, sub.token ?? agentToken, mention.message)
             } else {
               // Safety net — agent name matched but no sub-agent configured
-              console.log(`[chat] No sub-agent configured for ${mention.agent}, using generic fallback`)
+              log.info(`[chat] No sub-agent configured for ${mention.agent}, using generic fallback`)
               await sleep(300)
               response = `[${mention.agent} is not available — no machine configured for this role]`
             }
@@ -745,7 +781,7 @@ app.post('/v1/chat', async (c) => {
         }
 
         connectedWs.send(JSON.stringify(followUpRequest))
-        console.log(`[chat] Sent follow-up chat.send for synthesis (depth=${mentionDepth})`)
+        log.info(`[chat] Sent follow-up chat.send for synthesis (depth=${mentionDepth})`)
 
         // Listen for the agent's synthesis turn
         lastText = await listenForTurn()
@@ -762,7 +798,7 @@ app.post('/v1/chat', async (c) => {
       cleanup()
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error'
-      console.error('[chat] Error:', message)
+      log.error('[chat] Error:', message)
       if (!closed) {
         await stream.writeSSE({
           event: 'error',
@@ -814,7 +850,7 @@ async function connectAndHandshake(
     })
   })
 
-  console.log('[chat] WebSocket connected')
+  log.info('[chat] WebSocket connected')
 
   // Step 1: Wait for connect.challenge
   const challengeMsg = await waitForMessage(ws, 10_000)
@@ -825,7 +861,7 @@ async function connectAndHandshake(
     throw new Error(`Expected connect.challenge, got: ${challengeMsg}`)
   }
 
-  console.log('[chat] Received connect.challenge')
+  log.info('[chat] Received connect.challenge')
 
   // Step 2: Send connect request
   // caps: ["tool-events"] tells OpenClaw to emit stream:tool WS events
@@ -856,7 +892,7 @@ async function connectAndHandshake(
     }),
   )
 
-  console.log('[chat] Sent connect request')
+  log.info('[chat] Sent connect request')
 
   // Step 3: Wait for hello-ok
   const helloMsg = await waitForMessage(ws, 10_000)
@@ -867,7 +903,7 @@ async function connectAndHandshake(
     throw new Error(`Connect rejected: ${JSON.stringify(hello.error)}`)
   }
 
-  console.log('[chat] Handshake complete')
+  log.info('[chat] Handshake complete')
   return ws
 }
 
@@ -921,7 +957,7 @@ async function querySubAgent(
   message: string,
 ): Promise<string> {
   const url = `https://${flyApp}.fly.dev/v1/chat/completions`
-  console.log(`[sub-agent] POST ${url}`)
+  log.info(`[sub-agent] POST ${url}`)
 
   try {
     const res = await fetch(url, {
@@ -933,12 +969,12 @@ async function querySubAgent(
       body: JSON.stringify({
         messages: [{ role: 'user', content: message }],
       }),
-      signal: AbortSignal.timeout(60_000),
+      signal: AbortSignal.timeout(SUB_AGENT_TIMEOUT_MS),
     })
 
     if (!res.ok) {
       const body = await res.text().catch(() => '')
-      console.error(`[sub-agent] ${flyApp} returned ${res.status}: ${body.slice(0, 200)}`)
+      log.error(`[sub-agent] ${flyApp} returned ${res.status}: ${body.slice(0, 200)}`)
       return `[Error: ${flyApp} returned HTTP ${res.status}: ${body.slice(0, 200)}]`
     }
 
@@ -947,11 +983,11 @@ async function querySubAgent(
     }
     const text = data.choices?.[0]?.message?.content ?? ''
 
-    console.log(`[sub-agent] Got response from ${flyApp} (${text.length} chars)`)
+    log.info(`[sub-agent] Got response from ${flyApp} (${text.length} chars)`)
     return text || `[Error: ${flyApp} returned empty response]`
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'unknown error'
-    console.error(`[sub-agent] Error querying ${flyApp}:`, msg)
+    log.error(`[sub-agent] Error querying ${flyApp}:`, msg)
     return `[Error: failed to reach ${flyApp}: ${msg}]`
   }
 }
@@ -959,5 +995,5 @@ async function querySubAgent(
 const port = Number(process.env.PORT ?? 8080)
 
 serve({ fetch: app.fetch, port }, (info) => {
-  console.log(`SSE Gateway listening on :${info.port}`)
+  log.info(`SSE Gateway listening on :${info.port}`)
 })
