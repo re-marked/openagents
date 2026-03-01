@@ -65,14 +65,14 @@ export function ModelSelector({ currentModel, configuredProviders }: ModelSelect
   function handleSelect(modelId: string) {
     setSelected(modelId)
     startTransition(async () => {
-      try {
-        await saveDefaultModel(modelId)
-        setMessage({ type: 'success', text: 'Model updated' })
-        setTimeout(() => setMessage(null), 3000)
-      } catch (err) {
-        setMessage({ type: 'error', text: (err as Error).message })
+      const result = await saveDefaultModel(modelId)
+      if ('error' in result) {
+        setMessage({ type: 'error', text: result.error })
         setSelected(currentModel)
+        return
       }
+      setMessage({ type: 'success', text: 'Model updated' })
+      setTimeout(() => setMessage(null), 3000)
     })
   }
 

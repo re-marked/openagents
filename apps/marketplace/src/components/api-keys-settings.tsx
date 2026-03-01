@@ -34,40 +34,40 @@ export function ApiKeysSettings({ initialKeys, hasPlatformKey = false }: { initi
     if (!inputValue.trim()) return
 
     startTransition(async () => {
-      try {
-        await saveApiKey({ provider, apiKey: inputValue })
-        setKeys((prev) => {
-          const existing = prev.find((k) => k.provider === provider)
-          const masked = inputValue.slice(0, 4) + '••••••••' + inputValue.slice(-4)
-          if (existing) {
-            return prev.map((k) =>
-              k.provider === provider
-                ? { ...k, maskedKey: masked, updatedAt: new Date().toISOString() }
-                : k
-            )
-          }
-          return [...prev, { id: crypto.randomUUID(), provider, maskedKey: masked, updatedAt: new Date().toISOString() }]
-        })
-        setEditingProvider(null)
-        setInputValue('')
-        setMessage({ type: 'success', text: `${provider} key saved` })
-        setTimeout(() => setMessage(null), 3000)
-      } catch (err) {
-        setMessage({ type: 'error', text: (err as Error).message })
+      const result = await saveApiKey({ provider, apiKey: inputValue })
+      if ('error' in result) {
+        setMessage({ type: 'error', text: result.error })
+        return
       }
+      setKeys((prev) => {
+        const existing = prev.find((k) => k.provider === provider)
+        const masked = inputValue.slice(0, 4) + '••••••••' + inputValue.slice(-4)
+        if (existing) {
+          return prev.map((k) =>
+            k.provider === provider
+              ? { ...k, maskedKey: masked, updatedAt: new Date().toISOString() }
+              : k
+          )
+        }
+        return [...prev, { id: crypto.randomUUID(), provider, maskedKey: masked, updatedAt: new Date().toISOString() }]
+      })
+      setEditingProvider(null)
+      setInputValue('')
+      setMessage({ type: 'success', text: `${provider} key saved` })
+      setTimeout(() => setMessage(null), 3000)
     })
   }
 
   function handleDelete(provider: ApiKeyProvider) {
     startTransition(async () => {
-      try {
-        await deleteApiKey(provider)
-        setKeys((prev) => prev.filter((k) => k.provider !== provider))
-        setMessage({ type: 'success', text: `${provider} key removed` })
-        setTimeout(() => setMessage(null), 3000)
-      } catch (err) {
-        setMessage({ type: 'error', text: (err as Error).message })
+      const result = await deleteApiKey(provider)
+      if ('error' in result) {
+        setMessage({ type: 'error', text: result.error })
+        return
       }
+      setKeys((prev) => prev.filter((k) => k.provider !== provider))
+      setMessage({ type: 'success', text: `${provider} key removed` })
+      setTimeout(() => setMessage(null), 3000)
     })
   }
 

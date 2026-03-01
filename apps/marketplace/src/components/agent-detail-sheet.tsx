@@ -52,41 +52,42 @@ export function AgentDetailSheet({ agent, open, onOpenChange, user }: AgentDetai
     setDeploying(true)
     setError(null)
 
-    try {
-      const result = await hireAgent({ agentSlug: agent.slug })
+    const result = await hireAgent({ agentSlug: agent.slug })
 
-      if (result.alreadyHired && result.status === "running") {
-        router.push("/workspace/home")
-        return
-      }
-
-      const poll = async () => {
-        for (let i = 0; i < 60; i++) {
-          await new Promise((r) => setTimeout(r, 3000))
-          const status = await checkInstanceStatus(result.instanceId)
-          if (!status) continue
-          if (status.status === "running" || status.status === "suspended") {
-            router.push("/workspace/home")
-            return
-          }
-          if (status.status === "error") {
-            setError("Provisioning failed. Please try again.")
-            setDeploying(false)
-            return
-          }
-        }
-        setError("Provisioning timed out. Check your workspace.")
-        setDeploying(false)
-      }
-
-      if (result.status === "provisioning") {
-        router.push("/workspace/home")
-      } else {
-        await poll()
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong")
+    if ('error' in result) {
+      setError(result.error)
       setDeploying(false)
+      return
+    }
+
+    if (result.alreadyHired && result.status === "running") {
+      router.push("/workspace/home")
+      return
+    }
+
+    const poll = async () => {
+      for (let i = 0; i < 60; i++) {
+        await new Promise((r) => setTimeout(r, 3000))
+        const status = await checkInstanceStatus(result.instanceId)
+        if (!status) continue
+        if (status.status === "running" || status.status === "suspended") {
+          router.push("/workspace/home")
+          return
+        }
+        if (status.status === "error") {
+          setError("Provisioning failed. Please try again.")
+          setDeploying(false)
+          return
+        }
+      }
+      setError("Provisioning timed out. Check your workspace.")
+      setDeploying(false)
+    }
+
+    if (result.status === "provisioning") {
+      router.push("/workspace/home")
+    } else {
+      await poll()
     }
   }
 
