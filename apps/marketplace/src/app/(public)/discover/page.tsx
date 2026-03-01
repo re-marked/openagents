@@ -1,5 +1,6 @@
 import { Suspense } from "react"
 import { createClient } from "@agentbay/db/server"
+import { getUser } from "@/lib/auth/get-user"
 import { DiscoverSidebar } from "@/components/discover-sidebar"
 import { DiscoverContent } from "@/components/discover-content"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
@@ -77,7 +78,7 @@ async function fetchAgents(searchParams: {
 }
 
 export default async function DiscoverPage({ searchParams }: Props) {
-  const params = await searchParams
+  const [user, params] = await Promise.all([getUser(), searchParams])
   const agents = await fetchAgents(params)
 
   return (
@@ -88,7 +89,7 @@ export default async function DiscoverPage({ searchParams }: Props) {
       <SidebarInset className="overflow-hidden">
         <ScrollArea className="h-0 flex-1">
           <Suspense>
-            <DiscoverContent agents={agents} />
+            <DiscoverContent agents={agents} user={user} />
           </Suspense>
         </ScrollArea>
       </SidebarInset>

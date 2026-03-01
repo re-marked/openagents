@@ -9,14 +9,24 @@ import {
   BreadcrumbPage,
 } from '@/components/ui/breadcrumb'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { signOut } from '@/lib/auth/actions'
 import { LogOut } from 'lucide-react'
+import { getProfile } from '@/lib/settings/actions'
+import { ProfileForm } from '@/components/profile-form'
 
 export default async function GeneralSettingsPage() {
   const user = await getUser()
   if (!user) redirect('/login')
+
+  const profile = await getProfile()
+
+  if (!profile) {
+     // This case should ideally not happen if getUser returns a user, 
+     // but if public.users is missing, we might want to handle it or redirect.
+     // For now, let's just return null or show an error.
+     return <div>Failed to load profile</div>
+  }
 
   return (
     <div className="flex flex-col flex-1 overflow-y-auto">
@@ -50,20 +60,8 @@ export default async function GeneralSettingsPage() {
               <CardTitle className="text-lg">Profile</CardTitle>
               <CardDescription>Your account information</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-4">
-                <Avatar className="h-14 w-14">
-                  <AvatarFallback className="bg-zinc-600 text-white text-lg">
-                    {user.email?.[0]?.toUpperCase() ?? '?'}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-medium">{user.email}</p>
-                  <p className="text-sm text-muted-foreground">
-                    Signed in via {user.app_metadata?.provider ?? 'email'}
-                  </p>
-                </div>
-              </div>
+            <CardContent>
+              <ProfileForm initialData={profile} />
             </CardContent>
           </Card>
 

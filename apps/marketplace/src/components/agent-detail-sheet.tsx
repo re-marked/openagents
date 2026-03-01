@@ -19,6 +19,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AgentAvatar, CATEGORY_COLORS, type AgentListItem } from "@/lib/agents"
 import { RatingStars } from "@/components/agent-card"
 import { hireAgent, checkInstanceStatus } from "@/lib/hire/actions"
+import type { User } from "@supabase/supabase-js"
 
 function formatCount(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
@@ -30,9 +31,10 @@ interface AgentDetailSheetProps {
   agent: AgentListItem | null
   open: boolean
   onOpenChange: (open: boolean) => void
+  user: User | null
 }
 
-export function AgentDetailSheet({ agent, open, onOpenChange }: AgentDetailSheetProps) {
+export function AgentDetailSheet({ agent, open, onOpenChange, user }: AgentDetailSheetProps) {
   const router = useRouter()
   const [deploying, setDeploying] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -46,6 +48,12 @@ export function AgentDetailSheet({ agent, open, onOpenChange }: AgentDetailSheet
 
   async function handleDeploy() {
     if (!agent) return
+
+    if (!user) {
+      router.push("/login")
+      return
+    }
+
     setDeploying(true)
     setError(null)
 

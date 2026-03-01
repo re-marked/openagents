@@ -73,18 +73,18 @@ export const TEST_KNOWLEDGE_FILES = [
 - Working on a SaaS product called "AgentBay"
 - Main stack: Next.js 15, Supabase, Fly.io
 - Has 3 team members: Alex (frontend), Sam (backend), Jordan (design)
-- See [[project-context]] for architecture details
-- See [[user-preferences]] for communication style
+- See [[projects]] for architecture details
+- See [[people]] for communication style
 
 ## Learned Patterns
-- When debugging, user wants root cause analysis first
+- When debugging, user wants root cause analysis first — see [[debugging-notes]]
 - For code reviews, focus on #security and #performance
 - User prefers [[coding-standards]] over ad-hoc fixes
 `,
   },
   {
-    path: '/data/memory/project-context.md',
-    name: 'project-context.md',
+    path: '/data/workspace/memory/projects/index.md',
+    name: 'projects/index.md',
     content: `# Project Context
 
 ## Architecture
@@ -108,8 +108,28 @@ Related: [[user-preferences]]
 `,
   },
   {
-    path: '/data/memory/user-preferences.md',
-    name: 'user-preferences.md',
+    path: '/data/workspace/memory/projects/agentbay.md',
+    name: 'projects/agentbay.md',
+    content: `# AgentBay
+
+SaaS marketplace for AI agents. Users hire assistants, creators publish and earn.
+
+## Stack
+- Next.js 15 + Supabase + Fly.io Machines
+- Payments via Polar.sh
+- Streaming: SSE via Hono gateway
+
+## Status
+- MVP live with 3 agents
+- Marketplace discovery in progress
+- Agent-to-agent communication planned
+
+Related: [[project-context]], [[coding-standards]]
+`,
+  },
+  {
+    path: '/data/workspace/memory/people/index.md',
+    name: 'people/index.md',
     content: `# User Preferences
 
 ## Communication
@@ -133,8 +153,8 @@ Related: [[user-preferences]]
 `,
   },
   {
-    path: '/data/memory/coding-standards.md',
-    name: 'coding-standards.md',
+    path: '/data/workspace/memory/topics/coding-standards.md',
+    name: 'topics/coding-standards.md',
     content: `# Coding Standards
 
 ## TypeScript
@@ -162,8 +182,8 @@ Related: [[user-preferences]]
 `,
   },
   {
-    path: '/data/memory/debugging-notes.md',
-    name: 'debugging-notes.md',
+    path: '/data/workspace/memory/topics/debugging-notes.md',
+    name: 'topics/debugging-notes.md',
     content: `# Debugging Notes
 
 ## SSE Gateway Issues (Feb 2026)
