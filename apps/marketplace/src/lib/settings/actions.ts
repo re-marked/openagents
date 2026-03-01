@@ -3,6 +3,7 @@
 import { createClient, createServiceClient } from '@agentbay/db/server'
 import { getUser } from '@/lib/auth/get-user'
 import { revalidatePath } from 'next/cache'
+import { profileSchema, type ProfileFormValues } from './schema'
 
 export type ApiKeyProvider = 'openai' | 'anthropic' | 'google'
 
@@ -122,25 +123,52 @@ export async function getDefaultModel(): Promise<string> {
 }
 
 /**
- * Update the current user's profile (display name, avatar).
+ * Get user profile data.
  */
-export async function updateProfile(values: { displayName: string; avatarUrl?: string }) {
+export async function getProfile() {
+  const user = await getUser()
+  if (!user) return null
+
+  const service = createServiceClient()
+  const { data } = await service
+    .from('users')
+    .select('display_name, avatar_url')
+    .eq('id', user.id)
+    .single()
+
+  return {
+    email: user.email,
+    displayName: data?.display_name || '',
+    avatarUrl: data?.avatar_url || '',
+    provider: user.app_metadata?.provider ?? 'email',
+  }
+}
+
+/**
+ * Update user profile.
+ */
+export async function updateProfile(data: ProfileFormValues) {
   const user = await getUser()
   if (!user) throw new Error('Unauthorized')
 
-  const service = createServiceClient()
+  const result = profileSchema.safeParse(data)
+  if (!result.success) {
+    throw new Error('Invalid data')
+  }
 
+  const service = createServiceClient()
   const { error } = await service
     .from('users')
     .update({
-      display_name: values.displayName,
-      avatar_url: values.avatarUrl || null,
+      display_name: result.data.displayName,
+      avatar_url: result.data.avatarUrl || null,
+      updated_at: new Date().toISOString(),
     })
     .eq('id', user.id)
 
   if (error) throw new Error(`Failed to update profile: ${error.message}`)
 
-  revalidatePath('/workspace/settings')
+  revalidatePath('/workspace/settings/general')
   return { success: true }
 }
 
