@@ -3,9 +3,9 @@ import { createServiceClient } from '@agentbay/db'
 import { FlyClient } from '@agentbay/fly'
 import { AGENT_ROLES } from './agent-roles'
 
-// PINNED to v2026.2.25 — v2026.2.26 has breaking bind/controlUi changes.
+// v2026.2.26 adds Routeway auto-migration (model fix for free-tier machines).
 // Never use :latest — fly deploy doesn't update it, so it's always stale.
-const BASE_IMAGE = process.env.FLY_AGENT_BASE_IMAGE ?? 'registry.fly.io/agentbay-agent-base:v2026.2.25'
+const BASE_IMAGE = process.env.FLY_AGENT_BASE_IMAGE ?? 'registry.fly.io/agentbay-agent-base:v2026.2.30'
 const FLY_ORG = process.env.FLY_ORG_SLUG ?? 'personal'
 const FLY_REGION = process.env.FLY_REGION ?? 'ord'
 
@@ -181,7 +181,7 @@ export const provisionAgentMachine = task({
       // When only Routeway is configured (no BYOK keys), default to a free tier model.
       const isRouteOnlySetup = keyEnv.ROUTEWAY_API_KEY && !keyEnv.GEMINI_API_KEY && !keyEnv.OPENAI_API_KEY && !keyEnv.ANTHROPIC_API_KEY
       const resolvedModel = isRouteOnlySetup && !userDefaultModel
-        ? (process.env.PLATFORM_ROUTEWAY_DEFAULT_MODEL ?? 'minimax-m2.5')
+        ? (process.env.PLATFORM_ROUTEWAY_DEFAULT_MODEL ?? 'routeway/minimax-m2.5')
         : defaultModel
       const modelOverrides = {
         agents: { defaults: { model: { primary: resolvedModel }, sandbox: { mode: 'off' } } },
