@@ -22,8 +22,8 @@ export function AgentHireButton({ agentSlug, agentName }: AgentHireButtonProps) 
 
     const result = await hireAgent({ agentSlug })
 
-    if ('error' in result) {
-      const msg = result.error
+    if ('error' in result && result.error) {
+      const msg = result.error as string
       if (msg.includes('Unauthorized') || msg.includes('unauthorized')) {
         router.push(`/login?next=/agents/${agentSlug}`)
         return

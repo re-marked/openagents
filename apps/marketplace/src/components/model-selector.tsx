@@ -66,8 +66,8 @@ export function ModelSelector({ currentModel, configuredProviders }: ModelSelect
     setSelected(modelId)
     startTransition(async () => {
       const result = await saveDefaultModel(modelId)
-      if ('error' in result) {
-        setMessage({ type: 'error', text: result.error })
+      if ('error' in result && result.error) {
+        setMessage({ type: 'error', text: result.error as string })
         setSelected(currentModel)
         return
       }
