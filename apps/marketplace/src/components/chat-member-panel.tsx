@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Plus, X } from "lucide-react"
 import { AgentAvatar } from "@/lib/agents"
+import { AgentProfileCard } from "@/components/agent-profile-card"
 import { Button } from "@/components/ui/button"
 import {
   Popover,
@@ -195,10 +196,19 @@ function AgentRow({
       onMouseEnter={() => onHover(agent.instanceId)}
       onMouseLeave={() => onHover(null)}
     >
-      <span className="relative flex shrink-0">
-        <AgentAvatar name={agent.name} category={agent.category} iconUrl={agent.iconUrl} size="xs" />
-        <span className={`absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-background ${statusInfo.dot}`} />
-      </span>
+      <AgentProfileCard
+        instanceId={agent.instanceId}
+        name={agent.name}
+        category={agent.category}
+        status={agent.status}
+        iconUrl={agent.iconUrl}
+        side="left"
+      >
+        <span className="relative flex shrink-0 cursor-pointer">
+          <AgentAvatar name={agent.name} category={agent.category} iconUrl={agent.iconUrl} size="xs" />
+          <span className={`absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-background ${statusInfo.dot}`} />
+        </span>
+      </AgentProfileCard>
       <span className="flex-1 truncate text-sm">{agent.name}</span>
       {isHovered && (
         <button
