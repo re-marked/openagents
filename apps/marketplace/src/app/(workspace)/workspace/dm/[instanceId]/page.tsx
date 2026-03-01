@@ -5,6 +5,7 @@ import { DiscordChatPanel } from '@/components/discord-chat-panel'
 import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { AgentAvatar } from '@/lib/agents'
+import { AgentProfileCard } from '@/components/agent-profile-card'
 
 export default async function DirectMessagePage({
   params,
@@ -41,12 +42,23 @@ export default async function DirectMessagePage({
           orientation="vertical"
           className="mr-1 data-[orientation=vertical]:h-4"
         />
-        <AgentAvatar
+        <AgentProfileCard
+          instanceId={instance.id}
           name={agentName}
           category={agent.category}
+          status={instance.status}
           iconUrl={agent.icon_url}
-          size="xs"
-        />
+          side="bottom"
+        >
+          <span className="cursor-pointer">
+            <AgentAvatar
+              name={agentName}
+              category={agent.category}
+              iconUrl={agent.icon_url}
+              size="xs"
+            />
+          </span>
+        </AgentProfileCard>
         <span className="text-sm font-medium truncate">{agentName}</span>
       </header>
 

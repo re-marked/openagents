@@ -28,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { AgentAvatar } from "@/lib/agents"
+import { AgentProfileCard } from "@/components/agent-profile-card"
 
 interface AgentInfo {
   instanceId: string
@@ -198,10 +199,19 @@ export function AppSidebar({
                       className="gap-2.5"
                     >
                       <Link href={agentBase}>
-                        <span className="relative flex shrink-0">
-                          <AgentAvatar name={agent.name} category={agent.category} iconUrl={agent.iconUrl} size="xs" />
-                          <span className={`absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-sidebar ${STATUS_DOT[agent.status] ?? "bg-zinc-400"}`} />
-                        </span>
+                        <AgentProfileCard
+                          instanceId={agent.instanceId}
+                          name={agent.name}
+                          category={agent.category}
+                          status={agent.status}
+                          iconUrl={agent.iconUrl}
+                          tagline={agent.tagline}
+                        >
+                          <span className="relative flex shrink-0">
+                            <AgentAvatar name={agent.name} category={agent.category} iconUrl={agent.iconUrl} size="xs" />
+                            <span className={`absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-sidebar ${STATUS_DOT[agent.status] ?? "bg-zinc-400"}`} />
+                          </span>
+                        </AgentProfileCard>
                         <span className="truncate">{agent.name}</span>
                       </Link>
                     </SidebarMenuButton>
@@ -238,7 +248,18 @@ export function AppSidebar({
                       className="gap-2.5"
                     >
                       <Link href={dmPath}>
-                        <AgentAvatar name={agent.name} category={agent.category} iconUrl={agent.iconUrl} size="xs" />
+                        <AgentProfileCard
+                          instanceId={agent.instanceId}
+                          name={agent.name}
+                          category={agent.category}
+                          status={agent.status}
+                          iconUrl={agent.iconUrl}
+                          tagline={agent.tagline}
+                        >
+                          <span className="flex shrink-0">
+                            <AgentAvatar name={agent.name} category={agent.category} iconUrl={agent.iconUrl} size="xs" />
+                          </span>
+                        </AgentProfileCard>
                         <span className="truncate">{agent.name}</span>
                       </Link>
                     </SidebarMenuButton>
