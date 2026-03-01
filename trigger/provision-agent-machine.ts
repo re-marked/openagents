@@ -3,9 +3,9 @@ import { createServiceClient } from '@agentbay/db'
 import { FlyClient } from '@agentbay/fly'
 import { AGENT_ROLES } from './agent-roles'
 
-// v2026.2.26 adds Routeway auto-migration (model fix for free-tier machines).
+// v2026.2.34 trims SOUL.md + moves The Brain to BRAIN.md.
 // Never use :latest — fly deploy doesn't update it, so it's always stale.
-const BASE_IMAGE = process.env.FLY_AGENT_BASE_IMAGE ?? 'registry.fly.io/agentbay-agent-base:v2026.2.33'
+const BASE_IMAGE = process.env.FLY_AGENT_BASE_IMAGE ?? 'registry.fly.io/agentbay-agent-base:v2026.2.34'
 const FLY_ORG = process.env.FLY_ORG_SLUG ?? 'personal'
 const FLY_REGION = process.env.FLY_REGION ?? 'ord'
 
