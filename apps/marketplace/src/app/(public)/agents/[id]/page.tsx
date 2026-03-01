@@ -13,16 +13,21 @@ interface Props {
   params: Promise<{ id: string }>
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 async function getAgent(slugOrId: string) {
   const supabase = await createClient()
 
-  const { data } = await supabase
+  const isUuid = UUID_RE.test(slugOrId)
+  const query = supabase
     .from('agents')
     .select('id, slug, name, tagline, description, category, avg_rating, total_hires, total_reviews, icon_url')
     .eq('status', 'published')
-    .or(`slug.eq.${slugOrId},id.eq.${slugOrId}`)
-    .limit(1)
-    .single()
+
+  const { data } = await (isUuid
+    ? query.or(`slug.eq.${slugOrId},id.eq.${slugOrId}`)
+    : query.eq('slug', slugOrId)
+  ).limit(1).single()
 
   return data
 }
