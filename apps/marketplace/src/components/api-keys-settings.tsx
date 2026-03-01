@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { saveApiKey, deleteApiKey, type ApiKeyProvider } from '@/lib/settings/actions'
-import { Key, Trash2, Check, Loader2, Plus, Zap } from 'lucide-react'
+import { Key, Trash2, Check, Loader2, Plus } from 'lucide-react'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 
 interface MaskedKey {
@@ -16,8 +16,7 @@ interface MaskedKey {
   updatedAt: string
 }
 
-const PROVIDERS: { id: ApiKeyProvider; name: string; placeholder: string; prefix: string; badge?: string; description?: string }[] = [
-  { id: 'routeway', name: 'Routeway', placeholder: 'clsk-...', prefix: 'clsk-', badge: 'Free tier', description: 'OpenAI-compatible gateway with free models — great for getting started' },
+const PROVIDERS: { id: ApiKeyProvider; name: string; placeholder: string; prefix: string }[] = [
   { id: 'google', name: 'Google AI', placeholder: 'AIza...', prefix: 'AIza' },
   { id: 'openai', name: 'OpenAI', placeholder: 'sk-...', prefix: 'sk-' },
   { id: 'anthropic', name: 'Anthropic', placeholder: 'sk-ant-...', prefix: 'sk-ant-' },
@@ -104,20 +103,12 @@ export function ApiKeysSettings({ initialKeys }: { initialKeys: MaskedKey[] }) {
                       <Key className="size-5 text-muted-foreground" />
                     </div>
                     <div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium">{provider.name}</p>
-                        {provider.badge && (
-                          <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-400">
-                            <Zap className="size-2.5" />
-                            {provider.badge}
-                          </span>
-                        )}
-                      </div>
+                      <p className="text-sm font-medium">{provider.name}</p>
                       {existing && !isEditing ? (
                         <p className="text-xs text-muted-foreground font-mono">{existing.maskedKey}</p>
                       ) : (
                         <p className="text-xs text-muted-foreground">
-                          {existing ? 'Update your key' : (provider.description ?? 'Not configured')}
+                          {existing ? 'Update your key' : 'Not configured'}
                         </p>
                       )}
                     </div>
