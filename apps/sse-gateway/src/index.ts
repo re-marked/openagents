@@ -591,7 +591,7 @@ app.post('/v1/chat', async (c) => {
                   // If lifecycle hasn't ended, there may be more turns
                   // (e.g. tool calls). Keep listening.
                 } else if (payload.state === 'error') {
-                  const errorDetail = payload.error ?? payload.message?.error ?? JSON.stringify(payload)
+                  const errorDetail = payload.error ?? payload.errorMessage ?? payload.message?.error ?? 'Agent encountered an error'
                   console.error(`[chat] Chat error from agent:`, JSON.stringify(payload))
                   await stream.writeSSE({
                     event: 'error',

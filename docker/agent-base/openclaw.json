@@ -19,7 +19,6 @@
         "mode": "safeguard"
       },
       "verboseDefault": "full",
-      "elevatedDefault": "on",
       "blockStreamingDefault": "on",
       "maxConcurrent": 4
     }
@@ -29,7 +28,7 @@
     "allow": ["exec", "web_search", "read", "write", "edit", "apply_patch"],
     "deny": ["browser", "gateway", "cron"],
     "elevated": {
-      "enabled": true
+      "enabled": false
     }
   },
   "commands": {
