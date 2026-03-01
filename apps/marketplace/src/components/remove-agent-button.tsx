@@ -52,9 +52,9 @@ export function RemoveAgentButton({ instanceId, agentName, onRemoved, redirectTo
     onRemoved?.()
 
     const result = await removeAgent(instanceId)
-    if (result && 'error' in result) {
+    if (result && 'error' in result && result.error) {
       // Re-open dialog with error if removal actually failed
-      setError(result.error)
+      setError(result.error as string)
       setRemoving(false)
       setOpen(true)
       return

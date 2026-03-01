@@ -54,8 +54,8 @@ export function AgentDetailSheet({ agent, open, onOpenChange, user }: AgentDetai
 
     const result = await hireAgent({ agentSlug: agent.slug })
 
-    if ('error' in result) {
-      setError(result.error)
+    if ('error' in result && result.error) {
+      setError(result.error as string)
       setDeploying(false)
       return
     }

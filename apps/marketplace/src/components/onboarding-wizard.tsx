@@ -82,8 +82,8 @@ export function OnboardingWizard({
 
         // Save API key
         const keyResult = await saveApiKey({ provider: 'google', apiKey: apiKey.trim() })
-        if ('error' in keyResult) {
-          setError(keyResult.error)
+        if ('error' in keyResult && keyResult.error) {
+          setError(keyResult.error as string)
           return
         }
 

@@ -11,7 +11,7 @@ const publishSchema = z.object({
   repo: z.string().min(3).regex(/^[^/]+\/[^/]+$/, 'Must be in "owner/repo" format'),
   branch: z.string().min(1).optional(),
   github_token: z.string().min(1).optional(),
-  overrides: z.record(z.unknown()).optional(),
+  overrides: z.record(z.string(), z.unknown()).optional(),
 })
 
 /**

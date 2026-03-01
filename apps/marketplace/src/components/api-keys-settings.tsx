@@ -35,8 +35,8 @@ export function ApiKeysSettings({ initialKeys, hasPlatformKey = false }: { initi
 
     startTransition(async () => {
       const result = await saveApiKey({ provider, apiKey: inputValue })
-      if ('error' in result) {
-        setMessage({ type: 'error', text: result.error })
+      if ('error' in result && result.error) {
+        setMessage({ type: 'error', text: result.error as string })
         return
       }
       setKeys((prev) => {
@@ -61,8 +61,8 @@ export function ApiKeysSettings({ initialKeys, hasPlatformKey = false }: { initi
   function handleDelete(provider: ApiKeyProvider) {
     startTransition(async () => {
       const result = await deleteApiKey(provider)
-      if ('error' in result) {
-        setMessage({ type: 'error', text: result.error })
+      if ('error' in result && result.error) {
+        setMessage({ type: 'error', text: result.error as string })
         return
       }
       setKeys((prev) => prev.filter((k) => k.provider !== provider))
