@@ -11,7 +11,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { signOut } from '@/lib/auth/actions'
-import { LogOut } from 'lucide-react'
+import { LogOut, AlertCircle } from 'lucide-react'
 import { getProfile } from '@/lib/settings/actions'
 import { ProfileForm } from '@/components/profile-form'
 
@@ -22,10 +22,25 @@ export default async function GeneralSettingsPage() {
   const profile = await getProfile()
 
   if (!profile) {
-     // This case should ideally not happen if getUser returns a user, 
-     // but if public.users is missing, we might want to handle it or redirect.
-     // For now, let's just return null or show an error.
-     return <div>Failed to load profile</div>
+    return (
+      <div className="flex flex-col flex-1 items-center justify-center gap-4 p-8">
+        <div className="flex items-center justify-center size-12 rounded-full bg-destructive/10">
+          <AlertCircle className="size-6 text-destructive" />
+        </div>
+        <div className="text-center space-y-1">
+          <h2 className="text-lg font-semibold">Unable to load profile</h2>
+          <p className="text-sm text-muted-foreground max-w-sm">
+            Your profile data couldn&apos;t be loaded. Try refreshing the page or signing out and back in.
+          </p>
+        </div>
+        <form action={signOut}>
+          <Button variant="outline" type="submit" size="sm">
+            <LogOut className="size-4 mr-2" />
+            Sign Out &amp; Retry
+          </Button>
+        </form>
+      </div>
+    )
   }
 
   return (
