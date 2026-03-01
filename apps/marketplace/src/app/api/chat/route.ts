@@ -63,6 +63,42 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Agent has no Fly app configured' }, { status: 500 })
   }
 
+  // 3b. Free tier hard limit — 10 messages total for users with no BYOK keys
+  const FREE_MESSAGE_LIMIT = 10
+  const platformKey = process.env.PLATFORM_ROUTEWAY_API_KEY
+  if (platformKey) {
+    // Check if user has any BYOK keys
+    const service = createServiceClient()
+    const { count: keyCount } = await service
+      .from('user_api_keys')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+
+    if ((keyCount ?? 0) === 0) {
+      // User has no own keys — count their total sent messages across all sessions
+      const { data: sessionIds } = await service
+        .from('sessions')
+        .select('id')
+        .eq('user_id', user.id)
+
+      const ids = (sessionIds ?? []).map((s: { id: string }) => s.id)
+      if (ids.length > 0) {
+        const { count: msgCount } = await service
+          .from('messages')
+          .select('id', { count: 'exact', head: true })
+          .in('session_id', ids)
+          .eq('role', 'user')
+
+        if ((msgCount ?? 0) >= FREE_MESSAGE_LIMIT) {
+          return NextResponse.json(
+            { error: 'FREE_LIMIT_REACHED', message: `You've used all ${FREE_MESSAGE_LIMIT} free messages. Add an API key in Settings to keep chatting.` },
+            { status: 402 },
+          )
+        }
+      }
+    }
+  }
+
   // 4. Find or create session for this user + instance
   const { data: existingSession } = await supabase
     .from('sessions')

@@ -133,12 +133,15 @@ export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCa
           clearTimeout(timeoutId)
           timeoutId = null
         }
+        const isFreeLimitReached = err.error === 'FREE_LIMIT_REACHED'
         setMessages((prev) => [
           ...prev,
           {
             id: `error-${Date.now()}`,
             role: 'master',
-            content: `Something went wrong: ${err.error ?? err.errorMessage ?? err.message ?? 'Connection failed'}`,
+            content: isFreeLimitReached
+              ? `__FREE_LIMIT__`
+              : `Something went wrong: ${err.error ?? err.errorMessage ?? err.message ?? 'Connection failed'}`,
             timestamp: new Date(),
           },
         ])
@@ -572,7 +575,11 @@ export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCa
         </div>
       )}
 
-      <DiscordChatInput onSend={handleSend} />
+      <DiscordChatInput
+        onSend={handleSend}
+        disabled={isTyping || messages.some((m) => m.content === '__FREE_LIMIT__')}
+        disabledPlaceholder={messages.some((m) => m.content === '__FREE_LIMIT__') ? 'Add an API key to continue chatting…' : undefined}
+      />
 
       {/* Sleeping/stopped agent alert */}
       <AlertDialog open={showSleepingAlert} onOpenChange={setShowSleepingAlert}>

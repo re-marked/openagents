@@ -11,6 +11,8 @@ import { ToolUseBlockList } from '@/components/tool-use-block'
 import type { ToolUse } from '@/components/tool-use-block'
 import { AgentAvatar } from '@/lib/agents'
 import { AgentProfileCard } from '@/components/agent-profile-card'
+import Link from 'next/link'
+import { Zap } from 'lucide-react'
 
 export interface ThreadMessage {
   agent: string
@@ -202,7 +204,25 @@ function MessageGroupView({ group, agentName, agentCategory, agentIconUrl, agent
             {msg.toolUses && msg.toolUses.length > 0 && (
               <ToolUseBlockList toolUses={msg.toolUses} />
             )}
-            <MarkdownContent content={msg.content} className="text-foreground/90 text-base break-words" />
+            {msg.content === '__FREE_LIMIT__' ? (
+              <div className="mt-2 rounded-xl border border-amber-500/20 bg-amber-500/8 px-4 py-3 flex items-start gap-3">
+                <div className="shrink-0 mt-0.5 flex size-7 items-center justify-center rounded-full bg-amber-500/15">
+                  <Zap className="size-3.5 text-amber-400" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-amber-300">Free limit reached</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    You&apos;ve used your 10 free messages.{' '}
+                    <Link href="/workspace/settings/api-keys" className="text-amber-400 underline underline-offset-2 hover:text-amber-300 transition-colors">
+                      Add an API key
+                    </Link>
+                    {' '}to keep chatting with no limits.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <MarkdownContent content={msg.content} className="text-foreground/90 text-base break-words" />
+            )}
             {msg.thread && <ThreadView thread={msg.thread} />}
           </div>
         ))}
