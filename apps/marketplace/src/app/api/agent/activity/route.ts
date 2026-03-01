@@ -236,8 +236,123 @@ export async function GET(request: Request) {
     return NextResponse.json(generateMockActivity(days, typeFilter))
   }
 
-  return NextResponse.json({
-    events: [],
-    summary: { total: 0, byType: {} },
-  } satisfies ActivityResponse)
+  // ── Real data — build activity from sessions + messages ──────────────
+  try {
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - days)
+    const cutoffIso = cutoff.toISOString()
+
+    // Fetch sessions in date range
+    const { data: sessions } = await service
+      .from('sessions')
+      .select('id, started_at, ended_at, compute_seconds')
+      .eq('instance_id', instanceId)
+      .eq('user_id', user.id)
+      .gte('started_at', cutoffIso)
+      .order('started_at', { ascending: false })
+
+    const events: ActivityEvent[] = []
+
+    if (sessions && sessions.length > 0) {
+      for (const session of sessions) {
+        // Fetch messages for this session
+        const { data: messages } = await service
+          .from('messages')
+          .select('id, role, content, tokens_used, tool_use, created_at')
+          .eq('session_id', session.id)
+          .order('created_at', { ascending: true })
+
+        if (!messages) continue
+
+        for (const msg of messages) {
+          const timestamp = msg.created_at ?? session.started_at
+
+          if (msg.role === 'user') {
+            events.push({
+              id: msg.id,
+              type: 'message_received',
+              timestamp,
+              title: 'Received message',
+              summary: msg.content
+                ? msg.content.length > 80
+                  ? msg.content.slice(0, 80) + '...'
+                  : msg.content
+                : 'User message',
+              durationMs: 0,
+              metadata: { length: msg.content?.length ?? 0 },
+            })
+          } else if (msg.role === 'assistant') {
+            // Check for tool use data
+            const toolData = msg.tool_use as Record<string, unknown> | null
+            const tools = (toolData?.tools ?? []) as Array<{
+              id: string
+              tool: string
+              args?: string
+              output?: string
+              status: string
+            }>
+
+            // Emit tool call events
+            for (const tool of tools) {
+              events.push({
+                id: `${msg.id}-tool-${tool.id}`,
+                type: 'tool_call',
+                timestamp,
+                title: `Called ${tool.tool}`,
+                summary: tool.args
+                  ? `${tool.tool}(${tool.args.length > 60 ? tool.args.slice(0, 60) + '...' : tool.args})`
+                  : `Executed ${tool.tool}`,
+                durationMs: 0,
+                metadata: {
+                  tool: tool.tool,
+                  args: tool.args,
+                  result: tool.status === 'done' ? 'Success' : tool.status,
+                  outputLength: tool.output?.length ?? 0,
+                },
+              })
+            }
+
+            // Emit the response event
+            events.push({
+              id: msg.id,
+              type: 'message_sent',
+              timestamp,
+              title: 'Sent response',
+              summary: msg.content
+                ? msg.content.length > 80
+                  ? msg.content.slice(0, 80) + '...'
+                  : msg.content
+                : 'Agent response',
+              durationMs: 0,
+              metadata: {
+                length: msg.content?.length ?? 0,
+                tokensUsed: msg.tokens_used ?? 0,
+                hasCode: msg.content?.includes('```') ?? false,
+              },
+            })
+          }
+        }
+      }
+    }
+
+    // Sort by timestamp descending
+    events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+
+    // Apply type filter
+    const filtered = typeFilter ? events.filter((e) => e.type === typeFilter) : events
+
+    // Build summary
+    const byType: Record<string, number> = {}
+    for (const e of events) {
+      byType[e.type] = (byType[e.type] ?? 0) + 1
+    }
+
+    return NextResponse.json({
+      events: filtered,
+      summary: { total: events.length, byType },
+    } satisfies ActivityResponse)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to fetch activity'
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
 }
