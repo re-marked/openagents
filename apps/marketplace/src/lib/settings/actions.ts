@@ -121,6 +121,29 @@ export async function getDefaultModel(): Promise<string> {
   return (data as { default_model: string } | null)?.default_model ?? 'google/gemini-2.5-flash'
 }
 
+/**
+ * Update the current user's profile (display name, avatar).
+ */
+export async function updateProfile(values: { displayName: string; avatarUrl?: string }) {
+  const user = await getUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const service = createServiceClient()
+
+  const { error } = await service
+    .from('users')
+    .update({
+      display_name: values.displayName,
+      avatar_url: values.avatarUrl || null,
+    })
+    .eq('id', user.id)
+
+  if (error) throw new Error(`Failed to update profile: ${error.message}`)
+
+  revalidatePath('/workspace/settings')
+  return { success: true }
+}
+
 function maskKey(key: string): string {
   if (key.length <= 8) return '••••••••'
   return key.slice(0, 4) + '••••••••' + key.slice(-4)
