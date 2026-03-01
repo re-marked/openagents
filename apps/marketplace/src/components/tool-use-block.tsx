@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, ChevronRight, Terminal, FileText, Pencil, Globe, FileCode, Loader2 } from 'lucide-react'
+import { ChevronRight, Terminal, FileText, Pencil, Globe, FileCode, Loader2 } from 'lucide-react'
 
 export interface ToolUse {
   id: string
@@ -49,19 +49,27 @@ function ToolUseItem({ toolUse }: { toolUse: ToolUse }) {
             <Loader2 className="h-3 w-3 text-muted-foreground animate-spin" />
           )}
           {hasOutput && (
-            expanded
-              ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-              : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+            <ChevronRight
+              className="h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ease-out"
+              style={{ transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
+            />
           )}
         </span>
       </button>
-      {expanded && hasOutput && (
-        <div className="border-t border-border/30 bg-muted/10 px-3 py-2">
-          <pre className="text-[11px] text-muted-foreground/80 font-mono whitespace-pre-wrap break-words max-h-60 overflow-y-auto">
-            {toolUse.output}
-          </pre>
+
+      {/* Smooth expand/collapse via CSS grid row transition */}
+      <div
+        className="grid transition-[grid-template-rows] duration-200 ease-out"
+        style={{ gridTemplateRows: expanded ? '1fr' : '0fr' }}
+      >
+        <div className="overflow-hidden">
+          <div className="border-t border-border/30 bg-muted/10 px-3 py-2">
+            <pre className="text-[11px] text-muted-foreground/80 font-mono whitespace-pre-wrap break-words max-h-60 overflow-y-auto">
+              {toolUse.output}
+            </pre>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }
