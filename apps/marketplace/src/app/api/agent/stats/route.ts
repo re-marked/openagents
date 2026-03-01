@@ -333,11 +333,11 @@ export async function GET(request: Request) {
         const daySessionIds = daySessions.map(s => s.id)
         const { data: usageData } = await service
           .from('usage_events')
-          .select('credits_consumed')
+          .select('cost_usd')
           .eq('instance_id', instanceId)
           .in('session_id', daySessionIds)
-        dayCost = (usageData ?? []).reduce((sum, e) => sum + (e.credits_consumed ?? 0), 0)
-        dayCost = Math.round(dayCost * 10) / 10
+        dayCost = (usageData ?? []).reduce((sum, e) => sum + (e.cost_usd ?? 0), 0)
+        dayCost = Math.round(dayCost * 10000) / 10000
       }
 
       timeSeries.push({ date: dateStr, messages: dayMessages, minutes: dayMinutes, cost: dayCost })
@@ -346,12 +346,12 @@ export async function GET(request: Request) {
     // Aggregate total cost from usage_events (more accurate than summing time series)
     const { data: totalUsage } = await service
       .from('usage_events')
-      .select('credits_consumed')
+      .select('cost_usd')
       .eq('instance_id', instanceId)
       .eq('user_id', user.id)
     const totalCost = Math.round(
-      ((totalUsage ?? []).reduce((sum, e) => sum + (e.credits_consumed ?? 0), 0)) * 10
-    ) / 10
+      ((totalUsage ?? []).reduce((sum, e) => sum + (e.cost_usd ?? 0), 0)) * 10000
+    ) / 10000
 
     const response: StatsResponse = {
       relationship: {

@@ -22,29 +22,29 @@ import {
 } from "@/components/ui/chart"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import type {
-  DailyCredits,
+  DailyCost,
   AgentBreakdown,
   TokenSplit,
   DailyCompute,
 } from "@/lib/usage/actions"
 
-// ─── Big credit usage area chart ─────────────────────────────────────────────
+// ─── API cost area chart ────────────────────────────────────────────────────
 
-const creditsConfig = {
-  credits: {
-    label: "Credits",
+const costConfig = {
+  cost: {
+    label: "Est. API Cost",
     color: "hsl(var(--primary))",
   },
 } satisfies ChartConfig
 
-export function CreditsAreaChart({ data }: { data: DailyCredits[] }) {
-  const hasData = data.some((d) => d.credits > 0)
+function CostAreaChart({ data }: { data: DailyCost[] }) {
+  const hasData = data.some((d) => d.cost > 0)
 
   return (
     <Card className="border-0 col-span-full">
       <CardHeader>
-        <CardTitle>Credit Usage</CardTitle>
-        <CardDescription>Daily credits consumed over the last 30 days</CardDescription>
+        <CardTitle>Estimated API Cost</CardTitle>
+        <CardDescription>Daily estimated cost based on token usage (30d)</CardDescription>
       </CardHeader>
       <CardContent>
         {!hasData ? (
@@ -52,15 +52,15 @@ export function CreditsAreaChart({ data }: { data: DailyCredits[] }) {
             No usage data yet. Start chatting with an agent!
           </div>
         ) : (
-          <ChartContainer config={creditsConfig} className="h-[300px] w-full">
+          <ChartContainer config={costConfig} className="h-[300px] w-full">
             <AreaChart
               data={data}
               margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
             >
               <defs>
-                <linearGradient id="creditsFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="var(--color-credits)" stopOpacity={0.35} />
-                  <stop offset="95%" stopColor="var(--color-credits)" stopOpacity={0} />
+                <linearGradient id="costFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="var(--color-cost)" stopOpacity={0.35} />
+                  <stop offset="95%" stopColor="var(--color-cost)" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid vertical={false} />
@@ -80,7 +80,8 @@ export function CreditsAreaChart({ data }: { data: DailyCredits[] }) {
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
-                allowDecimals={false}
+                tickFormatter={(v: number) => `$${v}`}
+                allowDecimals
               />
               <ChartTooltip
                 content={
@@ -93,14 +94,15 @@ export function CreditsAreaChart({ data }: { data: DailyCredits[] }) {
                         year: "numeric",
                       })
                     }}
+                    formatter={(value) => `$${Number(value).toFixed(4)}`}
                   />
                 }
               />
               <Area
                 type="monotone"
-                dataKey="credits"
-                stroke="var(--color-credits)"
-                fill="url(#creditsFill)"
+                dataKey="cost"
+                stroke="var(--color-cost)"
+                fill="url(#costFill)"
                 strokeWidth={2}
               />
             </AreaChart>
@@ -126,7 +128,7 @@ const tokenPieConfig = {
 
 const PIE_COLORS = ["hsl(var(--primary))", "hsl(var(--chart-2))"]
 
-export function TokenPieChart({ data }: { data: TokenSplit[] }) {
+function TokenPieChart({ data }: { data: TokenSplit[] }) {
   const total = data.reduce((s, d) => s + d.value, 0)
 
   return (
@@ -171,18 +173,18 @@ export function TokenPieChart({ data }: { data: TokenSplit[] }) {
 // ─── Per-agent bar chart ─────────────────────────────────────────────────────
 
 const agentBarConfig = {
-  credits: {
-    label: "Credits",
+  cost: {
+    label: "Est. Cost",
     color: "hsl(280, 65%, 55%)",
   },
 } satisfies ChartConfig
 
-export function AgentBarChart({ data }: { data: AgentBreakdown[] }) {
+function AgentBarChart({ data }: { data: AgentBreakdown[] }) {
   return (
     <Card className="border-0">
       <CardHeader className="pb-2">
         <CardTitle className="text-base">By Agent</CardTitle>
-        <CardDescription>Credits per agent (30d)</CardDescription>
+        <CardDescription>Est. API cost per agent (30d)</CardDescription>
       </CardHeader>
       <CardContent>
         {data.length === 0 ? (
@@ -207,10 +209,16 @@ export function AgentBarChart({ data }: { data: AgentBreakdown[] }) {
                 tick={{ fontSize: 12 }}
               />
               <XAxis type="number" hide />
-              <ChartTooltip content={<ChartTooltipContent />} />
+              <ChartTooltip
+                content={
+                  <ChartTooltipContent
+                    formatter={(value) => `$${Number(value).toFixed(4)}`}
+                  />
+                }
+              />
               <Bar
-                dataKey="credits"
-                fill="var(--color-credits)"
+                dataKey="cost"
+                fill="var(--color-cost)"
                 radius={[0, 4, 4, 0]}
                 barSize={20}
               />
@@ -231,7 +239,7 @@ const computeConfig = {
   },
 } satisfies ChartConfig
 
-export function ComputeAreaChart({ data }: { data: DailyCompute[] }) {
+function ComputeAreaChart({ data }: { data: DailyCompute[] }) {
   const hasData = data.some((d) => d.seconds > 0)
 
   return (
@@ -300,5 +308,29 @@ export function ComputeAreaChart({ data }: { data: DailyCompute[] }) {
         )}
       </CardContent>
     </Card>
+  )
+}
+
+// ─── Composed export ────────────────────────────────────────────────────────
+
+interface UsageChartsProps {
+  dailyCost: DailyCost[]
+  tokenSplit: TokenSplit[]
+  agentBreakdown: AgentBreakdown[]
+  dailyCompute: DailyCompute[]
+}
+
+export function UsageCharts({ dailyCost, tokenSplit, agentBreakdown, dailyCompute }: UsageChartsProps) {
+  return (
+    <>
+      <div className="mb-8">
+        <CostAreaChart data={dailyCost} />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <TokenPieChart data={tokenSplit} />
+        <AgentBarChart data={agentBreakdown} />
+        <ComputeAreaChart data={dailyCompute} />
+      </div>
+    </>
   )
 }

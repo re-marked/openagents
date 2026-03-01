@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import {
-  Coins,
+  DollarSign,
   Hash,
   Timer,
   MessageSquare,
@@ -34,20 +34,18 @@ interface UsageEvent {
   inputTokens: number
   outputTokens: number
   computeSeconds: number
-  credits: number
   costUsd: number
 }
 
 interface DailyEntry {
   date: string
-  credits: number
+  cost: number
   tokens: number
   sessions: number
 }
 
 interface UsageData {
   summary: {
-    totalCredits: number
     totalCostUsd: number
     totalInputTokens: number
     totalOutputTokens: number
@@ -94,8 +92,8 @@ function formatDate(dateStr: string, isHourly: boolean = false): string {
 
 // ── Chart config ─────────────────────────────────────────────────────────
 
-const creditsChartConfig = {
-  credits: { label: 'Credits', color: 'hsl(var(--primary))' },
+const costChartConfig = {
+  cost: { label: 'Est. API Cost', color: 'hsl(var(--primary))' },
 } satisfies ChartConfig
 
 // ── Component ────────────────────────────────────────────────────────────
@@ -167,10 +165,10 @@ export function UsageSection({ instanceId, testMode = false }: { instanceId: str
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard
-          icon={Coins}
-          label="Credits"
-          value={s.totalCredits.toFixed(1)}
-          sub={`$${s.totalCostUsd.toFixed(2)} USD`}
+          icon={DollarSign}
+          label="Est. API Cost"
+          value={`$${s.totalCostUsd.toFixed(2)}`}
+          sub={`${s.totalSessions} sessions`}
         />
         <StatCard
           icon={Hash}
@@ -193,11 +191,11 @@ export function UsageSection({ instanceId, testMode = false }: { instanceId: str
       {/* Daily credits chart */}
       {dailySlice.length > 1 && (
         <div className="rounded-xl border border-border/40 bg-card/50 p-5">
-          <p className="text-sm font-medium text-muted-foreground mb-3">{isHourly ? 'Hourly' : 'Daily'} Credits</p>
-          <ChartContainer config={creditsChartConfig} className="h-40 w-full">
+          <p className="text-sm font-medium text-muted-foreground mb-3">{isHourly ? 'Hourly' : 'Daily'} Est. API Cost</p>
+          <ChartContainer config={costChartConfig} className="h-40 w-full">
             <AreaChart data={dailySlice} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
               <defs>
-                <linearGradient id="creditsGrad" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id="costGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
                   <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                 </linearGradient>
@@ -219,14 +217,15 @@ export function UsageSection({ instanceId, testMode = false }: { instanceId: str
                       const entry = payload?.[0]?.payload as DailyEntry | undefined
                       return entry ? formatDate(entry.date, isHourly) : ''
                     }}
+                    formatter={(value) => `$${Number(value).toFixed(2)}`}
                   />
                 }
               />
               <Area
                 type="monotone"
-                dataKey="credits"
+                dataKey="cost"
                 stroke="hsl(var(--primary))"
-                fill="url(#creditsGrad)"
+                fill="url(#costGrad)"
                 strokeWidth={2}
                 animationDuration={800}
                 animationEasing="ease-out"
@@ -280,7 +279,7 @@ function StatCard({
   value,
   sub,
 }: {
-  icon: typeof Coins
+  icon: typeof DollarSign
   label: string
   value: string
   sub?: string
@@ -320,8 +319,7 @@ function EventsTable({ events, isHourly }: { events: UsageEvent[]; isHourly: boo
               <th className="text-right px-5 py-2.5 font-medium">Input</th>
               <th className="text-right px-5 py-2.5 font-medium">Output</th>
               <th className="text-right px-5 py-2.5 font-medium">Compute</th>
-              <th className="text-right px-5 py-2.5 font-medium">Credits</th>
-              <th className="text-right px-5 py-2.5 font-medium">Cost</th>
+              <th className="text-right px-5 py-2.5 font-medium">Est. Cost</th>
             </tr>
           </thead>
           <tbody>
@@ -331,8 +329,7 @@ function EventsTable({ events, isHourly }: { events: UsageEvent[]; isHourly: boo
                 <td className="px-5 py-2.5 text-right tabular-nums">{formatTokens(ev.inputTokens)}</td>
                 <td className="px-5 py-2.5 text-right tabular-nums">{formatTokens(ev.outputTokens)}</td>
                 <td className="px-5 py-2.5 text-right tabular-nums">{formatTime(ev.computeSeconds)}</td>
-                <td className="px-5 py-2.5 text-right tabular-nums">{ev.credits.toFixed(1)}</td>
-                <td className="px-5 py-2.5 text-right tabular-nums text-muted-foreground">${ev.costUsd.toFixed(2)}</td>
+                <td className="px-5 py-2.5 text-right tabular-nums text-muted-foreground">${ev.costUsd.toFixed(4)}</td>
               </tr>
             ))}
           </tbody>
