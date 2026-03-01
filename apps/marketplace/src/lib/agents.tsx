@@ -147,8 +147,6 @@ export interface AgentListItem {
   avg_rating: number | null
   total_hires: number
   total_reviews: number
-  pricing_model: string
-  credits_per_session: number | null
   icon_url: string | null
   creator_name: string | null
 }

@@ -41,11 +41,6 @@ export function AgentDetailSheet({ agent, open, onOpenChange, user }: AgentDetai
 
   if (!agent) return null
 
-  const price =
-    agent.pricing_model === "free" || !agent.credits_per_session
-      ? "Free"
-      : `${agent.credits_per_session} credits per session`
-
   async function handleDeploy() {
     if (!agent) return
 
@@ -132,8 +127,8 @@ export function AgentDetailSheet({ agent, open, onOpenChange, user }: AgentDetai
               </div>
               <div className="w-px bg-border/40" />
               <div className="flex flex-col items-center gap-1.5">
-                <span className="text-2xl font-bold">{price === "Free" ? "Free" : `${agent.credits_per_session}`}</span>
-                <span className="text-[11px] uppercase tracking-wider text-muted-foreground">{price === "Free" ? "Price" : "Credits"}</span>
+                <span className="text-2xl font-bold">{formatCount(agent.total_reviews)}</span>
+                <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Reviews</span>
               </div>
             </CardContent>
           </Card>
@@ -147,15 +142,9 @@ export function AgentDetailSheet({ agent, open, onOpenChange, user }: AgentDetai
           <Badge variant="secondary" className={CATEGORY_COLORS[agent.category] ?? "bg-secondary text-secondary-foreground"}>
             {agent.category}
           </Badge>
-          {agent.pricing_model === "free" ? (
-            <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-400 border-0">
-              Free
-            </Badge>
-          ) : (
-            <Badge variant="secondary" className="bg-primary/10 text-primary border-0">
-              {price}
-            </Badge>
-          )}
+          <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-400 border-0">
+            Free
+          </Badge>
         </div>
 
         <div className="mx-8 border-t border-border/40" />
