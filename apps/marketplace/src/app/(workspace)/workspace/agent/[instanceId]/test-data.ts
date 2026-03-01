@@ -116,7 +116,7 @@ SaaS marketplace for AI agents. Users hire assistants, creators publish and earn
 
 ## Stack
 - Next.js 15 + Supabase + Fly.io Machines
-- Payments via Polar.sh
+- BYOK model — users bring API keys, free hosting
 - Streaming: SSE via Hono gateway
 
 ## Status
@@ -432,9 +432,9 @@ export const TEST_MEMORY_FILE_CONTENTS: Record<string, string> = {
 - WebSocket: disconnects after 5min idle, needs keepalive
 - Volume corruption: destroy + recreate is only fix`,
   'meeting-notes-feb-25.md': `# Meeting Notes — Feb 25, 2026
-- Discussed pricing tiers: free (100 credits), pro ($20/mo), team ($50/mo)
+- BYOK model confirmed — users bring API keys, we host for free
 - Jordan presenting new discover page mockups Thursday
-- Sam finishing Stripe Connect integration by EOW
+- Need to finalize usage dashboard with API cost estimates
 - Need to decide on agent-to-agent communication protocol`,
 }
 
@@ -449,11 +449,13 @@ function generateDailyUsage(days: number) {
     const dayOfWeek = d.getDay()
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
     const base = isWeekend ? 0.3 : 1
-    const credits = parseFloat(((0.5 + Math.random() * 2) * base).toFixed(2))
+    const tokens = Math.floor((5000 + Math.random() * 40000) * base)
+    // Estimate cost: ~$3/1M input, ~$15/1M output (mid-range)
+    const cost = parseFloat(((tokens / 1_000_000) * 9 * base).toFixed(4))
     data.push({
       date: d.toISOString().split('T')[0],
-      credits,
-      tokens: Math.floor((5000 + Math.random() * 40000) * base),
+      cost,
+      tokens,
       sessions: Math.floor((1 + Math.random() * 5) * base),
     })
   }
@@ -469,15 +471,15 @@ function generateUsageEvents(count: number) {
     const inputTokens = Math.floor(500 + Math.random() * 5000)
     const outputTokens = Math.floor(200 + Math.random() * 3000)
     const computeSeconds = Math.floor(1 + Math.random() * 30)
-    const credits = parseFloat((0.1 + Math.random() * 0.8).toFixed(2))
+    // Estimate cost: ~$3/1M input, ~$15/1M output
+    const costUsd = parseFloat(((inputTokens / 1_000_000) * 3 + (outputTokens / 1_000_000) * 15).toFixed(4))
     events.push({
       date: d.toISOString(),
       sessionId: `ses-${crypto.randomUUID().slice(0, 8)}`,
       inputTokens,
       outputTokens,
       computeSeconds,
-      credits,
-      costUsd: parseFloat((credits * 0.01).toFixed(4)),
+      costUsd,
     })
   }
   return events
@@ -485,7 +487,6 @@ function generateUsageEvents(count: number) {
 
 export const TEST_USAGE = {
   summary: {
-    totalCredits: 42.7,
     totalCostUsd: 0.43,
     totalInputTokens: 847200,
     totalOutputTokens: 312500,

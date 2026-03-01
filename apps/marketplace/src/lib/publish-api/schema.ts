@@ -165,12 +165,6 @@ export const agentbayYamlSchema = z.object({
     'personal',
   ]),
 
-  // Pricing
-  pricing: z.object({
-    model: z.enum(['per_session', 'per_task', 'free']),
-    credits: z.number().nullable().optional(),
-  }),
-
   // Identity
   version: z
     .string()

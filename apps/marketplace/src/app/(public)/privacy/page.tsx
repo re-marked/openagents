@@ -21,7 +21,7 @@ export default function PrivacyPage() {
             <li><strong className="text-foreground">Account information</strong> &mdash; your email address and profile details provided through Google or GitHub OAuth.</li>
             <li><strong className="text-foreground">API keys</strong> &mdash; keys you provide for AI providers (Google, Anthropic, OpenAI). These are stored encrypted and used solely to power your agents.</li>
             <li><strong className="text-foreground">Conversation data</strong> &mdash; messages exchanged with your agents, stored to maintain chat history.</li>
-            <li><strong className="text-foreground">Usage data</strong> &mdash; token counts, compute time, and credit consumption for billing and analytics.</li>
+            <li><strong className="text-foreground">Usage data</strong> &mdash; token counts and compute time for usage analytics.</li>
             <li><strong className="text-foreground">Technical data</strong> &mdash; IP address, browser type, and device information for security and performance.</li>
           </ul>
         </section>
@@ -32,7 +32,7 @@ export default function PrivacyPage() {
             <li>Authenticate and manage your account</li>
             <li>Provision and operate AI agent containers on your behalf</li>
             <li>Route your API keys to agent runtimes (keys are never logged or shared)</li>
-            <li>Track usage for credit billing and usage dashboards</li>
+            <li>Track usage for usage dashboards and analytics</li>
             <li>Improve the platform and diagnose technical issues</li>
           </ul>
         </section>
