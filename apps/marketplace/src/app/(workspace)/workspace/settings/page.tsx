@@ -1,8 +1,7 @@
 import { getUser } from '@/lib/auth/get-user'
 import { redirect } from 'next/navigation'
-import { getApiKeys, getDefaultModel } from '@/lib/settings/actions'
+import { getApiKeys } from '@/lib/settings/actions'
 import { ApiKeysSettings } from '@/components/api-keys-settings'
-import { ModelSelector } from '@/components/model-selector'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -16,8 +15,7 @@ export default async function UserSettingsPage() {
   const user = await getUser()
   if (!user) redirect('/login')
 
-  const [apiKeys, defaultModel] = await Promise.all([getApiKeys(), getDefaultModel()])
-  const configuredProviders = apiKeys.map((k) => k.provider)
+  const apiKeys = await getApiKeys()
   const hasPlatformKey = !!process.env.PLATFORM_ROUTEWAY_API_KEY
 
   return (
@@ -45,7 +43,6 @@ export default async function UserSettingsPage() {
 
         <div className="max-w-2xl space-y-10">
           <ApiKeysSettings initialKeys={apiKeys} hasPlatformKey={hasPlatformKey} />
-          <ModelSelector currentModel={defaultModel} configuredProviders={configuredProviders} />
         </div>
       </div>
     </div>
