@@ -59,7 +59,7 @@ drwxr-xr-x  5 node node 4096 Feb 26 14:28 ..
 drwxr-xr-x  2 node node 4096 Feb 26 14:30 web-search
 drwxr-xr-x  2 node node 4096 Feb 26 14:30 code-review
 drwxr-xr-x  2 node node 4096 Feb 26 14:31 summarize`,
-  '/data/memory': `total 36
+  '/data/workspace/memory': `total 36
 drwxr-xr-x  2 node node 4096 Feb 27 09:15 .
 drwxr-xr-x  5 node node 4096 Feb 26 14:28 ..
 -rw-r--r--  1 node node  512 Feb 27 09:15 user-preferences.md
@@ -161,7 +161,7 @@ Condense long content into clear, actionable summaries.
 }
 
 const MOCK_MEMORY_FILES: Record<string, string> = {
-  '/data/memory/user-preferences.md': `# User Preferences
+  '/data/workspace/memory/user-preferences.md': `# User Preferences
 #profile #workflow
 
 Alex prefers concise responses with bullet points. Likes code examples inline.
@@ -176,7 +176,7 @@ Part of a small team — see [[team-context]] for roles and dynamics.
 - Flag uncertainty explicitly
 - Skip boilerplate intros
 `,
-  '/data/memory/tech-stack.md': `# Tech Stack
+  '/data/workspace/memory/tech-stack.md': `# Tech Stack
 #engineering #architecture
 
 Current production stack for the [[saas-dashboard]] project:
@@ -191,7 +191,7 @@ Current production stack for the [[saas-dashboard]] project:
 
 Considering adding tRPC for internal API routes. REST stays for public API.
 `,
-  '/data/memory/saas-dashboard.md': `# SaaS Dashboard Project
+  '/data/workspace/memory/saas-dashboard.md': `# SaaS Dashboard Project
 #project #active
 
 Analytics dashboard for mid-market SaaS companies. V2 launching mid-March 2026.
@@ -210,7 +210,7 @@ Multi-tenant security handled by [[supabase-rls]] policies.
 - Supabase connection pooling under load
 - Bundle size creeping up (need tree-shaking audit)
 `,
-  '/data/memory/sse-vs-websocket.md': `# SSE vs WebSocket
+  '/data/workspace/memory/sse-vs-websocket.md': `# SSE vs WebSocket
 #research #decision
 
 Evaluated for the [[saas-dashboard]] real-time features.
@@ -226,7 +226,7 @@ Evaluated for the [[saas-dashboard]] real-time features.
 - No binary data (fine for JSON payloads)
 - For future chat features, may revisit WebSocket
 `,
-  '/data/memory/supabase-rls.md': `# Supabase RLS Patterns
+  '/data/workspace/memory/supabase-rls.md': `# Supabase RLS Patterns
 #security #database
 
 Row Level Security policies for the [[saas-dashboard]] multi-tenant model.
@@ -242,7 +242,7 @@ Applied across the [[tech-stack]] Supabase layer.
 - \`INSERT\` policies need separate handling from \`SELECT\`
 - Realtime subscriptions respect RLS (good!)
 `,
-  '/data/memory/fly-io-deployment.md': `# Fly.io Deployment
+  '/data/workspace/memory/fly-io-deployment.md': `# Fly.io Deployment
 #infrastructure #devops
 
 Global deployment strategy for [[saas-dashboard]] backend services.
@@ -259,7 +259,7 @@ Pipeline managed through [[ci-cd-setup]].
 - Fly-replay header for region-aware routing
 - Health checks every 30s via /healthz
 `,
-  '/data/memory/team-context.md': `# Team Context
+  '/data/workspace/memory/team-context.md': `# Team Context
 #team #workflow
 
 Small engineering team of 3. Alex is the tech lead — see [[user-preferences]].
@@ -275,7 +275,7 @@ Small engineering team of 3. Alex is the tech lead — see [[user-preferences]].
 - Feature branches → dev → main
 - Ship on Fridays (controversial, but it works)
 `,
-  '/data/memory/ci-cd-setup.md': `# CI/CD Setup
+  '/data/workspace/memory/ci-cd-setup.md': `# CI/CD Setup
 #devops #automation
 
 GitHub Actions pipeline for the monorepo. See [[tech-stack]] for what we're building.
@@ -325,6 +325,7 @@ export async function GET(request: Request) {
   const instanceId = searchParams.get('instanceId')
   const path = searchParams.get('path')
   const list = searchParams.get('list') === 'true'
+  const find = searchParams.get('find')
 
   if (!instanceId || !path) {
     return NextResponse.json({ error: 'Missing instanceId or path' }, { status: 400 })
@@ -335,6 +336,13 @@ export async function GET(request: Request) {
 
   // Mock mode — skip status check, return canned data
   if (isMock(instance.fly_app_name)) {
+    if (find) {
+      const pattern = find.replace('*', '.*')
+      const matching = Object.keys(MOCK_MEMORY_FILES)
+        .filter((k) => k.startsWith(path) && new RegExp(pattern).test(k))
+        .join('\n')
+      return NextResponse.json({ output: matching })
+    }
     if (list) {
       return NextResponse.json({ output: MOCK_DIRS[path] ?? '' })
     }
@@ -348,6 +356,10 @@ export async function GET(request: Request) {
 
   try {
     const fly = new FlyClient()
+    if (find) {
+      const output = await fly.findFiles(instance.fly_app_name, instance.fly_machine_id, path, find)
+      return NextResponse.json({ output })
+    }
     if (list) {
       const output = await fly.listDir(instance.fly_app_name, instance.fly_machine_id, path)
       return NextResponse.json({ output })

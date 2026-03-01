@@ -8,7 +8,8 @@ import { MarkdownEditor } from '@/components/markdown-editor'
 import { TEST_MEMORY_MD, TEST_MEMORY_FILES, TEST_MEMORY_FILE_CONTENTS } from '../test-data'
 
 const MEMORY_MD_PATH = '/data/workspace/MEMORY.md'
-const MEMORY_DIR = '/data/memory'
+// OpenClaw's session-memory hook writes to /data/workspace/memory/, not /data/memory/
+const MEMORY_DIR = '/data/workspace/memory'
 
 interface MemoryFile {
   name: string
@@ -56,18 +57,14 @@ export function MemorySection({ instanceId, testMode = false }: MemorySectionPro
       }
 
       const dirRes = await fetch(
-        `/api/agent/files?instanceId=${instanceId}&path=${encodeURIComponent(MEMORY_DIR)}&list=true`
+        `/api/agent/files?instanceId=${instanceId}&path=${encodeURIComponent(MEMORY_DIR)}&find=*.md`
       )
       if (dirRes.ok) {
         const data = await dirRes.json()
-        const lines: string[] = (data.output ?? '').split('\n').filter(Boolean)
-        const files = lines
-          .map((line: string) => {
-            const parts = line.trim().split(/\s+/)
-            return parts[parts.length - 1]
-          })
-          .filter((name: string) => name !== '.' && name !== '..' && !name.startsWith('total'))
-          .map((name: string) => ({ name }))
+        const paths: string[] = (data.output ?? '').split('\n').map((p: string) => p.trim()).filter(Boolean)
+        const files = paths.map((p: string) => ({
+          name: p.replace(MEMORY_DIR + '/', ''),
+        }))
         setMemoryFiles(files)
       }
     } catch {
@@ -106,8 +103,10 @@ export function MemorySection({ instanceId, testMode = false }: MemorySectionPro
       return
     }
     try {
+      // fileName is a relative path that may include subdirs (e.g. "people/index.md")
+      const fullPath = `${MEMORY_DIR}/${fileName}`
       const res = await fetch(
-        `/api/agent/files?instanceId=${instanceId}&path=${encodeURIComponent(`${MEMORY_DIR}/${fileName}`)}`
+        `/api/agent/files?instanceId=${instanceId}&path=${encodeURIComponent(fullPath)}`
       )
       if (res.ok) {
         const data = await res.json()

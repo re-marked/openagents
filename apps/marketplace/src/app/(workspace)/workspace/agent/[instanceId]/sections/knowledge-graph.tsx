@@ -219,30 +219,28 @@ export function KnowledgeGraph({ instanceId, testMode = false }: KnowledgeGraphP
         )
         const memoryData = await memoryRes.json()
 
-        // Fetch memory directory listing
-        const dirRes = await fetch(
-          `/api/agent/files?instanceId=${instanceId}&path=/data/memory&list=true`
+        // Recursively find all .md files in the workspace memory directory
+        // OpenClaw's session-memory hook writes to /data/workspace/memory/
+        const findRes = await fetch(
+          `/api/agent/files?instanceId=${instanceId}&path=/data/workspace/memory&find=*.md`
         )
-        const dirData = await dirRes.json()
+        const findData = await findRes.json()
 
-        // Parse filenames from directory listing
-        const dirOutput: string = dirData.output || ''
-        const filenames = dirOutput
+        // Parse file paths from find output
+        const filePaths: string[] = (findData.output || '')
           .split('\n')
-          .filter((line: string) => line.includes('.md'))
-          .map((line: string) => {
-            const parts = line.trim().split(/\s+/)
-            return parts[parts.length - 1]
-          })
+          .map((p: string) => p.trim())
           .filter(Boolean)
 
         // Fetch each memory file
-        const filePromises = filenames.map(async (name: string) => {
+        const filePromises = filePaths.map(async (filePath: string) => {
           const res = await fetch(
-            `/api/agent/files?instanceId=${instanceId}&path=/data/memory/${name}`
+            `/api/agent/files?instanceId=${instanceId}&path=${encodeURIComponent(filePath)}`
           )
           const data = await res.json()
-          return { path: `/data/memory/${name}`, name, content: data.content || '' }
+          // Use relative path from memory dir as display name
+          const name = filePath.replace('/data/workspace/memory/', '')
+          return { path: filePath, name, content: data.content || '' }
         })
 
         const memoryFiles = await Promise.all(filePromises)

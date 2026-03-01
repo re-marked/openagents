@@ -294,4 +294,13 @@ export class FlyClient {
     }
     return result.stdout
   }
+
+  /** Recursively find files matching a pattern under a directory. */
+  async findFiles(appName: string, machineId: string, path: string, pattern: string): Promise<string> {
+    const result = await this.execCommand(appName, machineId, ['find', path, '-name', pattern, '-type', 'f'])
+    if (result.exit_code !== 0) {
+      throw new Error(`Failed to find files in ${path}: ${result.stderr}`)
+    }
+    return result.stdout
+  }
 }
