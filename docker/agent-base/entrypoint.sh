@@ -106,9 +106,19 @@ if [ -f /data/openclaw.json ] && [ -n "$ROUTEWAY_API_KEY" ]; then
   "
 fi
 
-# ── 2. Seed workspace files on first boot
+# ── 2. Seed workspace files — full copy on first boot, missing-files-only on subsequent boots
 if [ -z "$(ls -A /data/workspace 2>/dev/null)" ]; then
   cp -r /opt/openclaw-defaults/workspace/. /data/workspace/ 2>/dev/null || true
+else
+  # Copy any new default files that don't yet exist on the volume (won't overwrite user edits)
+  for src in /opt/openclaw-defaults/workspace/*; do
+    fname="$(basename "$src")"
+    dest="/data/workspace/$fname"
+    if [ ! -e "$dest" ]; then
+      cp -r "$src" "$dest" 2>/dev/null || true
+      echo "[entrypoint] Added new workspace file: $fname"
+    fi
+  done
 fi
 
 # ── 3. Role overrides (sub-agents) — only on first boot
