@@ -153,16 +153,21 @@ export function HiredAgentGrid({ agents }: HiredAgentGridProps) {
                 </div>
               )}
               {isStarting && (
-                <Button variant="secondary" disabled className="w-full">
+                <><Button variant="secondary" disabled className="w-full">
                   <Loader2 className="size-4 mr-2 animate-spin" />
                   Starting up...
-                </Button>
+                </Button><div className="text-center text-sm text-muted-foreground">
+                    (This might take anywhere from 30 seconds to 5 minutes)
+                  </div></>
               )}
               {isProvisioning && (
-                <Button variant="secondary" disabled className="w-full">
+                <><Button variant="secondary" disabled className="w-full">
                   <Loader2 className="size-4 mr-2 animate-spin" />
                   Setting up your agent...
                 </Button>
+                <div className="text-red text-center text-xs text-muted-foreground mt-3">
+                    (This might take anywhere from 1 to 5 minutes)
+                  </div></>
               )}
               {agent.status === 'error' && (
                 <div className="space-y-2">

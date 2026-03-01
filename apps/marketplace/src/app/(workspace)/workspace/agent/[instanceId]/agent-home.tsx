@@ -241,6 +241,7 @@ function MachineRequiredBanner({
         <div className="flex items-center gap-2 text-sm text-status-provisioning">
           <span className="h-2 w-2 rounded-full bg-status-provisioning animate-pulse" />
           Starting up...
+          
         </div>
       )}
     </div>
