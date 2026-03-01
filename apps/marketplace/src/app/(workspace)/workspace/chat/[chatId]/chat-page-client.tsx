@@ -83,6 +83,7 @@ export function ChatPageClient({
               agentInstanceId={activeAgent.instanceId}
               agentName={activeAgent.name}
               agentCategory={activeAgent.category}
+              agentIconUrl={activeAgent.iconUrl}
               agentStatus={activeAgent.status}
             />
           ) : (

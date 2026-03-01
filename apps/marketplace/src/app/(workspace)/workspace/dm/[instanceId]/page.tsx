@@ -66,6 +66,7 @@ export default async function DirectMessagePage({
         agentInstanceId={instance.id}
         agentName={agentName}
         agentCategory={agent.category}
+        agentIconUrl={agent.icon_url}
         agentStatus={instance.status}
       />
     </div>

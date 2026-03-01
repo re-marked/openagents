@@ -26,7 +26,7 @@ export default async function AgentChatPage({
   // Find the agent instance by ID + user ownership
   const { data: instance } = await service
     .from('agent_instances')
-    .select('id, status, display_name, agents!inner(name, category)')
+    .select('id, status, display_name, agents!inner(name, category, icon_url)')
     .eq('id', instanceId)
     .eq('user_id', user.id)
     .in('status', ['running', 'suspended', 'stopped'])
@@ -36,7 +36,7 @@ export default async function AgentChatPage({
   if (!instance) redirect('/workspace/home')
 
   const agent = (instance as Record<string, unknown>).agents as {
-    name: string; category: string
+    name: string; category: string; icon_url: string | null
   }
   const agentName = instance.display_name ?? agent.name
 
@@ -65,6 +65,7 @@ export default async function AgentChatPage({
         agentInstanceId={instance.id}
         agentName={agentName}
         agentCategory={agent.category}
+        agentIconUrl={agent.icon_url}
         agentStatus={instance.status}
       />
     </div>

@@ -22,12 +22,13 @@ interface DiscordChatPanelProps {
   agentInstanceId: string
   agentName?: string
   agentCategory?: string
+  agentIconUrl?: string | null
   agentStatus?: string
   /** Skip heartbeat check (for test/mock modes) */
   skipHeartbeat?: boolean
 }
 
-export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCategory, agentStatus, skipHeartbeat }: DiscordChatPanelProps) {
+export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCategory, agentIconUrl, agentStatus, skipHeartbeat }: DiscordChatPanelProps) {
   const router = useRouter()
   const [messages, setMessages] = useState<DiscordMessage[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -533,7 +534,7 @@ export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCa
 
   return (
     <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
-      <DiscordMessageList messages={messages} agentName={agentName} agentCategory={agentCategory} />
+      <DiscordMessageList messages={messages} agentName={agentName} agentCategory={agentCategory} agentIconUrl={agentIconUrl} agentInstanceId={agentInstanceId} />
 
       {/* Typing / connecting indicator */}
       {isTyping && (

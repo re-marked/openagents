@@ -7,6 +7,8 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { MarkdownContent } from '@/components/markdown-content'
 import { ToolUseBlockList } from '@/components/tool-use-block'
 import type { ToolUse } from '@/components/tool-use-block'
+import { AgentAvatar } from '@/lib/agents'
+import { AgentProfileCard } from '@/components/agent-profile-card'
 
 export interface ThreadMessage {
   agent: string
@@ -137,7 +139,15 @@ function ThreadView({ thread }: { thread: Thread }) {
   )
 }
 
-function MessageGroupView({ group, agentName, botBg, botText }: { group: MessageGroup; agentName: string; botBg: string; botText: string }) {
+function MessageGroupView({ group, agentName, agentCategory, agentIconUrl, agentInstanceId, botBg, botText }: {
+  group: MessageGroup
+  agentName: string
+  agentCategory?: string
+  agentIconUrl?: string | null
+  agentInstanceId?: string
+  botBg: string
+  botText: string
+}) {
   const isMaster = group.role === 'master'
   const first = group.messages[0]
 
@@ -145,17 +155,26 @@ function MessageGroupView({ group, agentName, botBg, botText }: { group: Message
     <div className="hover:bg-muted/30 flex gap-4 px-4 py-1 transition-colors">
       {/* Avatar column */}
       <div className="w-10 shrink-0 pt-0.5">
-        <Avatar>
-          <AvatarFallback
-            className={
-              isMaster
-                ? `${botBg} text-white text-xs font-semibold`
-                : 'bg-zinc-600 text-white text-xs font-semibold'
-            }
+        {isMaster && agentInstanceId ? (
+          <AgentProfileCard
+            instanceId={agentInstanceId}
+            name={agentName}
+            category={agentCategory ?? 'general'}
+            status="running"
+            iconUrl={agentIconUrl}
+            side="right"
           >
-            {isMaster ? agentName[0] : 'Y'}
-          </AvatarFallback>
-        </Avatar>
+            <span className="cursor-pointer">
+              <AgentAvatar name={agentName} category={agentCategory ?? 'general'} iconUrl={agentIconUrl} size="sm" />
+            </span>
+          </AgentProfileCard>
+        ) : (
+          <Avatar>
+            <AvatarFallback className="bg-zinc-600 text-white text-xs font-semibold">
+              Y
+            </AvatarFallback>
+          </Avatar>
+        )}
       </div>
 
       {/* Content column */}
@@ -194,6 +213,8 @@ interface DiscordMessageListProps {
   messages: DiscordMessage[]
   agentName?: string
   agentCategory?: string
+  agentIconUrl?: string | null
+  agentInstanceId?: string
 }
 
 const CATEGORY_AVATAR: Record<string, { bg: string; text: string }> = {
@@ -206,7 +227,7 @@ const CATEGORY_AVATAR: Record<string, { bg: string; text: string }> = {
   personal: { bg: 'bg-cyan-600', text: 'text-cyan-400' },
 }
 
-export function DiscordMessageList({ messages, agentName = 'Agent', agentCategory }: DiscordMessageListProps) {
+export function DiscordMessageList({ messages, agentName = 'Agent', agentCategory, agentIconUrl, agentInstanceId }: DiscordMessageListProps) {
   const agentColor = agentCategory ? CATEGORY_AVATAR[agentCategory] : undefined
   const botBg = agentColor?.bg ?? 'bg-primary'
   const botText = agentColor?.text ?? 'text-primary'
@@ -223,9 +244,7 @@ export function DiscordMessageList({ messages, agentName = 'Agent', agentCategor
   if (messages.length === 0) {
     return (
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
-        <div className={`flex h-16 w-16 items-center justify-center rounded-full ${botBg}`}>
-          <span className="text-2xl font-bold text-white">{agentName[0]}</span>
-        </div>
+        <AgentAvatar name={agentName} category={agentCategory ?? 'general'} iconUrl={agentIconUrl} size="lg" />
         <div className="text-center">
           <h3 className="text-lg font-semibold">Welcome</h3>
           <p className="text-muted-foreground text-sm">
@@ -242,7 +261,7 @@ export function DiscordMessageList({ messages, agentName = 'Agent', agentCategor
     <ScrollArea ref={scrollAreaRef} className="min-h-0 flex-1" data-lenis-prevent>
       <div className="flex flex-col gap-1 py-4">
         {groups.map((group, i) => (
-          <MessageGroupView key={`${group.role}-${group.messages[0].id}-${i}`} group={group} agentName={agentName} botBg={botBg} botText={botText} />
+          <MessageGroupView key={`${group.role}-${group.messages[0].id}-${i}`} group={group} agentName={agentName} agentCategory={agentCategory} agentIconUrl={agentIconUrl} agentInstanceId={agentInstanceId} botBg={botBg} botText={botText} />
         ))}
       </div>
     </ScrollArea>
