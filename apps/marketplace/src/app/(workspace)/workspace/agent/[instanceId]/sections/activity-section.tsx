@@ -35,7 +35,6 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination'
-import { TEST_ACTIVITY } from '../test-data'
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -122,7 +121,7 @@ function exportCsv(events: ActivityEvent[]) {
 
 // ── Component ────────────────────────────────────────────────────────────
 
-export function ActivitySection({ instanceId, testMode = false }: { instanceId: string; testMode?: boolean }) {
+export function ActivitySection({ instanceId }: { instanceId: string }) {
   const [data, setData] = useState<ActivityData | null>(null)
   const [loading, setLoading] = useState(true)
   const [typeFilter, setTypeFilter] = useState<string>('all')
@@ -130,11 +129,6 @@ export function ActivitySection({ instanceId, testMode = false }: { instanceId: 
   const [selectedEvent, setSelectedEvent] = useState<ActivityEvent | null>(null)
 
   const fetchData = useCallback(async () => {
-    if (testMode) {
-      setData(TEST_ACTIVITY)
-      setLoading(false)
-      return
-    }
     setLoading(true)
     try {
       const params = new URLSearchParams({ instanceId, days: '30' })
@@ -150,7 +144,7 @@ export function ActivitySection({ instanceId, testMode = false }: { instanceId: 
     } finally {
       setLoading(false)
     }
-  }, [instanceId, typeFilter, testMode])
+  }, [instanceId, typeFilter])
 
   useEffect(() => { fetchData() }, [fetchData])
 

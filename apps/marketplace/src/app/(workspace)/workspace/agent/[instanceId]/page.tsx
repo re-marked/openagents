@@ -15,17 +15,13 @@ import { AgentHomePage } from './agent-home'
 
 export default async function AgentPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ instanceId: string }>
-  searchParams: Promise<{ test?: string }>
 }) {
   const user = await getUser()
   if (!user) redirect('/login')
 
   const { instanceId } = await params
-  const { test } = await searchParams
-  const testMode = test === 'true'
   const service = createServiceClient()
 
   const { data: instance } = await service
@@ -48,10 +44,7 @@ export default async function AgentPage({
     icon_url: string | null
   }
   const agentName = instance.display_name ?? agent.name
-  // Mock agents are always "running" regardless of DB status
-  const initialStatus = instance.fly_app_name?.startsWith('mock-')
-    ? 'running'
-    : instance.status
+  const initialStatus = instance.status
 
   return (
     <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
@@ -84,7 +77,6 @@ export default async function AgentPage({
         agentTagline={agent.tagline}
         agentIconUrl={agent.icon_url}
         createdAt={instance.created_at}
-        testMode={testMode}
       />
     </div>
   )

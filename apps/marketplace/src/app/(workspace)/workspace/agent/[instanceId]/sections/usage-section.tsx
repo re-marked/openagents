@@ -15,7 +15,6 @@ import {
   type ChartConfig,
 } from '@/components/ui/chart'
 import { Skeleton } from '@/components/ui/skeleton'
-import { TEST_USAGE } from '../test-data'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Pagination,
@@ -98,17 +97,12 @@ const costChartConfig = {
 
 // ── Component ────────────────────────────────────────────────────────────
 
-export function UsageSection({ instanceId, testMode = false }: { instanceId: string; testMode?: boolean }) {
+export function UsageSection({ instanceId }: { instanceId: string }) {
   const [data, setData] = useState<UsageData | null>(null)
   const [loading, setLoading] = useState(true)
   const [timeframe, setTimeframe] = useState<Timeframe>('30d')
 
   useEffect(() => {
-    if (testMode) {
-      setData(TEST_USAGE)
-      setLoading(false)
-      return
-    }
     async function fetch_() {
       setLoading(true)
       try {
@@ -123,7 +117,7 @@ export function UsageSection({ instanceId, testMode = false }: { instanceId: str
       }
     }
     fetch_()
-  }, [instanceId, timeframe, testMode])
+  }, [instanceId, timeframe])
 
   const isHourly = timeframe === '24h'
 

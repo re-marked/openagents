@@ -63,7 +63,6 @@ export interface AgentHomeProps {
   agentTagline: string | null
   agentIconUrl: string | null
   createdAt: string
-  testMode?: boolean
 }
 
 export function AgentHomePage(props: AgentHomeProps) {
@@ -71,15 +70,13 @@ export function AgentHomePage(props: AgentHomeProps) {
     instanceId,
     initialStatus,
     displayName,
-    testMode = false,
   } = props
   const [activeSection, setActiveSection] = useState<Section>('overview')
   const [currentName, setCurrentName] = useState(displayName)
   const [waking, setWaking] = useState(false)
 
   const { status: realStatus } = useAgentStatus({ instanceId, initialStatus })
-  // In test mode, always show as running so all sections are accessible
-  const polledStatus = testMode ? 'running' : realStatus
+  const polledStatus = realStatus
 
   // Clear waking once polling confirms running
   useEffect(() => {
@@ -131,21 +128,20 @@ export function AgentHomePage(props: AgentHomeProps) {
             onNameChange={setCurrentName}
             onNavigate={(s) => setActiveSection(s as Section)}
             onWake={handleWake}
-            testMode={testMode}
           />
         )
       case 'config':
         return <ConfigSection instanceId={instanceId} agentName={currentName} />
       case 'personality':
-        return <PersonalitySection instanceId={instanceId} testMode={testMode} />
+        return <PersonalitySection instanceId={instanceId} />
       case 'skills':
-        return <SkillsSection instanceId={instanceId} testMode={testMode} />
+        return <SkillsSection instanceId={instanceId} />
       case 'memory':
-        return <MemorySection instanceId={instanceId} testMode={testMode} />
+        return <MemorySection instanceId={instanceId} />
       case 'usage':
-        return <UsageSection instanceId={instanceId} testMode={testMode} />
+        return <UsageSection instanceId={instanceId} />
       case 'activity':
-        return <ActivitySection instanceId={instanceId} testMode={testMode} />
+        return <ActivitySection instanceId={instanceId} />
       case 'actions':
         return (
           <ActionsSection
