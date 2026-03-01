@@ -17,7 +17,7 @@ interface SaveApiKeyParams {
  */
 export async function saveApiKey({ provider, apiKey }: SaveApiKeyParams) {
   const user = await getUser()
-  if (!user) throw new Error('Unauthorized')
+  if (!user) return { error: 'Unauthorized' }
 
   const service = createServiceClient()
 
@@ -33,7 +33,7 @@ export async function saveApiKey({ provider, apiKey }: SaveApiKeyParams) {
       { onConflict: 'user_id,provider' }
     )
 
-  if (error) throw new Error(`Failed to save key: ${error.message}`)
+  if (error) return { error: `Failed to save key: ${error.message}` }
 
   revalidatePath('/workspace/settings')
   return { success: true }
@@ -44,7 +44,7 @@ export async function saveApiKey({ provider, apiKey }: SaveApiKeyParams) {
  */
 export async function deleteApiKey(provider: ApiKeyProvider) {
   const user = await getUser()
-  if (!user) throw new Error('Unauthorized')
+  if (!user) return { error: 'Unauthorized' }
 
   const service = createServiceClient()
 
@@ -54,7 +54,7 @@ export async function deleteApiKey(provider: ApiKeyProvider) {
     .eq('user_id', user.id)
     .eq('provider', provider)
 
-  if (error) throw new Error(`Failed to delete key: ${error.message}`)
+  if (error) return { error: `Failed to delete key: ${error.message}` }
 
   revalidatePath('/workspace/settings')
   return { success: true }
@@ -65,7 +65,7 @@ export async function deleteApiKey(provider: ApiKeyProvider) {
  */
 export async function getApiKeys() {
   const user = await getUser()
-  if (!user) throw new Error('Unauthorized')
+  if (!user) return []
 
   const supabase = await createClient()
 
@@ -74,7 +74,7 @@ export async function getApiKeys() {
     .select('id, provider, api_key, updated_at')
     .eq('user_id', user.id)
 
-  if (error) throw new Error(`Failed to load keys: ${error.message}`)
+  if (error) return []
 
   return (data ?? []).map((row) => ({
     id: row.id,
@@ -89,7 +89,7 @@ export async function getApiKeys() {
  */
 export async function saveDefaultModel(modelId: string) {
   const user = await getUser()
-  if (!user) throw new Error('Unauthorized')
+  if (!user) return { error: 'Unauthorized' }
 
   const service = createServiceClient()
 
@@ -98,7 +98,7 @@ export async function saveDefaultModel(modelId: string) {
     .update({ default_model: modelId })
     .eq('id', user.id)
 
-  if (error) throw new Error(`Failed to save model: ${error.message}`)
+  if (error) return { error: `Failed to save model: ${error.message}` }
 
   revalidatePath('/workspace/settings')
   return { success: true }
@@ -109,7 +109,7 @@ export async function saveDefaultModel(modelId: string) {
  */
 export async function getDefaultModel(): Promise<string> {
   const user = await getUser()
-  if (!user) throw new Error('Unauthorized')
+  if (!user) return 'google/gemini-2.5-flash'
 
   const service = createServiceClient()
 
@@ -149,11 +149,11 @@ export async function getProfile() {
  */
 export async function updateProfile(data: ProfileFormValues) {
   const user = await getUser()
-  if (!user) throw new Error('Unauthorized')
+  if (!user) return { error: 'Unauthorized' }
 
   const result = profileSchema.safeParse(data)
   if (!result.success) {
-    throw new Error('Invalid data')
+    return { error: 'Invalid data' }
   }
 
   const service = createServiceClient()
@@ -166,7 +166,7 @@ export async function updateProfile(data: ProfileFormValues) {
     })
     .eq('id', user.id)
 
-  if (error) throw new Error(`Failed to update profile: ${error.message}`)
+  if (error) return { error: `Failed to update profile: ${error.message}` }
 
   revalidatePath('/workspace/settings/general')
   return { success: true }

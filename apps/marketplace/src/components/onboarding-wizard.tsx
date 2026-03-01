@@ -81,12 +81,16 @@ export function OnboardingWizard({
         }
 
         // Save API key
-        await saveApiKey({ provider: 'google', apiKey: apiKey.trim() })
+        const keyResult = await saveApiKey({ provider: 'google', apiKey: apiKey.trim() })
+        if ('error' in keyResult) {
+          setError(keyResult.error)
+          return
+        }
 
         setError(null)
         router.refresh()
-      } catch (err) {
-        setError((err as Error).message)
+      } catch {
+        setError('An unexpected error occurred')
       }
     })
   }

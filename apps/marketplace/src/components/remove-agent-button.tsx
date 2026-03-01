@@ -51,18 +51,18 @@ export function RemoveAgentButton({ instanceId, agentName, onRemoved, redirectTo
     setOpen(false)
     onRemoved?.()
 
-    try {
-      await removeAgent(instanceId)
-      if (redirectTo) {
-        router.push(redirectTo)
-      } else {
-        router.refresh()
-      }
-    } catch (e) {
+    const result = await removeAgent(instanceId)
+    if (result && 'error' in result) {
       // Re-open dialog with error if removal actually failed
-      setError(e instanceof Error ? e.message : 'Failed to remove agent')
+      setError(result.error)
       setRemoving(false)
       setOpen(true)
+      return
+    }
+    if (redirectTo) {
+      router.push(redirectTo)
+    } else {
+      router.refresh()
     }
   }
 

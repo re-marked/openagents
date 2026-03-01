@@ -16,7 +16,7 @@ interface HireAgentParams {
  */
 export async function hireAgent({ agentSlug }: HireAgentParams) {
   const user = await getUser()
-  if (!user) throw new Error('Unauthorized')
+  if (!user) return { error: 'Unauthorized' } as const
 
   const service = createServiceClient()
 
@@ -28,7 +28,7 @@ export async function hireAgent({ agentSlug }: HireAgentParams) {
     .eq('status', 'published')
     .single()
 
-  if (!agent) throw new Error(`Agent not found: ${agentSlug}`)
+  if (!agent) return { error: `Agent not found: ${agentSlug}` } as const
 
   // 2. Check if already hired (running or suspended)
   const { data: existing } = await service
@@ -72,7 +72,7 @@ export async function hireAgent({ agentSlug }: HireAgentParams) {
     projectId = newProject?.id
   }
 
-  if (!projectId) throw new Error('Failed to create project')
+  if (!projectId) return { error: 'Failed to create project' } as const
 
   // 4. Create agent instance with provisioning status
   const { data: instance, error: instanceErr } = await service
@@ -89,7 +89,7 @@ export async function hireAgent({ agentSlug }: HireAgentParams) {
     .single()
 
   if (instanceErr || !instance) {
-    throw new Error(`Failed to create instance: ${instanceErr?.message}`)
+    return { error: `Failed to create instance: ${instanceErr?.message}` } as const
   }
 
   // 5. Add to default chat (first chat in the project)
@@ -126,7 +126,7 @@ export async function hireAgent({ agentSlug }: HireAgentParams) {
  */
 export async function removeAgent(instanceId: string) {
   const user = await getUser()
-  if (!user) throw new Error('Unauthorized')
+  if (!user) return { error: 'Unauthorized' }
 
   const service = createServiceClient()
 
@@ -138,8 +138,8 @@ export async function removeAgent(instanceId: string) {
     .eq('user_id', user.id)
     .single()
 
-  if (!inst) throw new Error('Agent not found')
-  if (inst.status === 'destroyed') throw new Error('Agent already removed')
+  if (!inst) return { error: 'Agent not found' }
+  if (inst.status === 'destroyed') return { error: 'Agent already removed' }
 
   // Mark as destroying immediately for UI feedback
   await service
@@ -167,7 +167,7 @@ export async function removeAgent(instanceId: string) {
  */
 export async function checkInstanceStatus(instanceId: string) {
   const user = await getUser()
-  if (!user) throw new Error('Unauthorized')
+  if (!user) return null
 
   const service = createServiceClient()
 

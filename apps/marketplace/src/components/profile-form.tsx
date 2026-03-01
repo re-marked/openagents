@@ -42,15 +42,14 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
 
   async function onSubmit(data: ProfileFormValues) {
     setIsLoading(true)
-    try {
-      await updateProfile(data)
+    const result = await updateProfile(data)
+    if ('error' in result) {
+      toast.error(result.error)
+    } else {
       toast.success('Profile updated successfully')
       form.reset(data) // Reset dirty state with new data
-    } catch (error) {
-      toast.error('Failed to update profile')
-    } finally {
-      setIsLoading(false)
     }
+    setIsLoading(false)
   }
 
   return (

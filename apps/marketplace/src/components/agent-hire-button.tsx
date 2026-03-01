@@ -20,26 +20,26 @@ export function AgentHireButton({ agentSlug, agentName }: AgentHireButtonProps) 
     setDeploying(true)
     setError(null)
 
-    try {
-      const result = await hireAgent({ agentSlug })
+    const result = await hireAgent({ agentSlug })
 
-      if (result.alreadyHired && result.status === 'running') {
-        router.push('/workspace/home')
-        return
-      }
-
-      // Redirect to workspace — provisioning poller handles the rest
-      router.push('/workspace/home')
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Something went wrong'
+    if ('error' in result) {
+      const msg = result.error
       if (msg.includes('Unauthorized') || msg.includes('unauthorized')) {
-        // Not logged in — redirect to login, then back here
         router.push(`/login?next=/agents/${agentSlug}`)
         return
       }
       setError(msg)
       setDeploying(false)
+      return
     }
+
+    if (result.alreadyHired && result.status === 'running') {
+      router.push('/workspace/home')
+      return
+    }
+
+    // Redirect to workspace — provisioning poller handles the rest
+    router.push('/workspace/home')
   }
 
   return (
