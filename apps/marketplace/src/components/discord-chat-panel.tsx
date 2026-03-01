@@ -16,21 +16,30 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { useGatewayReady } from '@/hooks/use-gateway-ready'
 
 interface DiscordChatPanelProps {
   agentInstanceId: string
   agentName?: string
   agentCategory?: string
   agentStatus?: string
+  /** Skip heartbeat check (for test/mock modes) */
+  skipHeartbeat?: boolean
 }
 
-export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCategory, agentStatus }: DiscordChatPanelProps) {
+export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCategory, agentStatus, skipHeartbeat }: DiscordChatPanelProps) {
   const router = useRouter()
   const [messages, setMessages] = useState<DiscordMessage[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isTyping, setIsTyping] = useState(false)
   const [showSleepingAlert, setShowSleepingAlert] = useState(agentStatus === 'suspended' || agentStatus === 'stopped')
   const [waking, setWaking] = useState(false)
+
+  // Gateway readiness — don't send messages or show typing until the agent is responsive
+  const { ready: gatewayReady, checking: gatewayChecking } = useGatewayReady({
+    instanceId: agentInstanceId,
+    skip: skipHeartbeat,
+  })
 
   // Queue for non-blocking sends
   const queueRef = useRef<string[]>([])
@@ -97,6 +106,8 @@ export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCa
 
   const processQueue = useCallback(async () => {
     if (processingRef.current || queueRef.current.length === 0) return
+    // Don't start processing until the gateway is confirmed ready
+    if (!gatewayReady) return
 
     processingRef.current = true
     setIsTyping(true)
@@ -481,7 +492,14 @@ export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCa
     } else {
       setIsTyping(false)
     }
-  }, [agentInstanceId])
+  }, [agentInstanceId, gatewayReady])
+
+  // When gateway becomes ready, flush any queued messages
+  useEffect(() => {
+    if (gatewayReady && queueRef.current.length > 0 && !processingRef.current) {
+      processQueue()
+    }
+  }, [gatewayReady, processQueue])
 
   const handleSend = useCallback(
     (text: string) => {
@@ -517,7 +535,7 @@ export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCa
     <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
       <DiscordMessageList messages={messages} agentName={agentName} agentCategory={agentCategory} />
 
-      {/* Typing indicator */}
+      {/* Typing / connecting indicator */}
       {isTyping && (
         <div className="px-4 py-1">
           <span className="text-muted-foreground text-xs">
@@ -528,6 +546,16 @@ export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCa
                 <span className="bg-muted-foreground/60 h-1 w-1 animate-bounce rounded-full [animation-delay:300ms]" />
               </span>
               <span className="font-semibold text-primary">{agentName}</span> is typing…
+            </span>
+          </span>
+        </div>
+      )}
+      {!isTyping && gatewayChecking && messages.some((m) => m.role === 'user') && (
+        <div className="px-4 py-1">
+          <span className="text-muted-foreground text-xs">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="border-muted-foreground/60 h-3 w-3 animate-spin rounded-full border-2 border-t-transparent" />
+              Connecting to <span className="font-semibold text-primary">{agentName}</span>…
             </span>
           </span>
         </div>
