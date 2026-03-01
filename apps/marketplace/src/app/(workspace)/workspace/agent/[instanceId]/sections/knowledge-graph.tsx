@@ -117,24 +117,57 @@ function buildGraph(files: FileData[]): { nodes: GraphNode[]; links: GraphLink[]
     }
   }
 
-  // Build edges from wikilinks
+  // Connect root (MEMORY.md) to all folder nodes so they're always reachable
+  const rootNode = [...nodeMap.values()].find((n) => n.isRoot)
+  if (rootNode) {
+    for (const folder of folderChildren.keys()) {
+      const folderNode = nodeMap.get(folder)
+      if (folderNode) {
+        links.push({ source: rootNode.id, target: folder })
+        folderNode.incomingCount++
+      }
+    }
+  }
+
+  // Build a lookup: file slug → parent folder id
+  const fileToFolder = new Map<string, string>()
+  for (const [folder, children] of folderChildren) {
+    for (const child of children) {
+      fileToFolder.set(child, folder)
+    }
+  }
+
+  // Build edges from wikilinks — redirect to folder when target is inside one
+  const linkSet = new Set<string>()
   for (const file of files) {
     const sourceSlug = slugFromFilename(file.name)
     const wikilinks = parseWikilinks(file.content)
 
     for (const target of wikilinks) {
       const targetSlug = target.toLowerCase()
-      // Match by: exact slug, filename part, or folder name (for folder nodes)
       const matchNode = nodeMap.get(targetSlug)
         ?? [...nodeMap.values()].find((n) =>
           n.label === targetSlug
           || n.id.endsWith('/' + targetSlug)
           || (n.isFolder && n.id === targetSlug)
         )
-      if (matchNode && matchNode.id !== sourceSlug) {
-        links.push({ source: sourceSlug, target: matchNode.id })
-        matchNode.incomingCount++
-      }
+      if (!matchNode || matchNode.id === sourceSlug) continue
+
+      // If target lives inside a folder AND source is outside that folder,
+      // link to the folder instead so hierarchy is: MEMORY → folder → file
+      const parentFolder = fileToFolder.get(matchNode.id)
+      const sourceFolder = fileToFolder.get(sourceSlug)
+      const effectiveTarget = (parentFolder && sourceFolder !== parentFolder)
+        ? parentFolder
+        : matchNode.id
+
+      const key = `${sourceSlug}→${effectiveTarget}`
+      if (linkSet.has(key)) continue
+      linkSet.add(key)
+
+      links.push({ source: sourceSlug, target: effectiveTarget })
+      const targetNode = nodeMap.get(effectiveTarget)!
+      targetNode.incomingCount++
     }
   }
 
