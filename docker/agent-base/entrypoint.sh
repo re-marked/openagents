@@ -29,7 +29,9 @@ else
   echo "[entrypoint] Existing openclaw.json found — preserving user config"
 fi
 
-# ── 1b. Strip deprecated keys that crash newer OpenClaw versions
+# ── 1b. Strip problematic keys that crash or hang OpenClaw v2026.2.25
+#   - tools.elevated.autoApprove: deprecated, crashes newer versions
+#   - agents.defaults.subagents: causes gateway init hang, corrupts volume state
 if [ -f /data/openclaw.json ]; then
   node -e "\
     const fs = require('fs');\
@@ -39,9 +41,13 @@ if [ -f /data/openclaw.json ]; then
       delete cfg.tools.elevated.autoApprove;\
       changed = true;\
     }\
+    if (cfg.agents?.defaults?.subagents !== undefined) {\
+      delete cfg.agents.defaults.subagents;\
+      changed = true;\
+    }\
     if (changed) {\
       fs.writeFileSync('/data/openclaw.json', JSON.stringify(cfg, null, 2));\
-      console.log('[entrypoint] Stripped deprecated config keys from openclaw.json');\
+      console.log('[entrypoint] Stripped problematic config keys from openclaw.json');\
     }\
   "
 fi

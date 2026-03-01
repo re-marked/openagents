@@ -3,7 +3,9 @@ import { createServiceClient } from '@agentbay/db'
 import { FlyClient } from '@agentbay/fly'
 import { AGENT_ROLES } from './agent-roles'
 
-const BASE_IMAGE = process.env.FLY_AGENT_BASE_IMAGE ?? 'registry.fly.io/agentbay-agent-base:latest'
+// PINNED to v2026.2.25 — v2026.2.26 has breaking bind/controlUi changes.
+// Never use :latest — fly deploy doesn't update it, so it's always stale.
+const BASE_IMAGE = process.env.FLY_AGENT_BASE_IMAGE ?? 'registry.fly.io/agentbay-agent-base:v2026.2.25'
 const FLY_ORG = process.env.FLY_ORG_SLUG ?? 'personal'
 const FLY_REGION = process.env.FLY_REGION ?? 'ord'
 
@@ -200,7 +202,7 @@ export const provisionAgentMachine = task({
                   method: 'GET',
                   interval: '30s',
                   timeout: '5s',
-                  grace_period: '30s',
+                  grace_period: '90s',
                 },
               ],
             },
