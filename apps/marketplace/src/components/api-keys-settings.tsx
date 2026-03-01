@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { saveApiKey, deleteApiKey, type ApiKeyProvider } from '@/lib/settings/actions'
 import { Key, Trash2, Check, Loader2, Plus } from 'lucide-react'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 
 interface MaskedKey {
   id: string
@@ -26,6 +27,7 @@ export function ApiKeysSettings({ initialKeys }: { initialKeys: MaskedKey[] }) {
   const [editingProvider, setEditingProvider] = useState<ApiKeyProvider | null>(null)
   const [inputValue, setInputValue] = useState('')
   const [isPending, startTransition] = useTransition()
+  const [deletingProvider, setDeletingProvider] = useState<ApiKeyProvider | null>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   function handleSave(provider: ApiKeyProvider) {
@@ -119,7 +121,7 @@ export function ApiKeysSettings({ initialKeys }: { initialKeys: MaskedKey[] }) {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-muted-foreground hover:text-red-400"
-                          onClick={() => handleDelete(provider.id)}
+                          onClick={() => setDeletingProvider(provider.id)}
                           disabled={isPending}
                         >
                           <Trash2 className="size-4" />
@@ -184,6 +186,21 @@ export function ApiKeysSettings({ initialKeys }: { initialKeys: MaskedKey[] }) {
           )
         })}
       </div>
+
+      {/* API key delete confirmation */}
+      <ConfirmDialog
+        open={deletingProvider !== null}
+        onOpenChange={(open) => { if (!open) setDeletingProvider(null) }}
+        title={`Remove ${PROVIDERS.find((p) => p.id === deletingProvider)?.name ?? ''} API key?`}
+        description="Your agents using this provider will stop working until a new key is added."
+        confirmLabel="Remove"
+        onConfirm={() => {
+          if (deletingProvider) {
+            handleDelete(deletingProvider)
+            setDeletingProvider(null)
+          }
+        }}
+      />
     </div>
   )
 }
