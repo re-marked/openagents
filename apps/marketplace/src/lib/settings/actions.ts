@@ -5,7 +5,7 @@ import { getUser } from '@/lib/auth/get-user'
 import { revalidatePath } from 'next/cache'
 import { profileSchema, type ProfileFormValues } from './schema'
 
-export type ApiKeyProvider = 'openai' | 'anthropic' | 'google'
+export type ApiKeyProvider = 'openai' | 'anthropic' | 'google' | 'routeway'
 
 interface SaveApiKeyParams {
   provider: ApiKeyProvider
