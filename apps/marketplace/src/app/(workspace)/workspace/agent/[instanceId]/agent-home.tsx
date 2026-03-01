@@ -151,6 +151,7 @@ export function AgentHomePage(props: AgentHomeProps) {
           <ActionsSection
             instanceId={instanceId}
             agentName={currentName}
+            agentSlug={props.agentSlug}
             status={status}
             onNameChange={setCurrentName}
             onWake={handleWake}

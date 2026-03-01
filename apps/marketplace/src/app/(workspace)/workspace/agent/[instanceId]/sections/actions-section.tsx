@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { Power, RotateCcw, Pause, Square, Edit3, Download, Loader2 } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { Power, RotateCcw, Pause, Square, Pencil, Download, Loader2, Check, X } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
@@ -10,6 +11,7 @@ import { RemoveAgentButton } from '@/components/remove-agent-button'
 interface ActionsSectionProps {
   instanceId: string
   agentName: string
+  agentSlug?: string
   status: string
   onNameChange: (name: string) => void
   onWake?: () => void
@@ -18,6 +20,7 @@ interface ActionsSectionProps {
 export function ActionsSection({
   instanceId,
   agentName,
+  agentSlug,
   status,
   onNameChange,
   onWake,
@@ -25,9 +28,18 @@ export function ActionsSection({
   const [restarting, setRestarting] = useState(false)
   const [stopping, setStopping] = useState(false)
   const [suspending, setSuspending] = useState(false)
+  const [isEditingName, setIsEditingName] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const [newName, setNewName] = useState(agentName)
   const [exportingLogs, setExportingLogs] = useState(false)
+  const renameInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (isEditingName && renameInputRef.current) {
+      renameInputRef.current.focus()
+      renameInputRef.current.select()
+    }
+  }, [isEditingName])
 
   const isRunning = status === 'running'
   const isStarting = status === 'starting'
@@ -80,7 +92,11 @@ export function ActionsSection({
 
   async function handleRename() {
     const trimmed = newName.trim()
-    if (!trimmed || trimmed === agentName) return
+    if (!trimmed || trimmed === agentName) {
+      setIsEditingName(false)
+      setNewName(agentName)
+      return
+    }
     setRenaming(true)
     try {
       const res = await fetch('/api/agent/rename', {
@@ -90,12 +106,19 @@ export function ActionsSection({
       })
       if (res.ok) {
         onNameChange(trimmed)
+        toast.success('Agent renamed')
       }
     } catch {
-      // fail silently
+      toast.error('Failed to rename agent')
     } finally {
       setRenaming(false)
+      setIsEditingName(false)
     }
+  }
+
+  function cancelRename() {
+    setIsEditingName(false)
+    setNewName(agentName)
   }
 
   async function handleExportLogs() {
@@ -179,30 +202,68 @@ export function ActionsSection({
         </div>
       </div>
 
-      {/* Rename */}
+      {/* Nickname */}
       <div className="space-y-3">
-        <h3 className="text-sm font-medium">Rename</h3>
-        <div className="flex items-center gap-2">
-          <Input
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            className="max-w-xs text-sm"
-            onKeyDown={(e) => e.key === 'Enter' && handleRename()}
-          />
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleRename}
-            disabled={!newName.trim() || newName.trim() === agentName || renaming}
-          >
-            {renaming ? (
-              <Loader2 className="size-3 mr-1.5 animate-spin" />
-            ) : (
-              <Edit3 className="size-3 mr-1.5" />
-            )}
-            Rename
-          </Button>
-        </div>
+        <h3 className="text-sm font-medium">Nickname</h3>
+        {isEditingName ? (
+          <div className="flex items-center gap-2">
+            <Input
+              ref={renameInputRef}
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              className="max-w-xs text-sm"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleRename()
+                if (e.key === 'Escape') cancelRename()
+              }}
+              onBlur={() => {
+                // Small delay so button clicks register before blur fires
+                setTimeout(() => {
+                  if (!renaming) cancelRename()
+                }, 150)
+              }}
+              disabled={renaming}
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleRename}
+              disabled={!newName.trim() || newName.trim() === agentName || renaming}
+            >
+              {renaming ? (
+                <Loader2 className="size-3 mr-1.5 animate-spin" />
+              ) : (
+                <Check className="size-3 mr-1.5" />
+              )}
+              Save
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={cancelRename}
+              disabled={renaming}
+            >
+              <X className="size-3" />
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsEditingName(true)}
+              className="group flex items-center gap-2 rounded-md px-2 py-1 -ml-2 hover:bg-accent/50 transition-colors"
+            >
+              <span className="text-sm font-medium">{agentName}</span>
+              <Pencil className="size-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+            </button>
+          </div>
+        )}
+        {agentSlug && (
+          <p className="text-xs text-muted-foreground">
+            Username: <span className="font-mono text-foreground/60">@{agentSlug}</span>
+            <span className="ml-1 text-muted-foreground/60">· not changeable</span>
+          </p>
+        )}
       </div>
 
       {/* Export */}

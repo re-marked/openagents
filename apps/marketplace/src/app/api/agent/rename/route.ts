@@ -11,7 +11,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Missing instanceId or name' }, { status: 400 })
   }
 
-  const name = body.name.trim().slice(0, 100)
+  const name = body.name.trim()
+    .replace(/<[^>]*>/g, '')     // strip HTML tags
+    .replace(/[\x00-\x1F]/g, '') // strip control chars
+    .slice(0, 100)
+
+  if (!name) {
+    return NextResponse.json({ error: 'Name cannot be empty' }, { status: 400 })
+  }
   const service = createServiceClient()
 
   const { data: instance } = await service
