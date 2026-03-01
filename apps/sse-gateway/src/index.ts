@@ -34,12 +34,15 @@ app.get('/health', (c) =>
 )
 
 /**
- * Agent heartbeat — verify that the OpenClaw gateway on a Fly machine is
- * responsive by performing the full WebSocket handshake. The WS is closed
- * immediately after a successful handshake.
+ * Agent heartbeat — end-to-end readiness check.
+ *
+ * Connects via WebSocket, completes the OpenClaw v3 handshake, then sends
+ * a chat.send with message "HEARTBEAT". OpenClaw checks HEARTBEAT.md — if
+ * there's nothing to do, the agent replies "HEARTBEAT_OK". This verifies the
+ * entire pipeline: WS connection → handshake → agent processing → LLM response.
  *
  * The caller (Next.js) should poll this endpoint until it gets HEARTBEAT_OK.
- * Each call tries a single connection attempt with a 15s timeout — no internal
+ * Each call tries a single connection + message round-trip — no internal
  * retries, so it returns fast whether the agent is ready or not.
  */
 app.post('/v1/heartbeat', async (c) => {
@@ -58,15 +61,106 @@ app.post('/v1/heartbeat', async (c) => {
   const wsUrl = `wss://${targetApp}.fly.dev/`
   console.log(`[heartbeat] Checking ${wsUrl}`)
 
+  let ws: WebSocket | null = null
+
   try {
-    const ws = await connectAndHandshake(wsUrl, targetApp, agentToken, 15_000)
-    // Handshake succeeded — agent is responsive. Close immediately.
+    ws = await connectAndHandshake(wsUrl, targetApp, agentToken, 15_000)
+
+    // Send HEARTBEAT message on a dedicated session key so it doesn't
+    // pollute real chat sessions
+    const sessionKey = `agent:main:session-heartbeat`
+    const heartbeatReq = {
+      type: 'req',
+      id: generateId(),
+      method: 'chat.send',
+      params: {
+        sessionKey,
+        message: 'HEARTBEAT',
+        idempotencyKey: `hb-${Date.now()}`,
+      },
+    }
+
+    ws.send(JSON.stringify(heartbeatReq))
+    console.log(`[heartbeat] Sent HEARTBEAT to ${targetApp}`)
+
+    // Wait for the agent to respond — collect text from assistant deltas
+    // and chat done events until we see HEARTBEAT_OK or timeout (30s).
+    const HEARTBEAT_TIMEOUT_MS = 30_000
+    const responseText = await new Promise<string>((resolve, reject) => {
+      let buffer = ''
+      let resolved = false
+
+      const timer = setTimeout(() => {
+        if (!resolved) {
+          resolved = true
+          ws!.removeListener('message', onMsg)
+          reject(new Error('Heartbeat response timed out'))
+        }
+      }, HEARTBEAT_TIMEOUT_MS)
+
+      const onMsg = (data: WebSocket.Data) => {
+        if (resolved) return
+        try {
+          const msg = JSON.parse(data.toString())
+
+          // Accumulate assistant text deltas
+          if (msg.type === 'event' && msg.event === 'agent') {
+            const delta = msg.payload?.data?.delta
+            if (msg.payload?.stream === 'assistant' && delta) {
+              buffer += delta
+            }
+          }
+
+          // Chat state "final"/"done" — agent finished its turn
+          if (msg.type === 'event' && msg.event === 'chat') {
+            const state = msg.payload?.state
+            if (state === 'final' || state === 'done' || state === 'completed') {
+              // Also grab text from chat content parts
+              const parts = msg.payload?.message?.content ?? []
+              const chatText = parts
+                .filter((p: { type: string }) => p.type === 'text')
+                .map((p: { text: string }) => p.text)
+                .join('')
+              const fullText = (buffer + chatText).trim()
+              resolved = true
+              clearTimeout(timer)
+              ws!.removeListener('message', onMsg)
+              resolve(fullText)
+            }
+          }
+
+          // Response error
+          if (msg.type === 'res' && msg.ok === false) {
+            resolved = true
+            clearTimeout(timer)
+            ws!.removeListener('message', onMsg)
+            reject(new Error(msg.error?.message ?? 'Agent request error'))
+          }
+        } catch {
+          // Ignore parse errors
+        }
+      }
+
+      ws!.on('message', onMsg)
+    })
+
     ws.close()
-    console.log(`[heartbeat] HEARTBEAT_OK for ${targetApp}`)
-    return c.json({ status: 'HEARTBEAT_OK' })
+
+    if (responseText.includes('HEARTBEAT_OK')) {
+      console.log(`[heartbeat] HEARTBEAT_OK from ${targetApp}`)
+      return c.json({ status: 'HEARTBEAT_OK' })
+    }
+
+    // Agent responded but not with HEARTBEAT_OK
+    console.log(`[heartbeat] Unexpected response from ${targetApp}: ${responseText.slice(0, 200)}`)
+    return c.json(
+      { status: 'NOT_READY', error: `Agent responded but not HEARTBEAT_OK: ${responseText.slice(0, 100)}` },
+      503,
+    )
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.log(`[heartbeat] NOT_READY for ${targetApp}: ${msg}`)
+    if (ws && ws.readyState === WebSocket.OPEN) ws.close()
     return c.json({ status: 'NOT_READY', error: msg }, 503)
   }
 })
