@@ -6,7 +6,7 @@
 #   - Health-check endpoint
 #   - Auth-profiles from env vars (BYOK)
 
-FROM ghcr.io/openclaw/openclaw:2026.2.25
+FROM ghcr.io/openclaw/openclaw:2026.2.26
 
 # ── Store defaults outside the volume mount point ────────────
 # /data is a volume — anything COPY'd there gets overwritten at runtime.
