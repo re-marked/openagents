@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Home, Settings, Plus, BarChart3, CreditCard, Key, MoreHorizontal, Pencil, Trash2, CompassIcon, MessagesSquare } from "lucide-react"
+import { Home, Settings, Plus, BarChart3, CreditCard, Key, MoreHorizontal, Pencil, Trash2, CompassIcon, Hash } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 
@@ -53,6 +53,16 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   activeProjectId?: string | null
 }
 
+/** Discord-style channel name: lowercase, dashes for spaces, keep emojis */
+function toChannelName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9\-_\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '')
+    .replace(/-{2,}/g, '-')
+    .replace(/^-|-$/g, '')
+}
+
 const STATUS_DOT: Record<string, string> = {
   running: "bg-status-running",
   suspended: "bg-status-suspended",
@@ -86,7 +96,7 @@ export function AppSidebar({
   }, [renamingId])
 
   async function handleCreateChat() {
-    const name = newChatName.trim()
+    const name = toChannelName(newChatName.trim())
     if (!name) {
       setIsCreating(false)
       return
@@ -110,7 +120,7 @@ export function AppSidebar({
   }
 
   async function handleRenameChat(chatId: string) {
-    const name = renameValue.trim()
+    const name = toChannelName(renameValue.trim())
     if (!name) {
       setRenamingId(null)
       return
@@ -263,7 +273,7 @@ export function AppSidebar({
                   return (
                     <SidebarMenuItem key={chat.id}>
                       <div className="flex items-center gap-2 px-2 py-1">
-                        <MessagesSquare className="size-4 shrink-0 text-muted-foreground" />
+                        <Hash className="size-4 shrink-0 text-muted-foreground" />
                         <input
                           ref={renameRef}
                           value={renameValue}
@@ -284,8 +294,8 @@ export function AppSidebar({
                   <SidebarMenuItem key={chat.id}>
                     <SidebarMenuButton asChild isActive={isActive} className="gap-2.5">
                       <Link href={chatPath}>
-                        <MessagesSquare className="size-4" />
-                        <span className="truncate">{chat.name}</span>
+                        <Hash className="size-4" />
+                        <span className="truncate">{toChannelName(chat.name)}</span>
                       </Link>
                     </SidebarMenuButton>
                     <DropdownMenu>
@@ -298,7 +308,7 @@ export function AppSidebar({
                         <DropdownMenuItem
                           onClick={() => {
                             setRenamingId(chat.id)
-                            setRenameValue(chat.name)
+                            setRenameValue(toChannelName(chat.name))
                           }}
                         >
                           <Pencil className="size-4 mr-2" />
@@ -321,7 +331,7 @@ export function AppSidebar({
               {isCreating ? (
                 <SidebarMenuItem>
                   <div className="flex items-center gap-2 px-2 py-1">
-                    <MessagesSquare className="size-4 shrink-0 text-muted-foreground" />
+                    <Hash className="size-4 shrink-0 text-muted-foreground" />
                     <input
                       ref={inputRef}
                       value={newChatName}
@@ -339,7 +349,7 @@ export function AppSidebar({
                           setNewChatName("")
                         }
                       }}
-                      placeholder="Chat name..."
+                      placeholder="new-channel"
                       className="flex-1 bg-transparent text-sm outline-none border-b border-primary placeholder:text-muted-foreground/50"
                     />
                   </div>
