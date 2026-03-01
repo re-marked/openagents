@@ -18,6 +18,7 @@ export default async function UserSettingsPage() {
 
   const [apiKeys, defaultModel] = await Promise.all([getApiKeys(), getDefaultModel()])
   const configuredProviders = apiKeys.map((k) => k.provider)
+  const hasPlatformKey = !!process.env.PLATFORM_ROUTEWAY_API_KEY
 
   return (
     <div className="flex flex-col flex-1 overflow-y-auto">
@@ -43,7 +44,7 @@ export default async function UserSettingsPage() {
         </div>
 
         <div className="max-w-2xl space-y-10">
-          <ApiKeysSettings initialKeys={apiKeys} />
+          <ApiKeysSettings initialKeys={apiKeys} hasPlatformKey={hasPlatformKey} />
           <ModelSelector currentModel={defaultModel} configuredProviders={configuredProviders} />
         </div>
       </div>
