@@ -7,7 +7,7 @@ export const runtime = 'nodejs'
 
 type AgentInstance = Pick<
   Tables<'agent_instances'>,
-  'id' | 'fly_app_name' | 'status' | 'user_id' | 'agent_id' | 'team_id' | 'gateway_token'
+  'id' | 'fly_app_name' | 'status' | 'user_id' | 'agent_id' | 'gateway_token'
 >
 
 export async function POST(request: Request) {
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
   // 3. Load agent instance — verify ownership and running status
   const { data: instanceData, error: instanceError } = await supabase
     .from('agent_instances')
-    .select('id, fly_app_name, status, user_id, agent_id, team_id, gateway_token')
+    .select('id, fly_app_name, status, user_id, agent_id, gateway_token')
     .eq('id', agentInstanceId)
     .single()
 
@@ -108,46 +108,6 @@ export async function POST(request: Request) {
   const sessionKey = `agent:main:session-${sessionId}`
   const idempotencyKey = `${sessionId}-${Date.now()}`
 
-  // 6b. Query team sub-agents when the master instance belongs to a team.
-  // Maps display_name (e.g. "researcher") to { flyApp, token } so the gateway
-  // can open real WS connections instead of using hardcoded mock responses.
-  let subAgents: Record<string, { flyApp: string; token?: string }> | undefined
-
-  if (instance.team_id) {
-    const serviceSupabase = createServiceClient()
-    const { data: teamMembers } = await serviceSupabase
-      .from('team_agents')
-      .select('instance_id, agent_instances!inner(fly_app_name, display_name, status, gateway_token)')
-      .eq('team_id', instance.team_id)
-      .neq('instance_id', instance.id)
-
-    if (teamMembers && teamMembers.length > 0) {
-      subAgents = {}
-      for (const member of teamMembers) {
-        // Cast: Supabase join returns the related row as an object
-        const inst = (member as Record<string, unknown>).agent_instances as {
-          fly_app_name: string
-          display_name: string | null
-          status: string
-          gateway_token: string | null
-        }
-        if (
-          inst.display_name &&
-          (inst.status === 'running' || inst.status === 'suspended')
-        ) {
-          subAgents[inst.display_name] = {
-            flyApp: inst.fly_app_name,
-            ...(inst.gateway_token ? { token: inst.gateway_token } : {}),
-          }
-        }
-      }
-      // Don't send empty object
-      if (Object.keys(subAgents).length === 0) {
-        subAgents = undefined
-      }
-    }
-  }
-
   // 7. POST to SSE gateway
   const gatewayUrl = process.env.SSE_GATEWAY_URL
   const gatewaySecret = process.env.SSE_GATEWAY_SECRET
@@ -168,7 +128,7 @@ export async function POST(request: Request) {
       'x-fly-app': instance.fly_app_name,
       ...(agentToken ? { 'x-agent-token': agentToken } : {}),
     },
-    body: JSON.stringify({ sessionKey, message, idempotencyKey, subAgents }),
+    body: JSON.stringify({ sessionKey, message, idempotencyKey }),
   })
 
   if (!gatewayResponse.ok || !gatewayResponse.body) {
@@ -182,7 +142,7 @@ export async function POST(request: Request) {
   // 8. Pipe SSE stream through, accumulating assistant content for DB storage.
   // A single run can produce multiple turns (text → tool → text), each ending
   // with a "done" event. We save each turn as a separate assistant message.
-  // Thread data (from @mention sub-agent conversations) is stored as tool_use JSON.
+  // Thread data is stored as tool_use JSON.
   const decoder = new TextDecoder()
   let currentTurnContent = ''
   const assistantMessages: string[] = []
