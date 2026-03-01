@@ -30,7 +30,7 @@ export function PublicSiteHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-black/20 backdrop-blur-2xl backdrop-saturate-150 supports-[backdrop-filter]:bg-black/10">
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/20 backdrop-blur-2xl backdrop-saturate-150 supports-[backdrop-filter]:bg-black/10">
       <nav className="mx-auto flex h-14 max-w-[1440px] items-center gap-4 px-6">
         {/* Logo */}
         <Link href="/" className="flex w-[200px] shrink-0 items-center gap-2.5">
