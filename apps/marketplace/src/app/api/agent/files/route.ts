@@ -308,11 +308,62 @@ async function getInstance(instanceId: string, userId: string) {
   const service = createServiceClient()
   const { data } = await service
     .from('agent_instances')
-    .select('id, status, fly_app_name, fly_machine_id')
+    .select('id, status, fly_app_name, fly_machine_id, workspace_files')
     .eq('id', instanceId)
     .eq('user_id', userId)
     .single()
   return data
+}
+
+/** Read a file from the DB-backed workspace_files column. */
+function getDbFile(instance: { workspace_files: unknown }, path: string): string | undefined {
+  const files = instance.workspace_files as Record<string, string> | null
+  if (!files || typeof files !== 'object') return undefined
+  return files[path] ?? undefined
+}
+
+/** Persist a file to the DB workspace_files column (merge into existing). */
+async function saveDbFile(instanceId: string, path: string, content: string) {
+  const service = createServiceClient()
+  // Read current workspace_files, merge, write back
+  const { data } = await service
+    .from('agent_instances')
+    .select('workspace_files')
+    .eq('id', instanceId)
+    .single()
+
+  const existing = (data?.workspace_files ?? {}) as Record<string, string>
+  existing[path] = content
+
+  await service
+    .from('agent_instances')
+    .update({ workspace_files: existing as never, updated_at: new Date().toISOString() })
+    .eq('id', instanceId)
+}
+
+/** Delete a file from the DB workspace_files column. */
+async function deleteDbFile(instanceId: string, path: string) {
+  const service = createServiceClient()
+  const { data } = await service
+    .from('agent_instances')
+    .select('workspace_files')
+    .eq('id', instanceId)
+    .single()
+
+  const existing = (data?.workspace_files ?? {}) as Record<string, string>
+
+  // Delete exact path or all paths under it (for directory deletes)
+  const keysToDelete = Object.keys(existing).filter(
+    (k) => k === path || k.startsWith(path + '/')
+  )
+  for (const key of keysToDelete) {
+    delete existing[key]
+  }
+
+  await service
+    .from('agent_instances')
+    .update({ workspace_files: existing as never, updated_at: new Date().toISOString() })
+    .eq('id', instanceId)
 }
 
 // ── Routes ────────────────────────────────────────────────────────────────
@@ -334,12 +385,42 @@ export async function GET(request: Request) {
   const instance = await getInstance(instanceId, user.id)
   if (!instance) return NextResponse.json({ error: 'Agent not found' }, { status: 404 })
 
-  // Mock mode — skip status check, return canned data
-  if (isMock(instance.fly_app_name)) {
+  const mock = isMock(instance.fly_app_name)
+  const running = instance.status === 'running' && !mock
+
+  // For simple file reads (not list/find), check DB first
+  if (!list && !find) {
+    const dbContent = getDbFile(instance, path)
+    if (dbContent !== undefined) {
+      return NextResponse.json({ content: dbContent })
+    }
+    // Fall back to machine or mock data
+    if (mock) {
+      return NextResponse.json({ content: getMockContent(path) ?? '' })
+    }
+    if (!running) {
+      return NextResponse.json({ error: 'Agent must be running' }, { status: 409 })
+    }
+    try {
+      const fly = new FlyClient()
+      const content = await fly.readFile(instance.fly_app_name, instance.fly_machine_id, path)
+      return NextResponse.json({ content })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to read file'
+      return NextResponse.json({ error: message }, { status: 500 })
+    }
+  }
+
+  // list / find — need machine or mock data
+  if (mock) {
     if (find) {
-      // Simulate recursive find for mock data
       const pattern = find.replace('*', '.*')
-      const matching = Object.keys(MOCK_MEMORY_FILES)
+      // Combine mock files + DB-saved files for discovery
+      const allPaths = new Set([
+        ...Object.keys(MOCK_MEMORY_FILES),
+        ...Object.keys((instance.workspace_files ?? {}) as Record<string, string>),
+      ])
+      const matching = [...allPaths]
         .filter((k) => k.startsWith(path) && new RegExp(pattern).test(k))
         .join('\n')
       return NextResponse.json({ output: matching })
@@ -347,11 +428,9 @@ export async function GET(request: Request) {
     if (list) {
       return NextResponse.json({ output: MOCK_DIRS[path] ?? '' })
     }
-    const content = getMockContent(path)
-    return NextResponse.json({ content: content ?? '' })
   }
 
-  if (instance.status !== 'running') {
+  if (!running) {
     return NextResponse.json({ error: 'Agent must be running' }, { status: 409 })
   }
 
@@ -361,12 +440,8 @@ export async function GET(request: Request) {
       const output = await fly.findFiles(instance.fly_app_name, instance.fly_machine_id, path, find)
       return NextResponse.json({ output })
     }
-    if (list) {
-      const output = await fly.listDir(instance.fly_app_name, instance.fly_machine_id, path)
-      return NextResponse.json({ output })
-    }
-    const content = await fly.readFile(instance.fly_app_name, instance.fly_machine_id, path)
-    return NextResponse.json({ content })
+    const output = await fly.listDir(instance.fly_app_name, instance.fly_machine_id, path)
+    return NextResponse.json({ output })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to read file'
     return NextResponse.json({ error: message }, { status: 500 })
@@ -385,19 +460,26 @@ export async function PUT(request: Request) {
   const instance = await getInstance(body.instanceId, user.id)
   if (!instance) return NextResponse.json({ error: 'Agent not found' }, { status: 404 })
 
-  // Mock mode — accept writes silently
-  if (isMock(instance.fly_app_name)) {
-    return NextResponse.json({ ok: true })
-  }
-
+  // Always persist to DB so edits survive machine suspends/restarts
   try {
-    const fly = new FlyClient()
-    await fly.writeFile(instance.fly_app_name, instance.fly_machine_id, body.path, body.content)
-    return NextResponse.json({ ok: true })
+    await saveDbFile(body.instanceId, body.path, body.content)
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Failed to write file'
+    const message = err instanceof Error ? err.message : 'Failed to save file'
     return NextResponse.json({ error: message }, { status: 500 })
   }
+
+  // Also sync to machine if it's running (so the agent picks up changes immediately)
+  if (!isMock(instance.fly_app_name) && instance.status === 'running') {
+    try {
+      const fly = new FlyClient()
+      await fly.writeFile(instance.fly_app_name, instance.fly_machine_id, body.path, body.content)
+    } catch {
+      // Machine write failed but DB write succeeded — still OK
+      // File will be synced next time the machine starts
+    }
+  }
+
+  return NextResponse.json({ ok: true })
 }
 
 export async function DELETE(request: Request) {
@@ -412,17 +494,22 @@ export async function DELETE(request: Request) {
   const instance = await getInstance(body.instanceId, user.id)
   if (!instance) return NextResponse.json({ error: 'Agent not found' }, { status: 404 })
 
-  // Mock mode — accept deletes silently
-  if (isMock(instance.fly_app_name)) {
-    return NextResponse.json({ ok: true })
+  // Always remove from DB
+  try {
+    await deleteDbFile(body.instanceId, body.path)
+  } catch {
+    // Non-critical — continue to machine delete
   }
 
-  try {
-    const fly = new FlyClient()
-    await fly.deletePath(instance.fly_app_name, instance.fly_machine_id, body.path)
-    return NextResponse.json({ ok: true })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Failed to delete path'
-    return NextResponse.json({ error: message }, { status: 500 })
+  // Also delete from machine if running
+  if (!isMock(instance.fly_app_name) && instance.status === 'running') {
+    try {
+      const fly = new FlyClient()
+      await fly.deletePath(instance.fly_app_name, instance.fly_machine_id, body.path)
+    } catch {
+      // Machine delete failed but DB delete succeeded
+    }
   }
+
+  return NextResponse.json({ ok: true })
 }
