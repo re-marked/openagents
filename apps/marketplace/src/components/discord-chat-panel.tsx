@@ -138,7 +138,7 @@ export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCa
           {
             id: `error-${Date.now()}`,
             role: 'master',
-            content: `Something went wrong: ${err.error ?? 'Connection failed'}`,
+            content: `Something went wrong: ${err.error ?? err.errorMessage ?? err.message ?? 'Connection failed'}`,
             timestamp: new Date(),
           },
         ])
@@ -419,12 +419,22 @@ export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCa
                 streamDone = true
                 break
               } else if (currentEvent === 'error' || data.error) {
+                // Extract a human-readable message — OpenClaw uses `errorMessage`, not `error`
+                let errText: unknown = data.error ?? data.errorMessage ?? data.message ?? 'Unknown error'
+                if (typeof errText === 'object' && errText !== null) {
+                  errText = (errText as Record<string, unknown>).errorMessage
+                    ?? (errText as Record<string, unknown>).message
+                    ?? 'Unknown error'
+                }
+                if (typeof errText === 'string' && errText.startsWith('{')) {
+                  try { const p = JSON.parse(errText); errText = p.errorMessage ?? p.message ?? errText } catch { /* use as-is */ }
+                }
                 setMessages((prev) => [
                   ...prev,
                   {
                     id: `error-${Date.now()}`,
                     role: 'master',
-                    content: `Something went wrong: ${data.error ?? 'Unknown error'}`,
+                    content: `Something went wrong: ${errText}`,
                     timestamp: new Date(),
                   },
                 ])
@@ -627,6 +637,7 @@ export function DiscordChatPanel({ agentInstanceId, agentName = 'Agent', agentCa
                   <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
                   Starting up...
                 </span>
+                
               ) : (
                 agentStatus === 'stopped' ? 'Start Up' : 'Wake Up'
               )}
