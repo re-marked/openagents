@@ -8,6 +8,15 @@ import { Button } from '@/components/ui/button'
 import { DiscordChatPanel } from '@/components/discord-chat-panel'
 import { ChatMemberPanel } from '@/components/chat-member-panel'
 
+function toChannelName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9\-_\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '')
+    .replace(/-{2,}/g, '-')
+    .replace(/^-|-$/g, '')
+}
+
 interface ChatAgent {
   instanceId: string
   name: string
@@ -50,7 +59,7 @@ export function ChatPageClient({
         <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <span className="text-muted-foreground font-medium">#</span>
-          <h1 className="text-sm font-semibold truncate">{chatName}</h1>
+          <h1 className="text-sm font-semibold truncate">{toChannelName(chatName)}</h1>
           <span className="text-xs text-muted-foreground">
             {chatAgents.length} {chatAgents.length === 1 ? 'member' : 'members'}
           </span>
