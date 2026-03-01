@@ -29,8 +29,8 @@ export function OnboardingWizard() {
     startTransition(async () => {
       try {
         await saveApiKey({ provider: 'google', apiKey: apiKey.trim() })
-        setStep('done')
         setError(null)
+        router.push('/discover')
       } catch (err) {
         setError((err as Error).message)
       }
