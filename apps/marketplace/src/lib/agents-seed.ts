@@ -221,6 +221,9 @@ const DEMO_AGENTS = [
  * only inserts when count is 0.
  */
 export async function seedDemoAgentsIfEmpty() {
+  // Only seed demo agents in development
+  if (process.env.NODE_ENV !== 'development') return
+
   const service = createServiceClient()
 
   const { count, error: countError } = await service
@@ -228,27 +231,18 @@ export async function seedDemoAgentsIfEmpty() {
     .select("*", { count: "exact", head: true })
     .eq("status", "published")
 
-  if (countError) {
-    console.error("[seed] count query failed:", countError.message)
-    return
-  }
+  if (countError) return
 
-  console.log(`[seed] published agents count: ${count}, need: ${DEMO_AGENTS.length}`)
   if (count !== null && count >= DEMO_AGENTS.length) return
 
-  // We need a creator_id — use a placeholder or the first user
+  // We need a creator_id — use the first user
   const { data: firstUser, error: userError } = await service
     .from("users")
     .select("id")
     .limit(1)
     .single()
 
-  if (userError || !firstUser) {
-    console.error("[seed] no user found:", userError?.message)
-    return
-  }
-
-  console.log(`[seed] seeding ${DEMO_AGENTS.length} agents with creator_id: ${firstUser.id}`)
+  if (userError || !firstUser) return
 
   const now = new Date().toISOString()
   const agents = DEMO_AGENTS.map((a) => ({
@@ -262,10 +256,5 @@ export async function seedDemoAgentsIfEmpty() {
     avg_rating: Math.round((3.5 + Math.random() * 1.5) * 10) / 10,
   }))
 
-  const { error: upsertError } = await service.from("agents").upsert(agents, { onConflict: "slug" })
-  if (upsertError) {
-    console.error("[seed] upsert failed:", upsertError.message, upsertError.details)
-  } else {
-    console.log(`[seed] successfully seeded ${agents.length} agents`)
-  }
+  await service.from("agents").upsert(agents, { onConflict: "slug" })
 }

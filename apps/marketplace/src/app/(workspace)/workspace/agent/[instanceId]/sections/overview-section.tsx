@@ -20,7 +20,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { AgentAvatar } from '@/lib/agents'
 import { STATUS_CONFIG } from '../agent-home'
 import { KnowledgeGraph } from './knowledge-graph'
-import { TEST_STATS } from '../test-data'
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -121,7 +120,6 @@ interface OverviewSectionProps {
   onNameChange: (name: string) => void
   onNavigate?: (section: string) => void
   onWake?: () => void
-  testMode?: boolean
 }
 
 export function OverviewSection({
@@ -135,7 +133,6 @@ export function OverviewSection({
   createdAt,
   onNavigate,
   onWake,
-  testMode = false,
 }: OverviewSectionProps) {
   const router = useRouter()
   const [restarting, setRestarting] = useState(false)
@@ -153,11 +150,6 @@ export function OverviewSection({
   const canWake = status === 'suspended' || status === 'stopped'
 
   useEffect(() => {
-    if (testMode) {
-      setStats(TEST_STATS)
-      setLoading(false)
-      return
-    }
     async function fetchStats() {
       try {
         const res = await fetch(`/api/agent/stats?instanceId=${instanceId}`)
@@ -172,7 +164,7 @@ export function OverviewSection({
       }
     }
     fetchStats()
-  }, [instanceId, testMode])
+  }, [instanceId])
 
   async function handleRestart() {
     setRestarting(true)
@@ -351,7 +343,7 @@ export function OverviewSection({
           <Brain className="size-5 text-muted-foreground/60" />
           <h2 className="text-base font-semibold text-muted-foreground">Brain</h2>
         </div>
-        <KnowledgeGraph instanceId={instanceId} testMode={testMode} />
+        <KnowledgeGraph instanceId={instanceId} />
       </div>
     </div>
   )

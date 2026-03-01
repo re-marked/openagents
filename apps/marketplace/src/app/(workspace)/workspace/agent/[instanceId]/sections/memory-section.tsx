@@ -5,7 +5,6 @@ import { Loader2, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { MarkdownEditor } from '@/components/markdown-editor'
-import { TEST_MEMORY_MD, TEST_MEMORY_FILES, TEST_MEMORY_FILE_CONTENTS } from '../test-data'
 
 const MEMORY_MD_PATH = '/data/workspace/MEMORY.md'
 // OpenClaw's session-memory hook writes to /data/workspace/memory/, not /data/memory/
@@ -18,10 +17,9 @@ interface MemoryFile {
 
 interface MemorySectionProps {
   instanceId: string
-  testMode?: boolean
 }
 
-export function MemorySection({ instanceId, testMode = false }: MemorySectionProps) {
+export function MemorySection({ instanceId }: MemorySectionProps) {
   const [tab, setTab] = useState<'memory-md' | 'memory-dir'>('memory-md')
   const [memoryMd, setMemoryMd] = useState('')
   const [originalMemoryMd, setOriginalMemoryMd] = useState('')
@@ -33,16 +31,9 @@ export function MemorySection({ instanceId, testMode = false }: MemorySectionPro
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    if (testMode) {
-      setMemoryMd(TEST_MEMORY_MD)
-      setOriginalMemoryMd(TEST_MEMORY_MD)
-      setMemoryFiles(TEST_MEMORY_FILES)
-      setLoading(false)
-      return
-    }
     loadMemory()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [instanceId, testMode])
+  }, [instanceId])
 
   async function loadMemory() {
     setLoading(true)
@@ -98,10 +89,6 @@ export function MemorySection({ instanceId, testMode = false }: MemorySectionPro
   async function handleViewFile(fileName: string) {
     setSelectedFile(fileName)
     setSelectedContent('')
-    if (testMode) {
-      setSelectedContent(TEST_MEMORY_FILE_CONTENTS[fileName] ?? '(no test content)')
-      return
-    }
     try {
       // fileName is a relative path that may include subdirs (e.g. "people/index.md")
       const fullPath = `${MEMORY_DIR}/${fileName}`

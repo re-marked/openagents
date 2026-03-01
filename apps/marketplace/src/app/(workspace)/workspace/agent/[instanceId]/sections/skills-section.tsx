@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { MarkdownEditor } from '@/components/markdown-editor'
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { TEST_SKILLS } from '../test-data'
 
 const SKILLS_DIR = '/data/workspace/skills'
 
@@ -28,10 +27,9 @@ interface Skill {
 
 interface SkillsSectionProps {
   instanceId: string
-  testMode?: boolean
 }
 
-export function SkillsSection({ instanceId, testMode = false }: SkillsSectionProps) {
+export function SkillsSection({ instanceId }: SkillsSectionProps) {
   const [skills, setSkills] = useState<Skill[]>([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<string | null>(null)
@@ -45,14 +43,9 @@ export function SkillsSection({ instanceId, testMode = false }: SkillsSectionPro
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (testMode) {
-      setSkills(TEST_SKILLS)
-      setLoading(false)
-      return
-    }
     loadSkills()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [instanceId, testMode])
+  }, [instanceId])
 
   async function loadSkills() {
     setLoading(true)
