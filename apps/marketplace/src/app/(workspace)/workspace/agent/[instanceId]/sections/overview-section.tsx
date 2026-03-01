@@ -107,6 +107,48 @@ const messagesChartConfig = {
 
 // ── Component ────────────────────────────────────────────────────────────
 
+// ── Demo data for test mode ───────────────────────────────────────────────
+
+function buildDemoStats(): StatsData {
+  const today = new Date()
+  const timeSeries: TimeSeriesEntry[] = Array.from({ length: 30 }, (_, i) => {
+    const d = new Date(today)
+    d.setDate(d.getDate() - (29 - i))
+    const msgs = i < 8 ? 0 : [4, 7, 2, 9, 5, 11, 3, 8, 6, 13, 4, 7, 2, 0, 9, 5, 12, 8, 3, 14, 6, 9][i % 22]
+    return {
+      date: d.toISOString().slice(0, 10),
+      messages: msgs,
+      minutes: Math.round(msgs * 3.2),
+      cost: parseFloat((msgs * 0.0048).toFixed(4)),
+    }
+  })
+  const hourlySeries: TimeSeriesEntry[] = Array.from({ length: 24 }, (_, i) => {
+    const d = new Date(today)
+    d.setHours(i, 0, 0, 0)
+    const msgs = [0, 0, 0, 0, 0, 0, 0, 1, 3, 5, 4, 7, 6, 3, 2, 4, 8, 6, 3, 2, 1, 0, 0, 0][i]
+    return {
+      date: d.toISOString(),
+      messages: msgs,
+      minutes: Math.round(msgs * 2.8),
+      cost: parseFloat((msgs * 0.0048).toFixed(4)),
+    }
+  })
+  return {
+    relationship: {
+      totalConversations: 38,
+      totalMessages: 241,
+      totalMinutes: 187,
+      totalCost: 1.16,
+      longestSessionMinutes: 42,
+      skillsCount: 3,
+      memoriesCount: 12,
+    },
+    recentActivity: [],
+    timeSeries,
+    hourlySeries,
+  }
+}
+
 interface OverviewSectionProps {
   instanceId: string
   status: string
@@ -120,6 +162,7 @@ interface OverviewSectionProps {
   onNameChange: (name: string) => void
   onNavigate?: (section: string) => void
   onWake?: () => void
+  testMode?: boolean
 }
 
 export function OverviewSection({
@@ -133,6 +176,7 @@ export function OverviewSection({
   createdAt,
   onNavigate,
   onWake,
+  testMode,
 }: OverviewSectionProps) {
   const router = useRouter()
   const [restarting, setRestarting] = useState(false)
@@ -150,6 +194,11 @@ export function OverviewSection({
   const canWake = status === 'suspended' || status === 'stopped'
 
   useEffect(() => {
+    if (testMode) {
+      setStats(buildDemoStats())
+      setLoading(false)
+      return
+    }
     async function fetchStats() {
       try {
         const res = await fetch(`/api/agent/stats?instanceId=${instanceId}`)
@@ -164,7 +213,7 @@ export function OverviewSection({
       }
     }
     fetchStats()
-  }, [instanceId])
+  }, [instanceId, testMode])
 
   async function handleRestart() {
     setRestarting(true)

@@ -15,13 +15,17 @@ import { AgentHomePage } from './agent-home'
 
 export default async function AgentPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ instanceId: string }>
+  searchParams: Promise<{ test?: string }>
 }) {
   const user = await getUser()
   if (!user) redirect('/login')
 
   const { instanceId } = await params
+  const { test } = await searchParams
+  const testMode = test === 'true'
   const service = createServiceClient()
 
   const { data: instance } = await service
@@ -69,7 +73,7 @@ export default async function AgentPage({
 
       <AgentHomePage
         instanceId={instance.id}
-        initialStatus={initialStatus}
+        initialStatus={testMode ? 'running' : initialStatus}
         displayName={agentName}
         agentName={agent.name}
         agentSlug={agent.slug}
@@ -77,6 +81,7 @@ export default async function AgentPage({
         agentTagline={agent.tagline}
         agentIconUrl={agent.icon_url}
         createdAt={instance.created_at}
+        testMode={testMode}
       />
     </div>
   )

@@ -97,12 +97,59 @@ const costChartConfig = {
 
 // ── Component ────────────────────────────────────────────────────────────
 
-export function UsageSection({ instanceId }: { instanceId: string }) {
+function buildDemoUsage(days: number): UsageData {
+  const today = new Date()
+  const daily: DailyEntry[] = Array.from({ length: days }, (_, i) => {
+    const d = new Date(today)
+    d.setDate(d.getDate() - (days - 1 - i))
+    const sessions = i < 5 ? 0 : [0, 1, 2, 1, 3, 2, 1, 0, 2, 3, 1, 2, 0, 1, 3, 2, 1, 4, 2, 1, 0, 2, 1, 3, 2][i % 25]
+    const tokens = sessions * 4800
+    return {
+      date: d.toISOString().slice(0, 10),
+      cost: parseFloat((sessions * 0.023).toFixed(4)),
+      tokens,
+      sessions,
+    }
+  })
+  const events: UsageEvent[] = Array.from({ length: 18 }, (_, i) => {
+    const d = new Date(today)
+    d.setDate(d.getDate() - Math.floor(i * 1.6))
+    d.setHours(9 + (i % 10), i * 7 % 60, 0, 0)
+    return {
+      date: d.toISOString(),
+      sessionId: `sess_demo_${i}`,
+      inputTokens: 1800 + i * 340,
+      outputTokens: 620 + i * 120,
+      computeSeconds: 18 + i * 6,
+      costUsd: parseFloat((0.012 + i * 0.004).toFixed(4)),
+    }
+  })
+  const totalSessions = daily.reduce((s, d) => s + d.sessions, 0)
+  const totalCostUsd = parseFloat(daily.reduce((s, d) => s + d.cost, 0).toFixed(4))
+  return {
+    summary: {
+      totalCostUsd,
+      totalInputTokens: events.reduce((s, e) => s + e.inputTokens, 0),
+      totalOutputTokens: events.reduce((s, e) => s + e.outputTokens, 0),
+      totalComputeSeconds: events.reduce((s, e) => s + e.computeSeconds, 0),
+      totalSessions,
+    },
+    daily,
+    events,
+  }
+}
+
+export function UsageSection({ instanceId, testMode }: { instanceId: string; testMode?: boolean }) {
   const [data, setData] = useState<UsageData | null>(null)
   const [loading, setLoading] = useState(true)
   const [timeframe, setTimeframe] = useState<Timeframe>('30d')
 
   useEffect(() => {
+    if (testMode) {
+      setData(buildDemoUsage(TIMEFRAME_DAYS[timeframe]))
+      setLoading(false)
+      return
+    }
     async function fetch_() {
       setLoading(true)
       try {
@@ -117,7 +164,7 @@ export function UsageSection({ instanceId }: { instanceId: string }) {
       }
     }
     fetch_()
-  }, [instanceId, timeframe])
+  }, [instanceId, timeframe, testMode])
 
   const isHourly = timeframe === '24h'
 

@@ -63,6 +63,7 @@ export interface AgentHomeProps {
   agentTagline: string | null
   agentIconUrl: string | null
   createdAt: string
+  testMode?: boolean
 }
 
 export function AgentHomePage(props: AgentHomeProps) {
@@ -70,6 +71,7 @@ export function AgentHomePage(props: AgentHomeProps) {
     instanceId,
     initialStatus,
     displayName,
+    testMode,
   } = props
   const [activeSection, setActiveSection] = useState<Section>('overview')
   const [currentName, setCurrentName] = useState(displayName)
@@ -128,6 +130,7 @@ export function AgentHomePage(props: AgentHomeProps) {
             onNameChange={setCurrentName}
             onNavigate={(s) => setActiveSection(s as Section)}
             onWake={handleWake}
+            testMode={testMode}
           />
         )
       case 'config':
@@ -139,7 +142,7 @@ export function AgentHomePage(props: AgentHomeProps) {
       case 'memory':
         return <MemorySection instanceId={instanceId} />
       case 'usage':
-        return <UsageSection instanceId={instanceId} />
+        return <UsageSection instanceId={instanceId} testMode={testMode} />
       case 'activity':
         return <ActivitySection instanceId={instanceId} />
       case 'actions':
