@@ -22,8 +22,9 @@ export async function middleware(request: NextRequest) {
   }
 
   // ── Launch lockdown: only the landing page is public ──
-  // Set NEXT_PUBLIC_LAUNCH_LOCKDOWN=false (or remove it) to open the full app.
-  if (process.env.NEXT_PUBLIC_LAUNCH_LOCKDOWN !== 'false' && pathname !== '/') {
+  // Set NEXT_PUBLIC_LAUNCH_LOCKDOWN=true to lock the app (only '/' is accessible).
+  // Default: unlocked (app is open). Explicit opt-in prevents accidental lockouts.
+  if (process.env.NEXT_PUBLIC_LAUNCH_LOCKDOWN === 'true' && pathname !== '/') {
     const url = request.nextUrl.clone()
     url.pathname = '/'
     return NextResponse.redirect(url)

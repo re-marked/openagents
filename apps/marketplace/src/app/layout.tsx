@@ -20,7 +20,9 @@ export const metadata: Metadata = {
       ? process.env.NEXT_PUBLIC_APP_URL.startsWith('http')
         ? process.env.NEXT_PUBLIC_APP_URL
         : `https://${process.env.NEXT_PUBLIC_APP_URL}`
-      : 'http://localhost:3000'
+      : process.env.NODE_ENV === 'production'
+        ? 'https://agentbay.com'
+        : 'http://localhost:3000'
   ),
 }
 
