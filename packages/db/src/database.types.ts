@@ -17,6 +17,7 @@ export type Database = {
       agent_instances: {
         Row: {
           agent_id: string
+          config: Json | null
           created_at: string
           display_name: string | null
           error_message: string | null
@@ -35,6 +36,7 @@ export type Database = {
         }
         Insert: {
           agent_id: string
+          config?: Json | null
           created_at?: string
           display_name?: string | null
           error_message?: string | null
@@ -53,6 +55,7 @@ export type Database = {
         }
         Update: {
           agent_id?: string
+          config?: Json | null
           created_at?: string
           display_name?: string | null
           error_message?: string | null

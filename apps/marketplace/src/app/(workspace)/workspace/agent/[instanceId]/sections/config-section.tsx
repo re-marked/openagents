@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import {
   Loader2,
   RotateCcw,
@@ -225,6 +225,26 @@ export function ConfigSection({ instanceId, agentName }: ConfigSectionProps) {
   const initialConfig = useRef<AgentConfig>({ ...DEFAULT_CONFIG })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [_loadError, setLoadError] = useState(false)
+
+  // Load saved config from API on mount
+  useEffect(() => {
+    async function loadConfig() {
+      try {
+        const res = await fetch(`/api/agent/config?instanceId=${instanceId}`)
+        if (!res.ok) return
+        const { config: saved } = await res.json()
+        if (saved && typeof saved === 'object' && Object.keys(saved).length > 0) {
+          const merged = { ...DEFAULT_CONFIG, ...saved } as AgentConfig
+          setConfig(merged)
+          initialConfig.current = { ...merged }
+        }
+      } catch {
+        setLoadError(true)
+      }
+    }
+    loadConfig()
+  }, [instanceId])
 
   const hasChanges = JSON.stringify(config) !== JSON.stringify(initialConfig.current)
 
@@ -240,12 +260,21 @@ export function ConfigSection({ instanceId, agentName }: ConfigSectionProps) {
 
   async function handleSave() {
     setSaving(true)
-    // Future: PUT to API with config payload
-    await new Promise((r) => setTimeout(r, 400))
-    initialConfig.current = { ...config }
-    setSaving(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    try {
+      const res = await fetch('/api/agent/config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ instanceId, config }),
+      })
+      if (!res.ok) throw new Error('Save failed')
+      initialConfig.current = { ...config }
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch {
+      // Could add error toast here
+    } finally {
+      setSaving(false)
+    }
   }
 
   const selectedModel = MODELS.find((m) => m.id === config.primaryModel)
