@@ -24,10 +24,16 @@ export async function updateSession(request: NextRequest) {
     },
   )
 
-  // Refresh session — do not remove
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // For RSC flight requests (client-side navigation), use getSession() which reads
+  // the JWT locally without a network call. The layout's getUser() still validates.
+  // For full page loads, use getUser() to refresh tokens.
+  const isRscFlight = request.headers.get('rsc') === '1'
+  const { data: { user } } = isRscFlight
+    ? await (async () => {
+        const { data: { session } } = await supabase.auth.getSession()
+        return { data: { user: session?.user ?? null } }
+      })()
+    : await supabase.auth.getUser()
 
   const { pathname } = request.nextUrl
 
