@@ -235,6 +235,15 @@ export function DiscordMessageList({ messages, agentName = 'Agent', agentCategor
   const botText = agentColor?.text ?? 'text-primary'
   const scrollAreaRef = useRef<HTMLDivElement>(null)
 
+  // Must be declared before any early return (Rules of Hooks)
+  // Track which group keys were present on initial mount — don't animate those
+  const [initialKeys] = useState(() => {
+    const keys = new Set<string>()
+    const initialGroups = groupMessages(messages)
+    initialGroups.forEach((g, i) => keys.add(`${g.role}-${g.messages[0].id}-${i}`))
+    return keys
+  })
+
   const lastMsg = messages[messages.length - 1]
   useEffect(() => {
     const viewport = scrollAreaRef.current?.querySelector('[data-slot="scroll-area-viewport"]')
@@ -258,14 +267,6 @@ export function DiscordMessageList({ messages, agentName = 'Agent', agentCategor
   }
 
   const groups = groupMessages(messages)
-
-  // Track which group keys were present on initial mount — don't animate those
-  const [initialKeys] = useState(() => {
-    const keys = new Set<string>()
-    const initialGroups = groupMessages(messages)
-    initialGroups.forEach((g, i) => keys.add(`${g.role}-${g.messages[0].id}-${i}`))
-    return keys
-  })
 
   return (
     <ScrollArea ref={scrollAreaRef} className="min-h-0 flex-1" data-lenis-prevent>
