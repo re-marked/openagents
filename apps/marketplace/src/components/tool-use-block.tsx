@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronRight, Terminal, FileText, Pencil, Globe, FileCode, Loader2 } from 'lucide-react'
 
 export interface ToolUse {
@@ -19,6 +20,9 @@ const TOOL_CONFIG: Record<string, { label: string; icon: typeof Terminal }> = {
   apply_patch: { label: 'Patch', icon: FileCode },
   web_search: { label: 'Web Search', icon: Globe },
 }
+
+// Apple-style spring — snappy response, minimal overshoot
+const appleSpring = { type: 'spring' as const, stiffness: 380, damping: 30, mass: 0.8 }
 
 function getToolConfig(tool: string) {
   return TOOL_CONFIG[tool] ?? { label: tool, icon: Terminal }
@@ -49,27 +53,37 @@ function ToolUseItem({ toolUse }: { toolUse: ToolUse }) {
             <Loader2 className="h-3 w-3 text-muted-foreground animate-spin" />
           )}
           {hasOutput && (
-            <ChevronRight
-              className="h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ease-out"
-              style={{ transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
-            />
+            <motion.span
+              animate={{ rotate: expanded ? 90 : 0 }}
+              transition={appleSpring}
+              className="flex"
+            >
+              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+            </motion.span>
           )}
         </span>
       </button>
 
-      {/* Smooth expand/collapse via CSS grid row transition */}
-      <div
-        className="grid transition-[grid-template-rows] duration-200 ease-out"
-        style={{ gridTemplateRows: expanded ? '1fr' : '0fr' }}
-      >
-        <div className="overflow-hidden">
-          <div className="border-t border-border/30 bg-muted/10 px-3 py-2">
-            <pre className="text-[11px] text-muted-foreground/80 font-mono whitespace-pre-wrap break-words max-h-60 overflow-y-auto">
-              {toolUse.output}
-            </pre>
-          </div>
-        </div>
-      </div>
+      <AnimatePresence initial={false}>
+        {expanded && hasOutput && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{
+              height: appleSpring,
+              opacity: { duration: 0.15, ease: 'easeOut' },
+            }}
+            className="overflow-hidden"
+          >
+            <div className="border-t border-border/30 bg-muted/10 px-3 py-2">
+              <pre className="text-[11px] text-muted-foreground/80 font-mono whitespace-pre-wrap break-words max-h-60 overflow-y-auto">
+                {toolUse.output}
+              </pre>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
