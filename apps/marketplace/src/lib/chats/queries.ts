@@ -16,37 +16,27 @@ export interface ChatAgentInfo {
 }
 
 /**
- * Load all chats for a project with agent counts.
+ * Load all chats for a project with agent counts in a single query.
  */
 export async function getProjectChats(userId: string, projectId: string | null): Promise<ChatInfo[]> {
   if (!projectId) return []
 
   const service = createServiceClient()
+
+  // Single query with nested count instead of 2 sequential queries
   const { data: chats } = await service
     .from('chats')
-    .select('id, name')
+    .select('id, name, chat_agents(count)')
     .eq('project_id', projectId)
     .eq('user_id', userId)
     .order('created_at', { ascending: true })
 
   if (!chats || chats.length === 0) return []
 
-  // Get agent counts per chat
-  const chatIds = chats.map(c => c.id)
-  const { data: chatAgents } = await service
-    .from('chat_agents')
-    .select('chat_id')
-    .in('chat_id', chatIds)
-
-  const countMap: Record<string, number> = {}
-  for (const ca of chatAgents ?? []) {
-    countMap[ca.chat_id] = (countMap[ca.chat_id] ?? 0) + 1
-  }
-
-  return chats.map(c => ({
+  return chats.map((c: any) => ({
     id: c.id,
     name: c.name,
-    agentCount: countMap[c.id] ?? 0,
+    agentCount: c.chat_agents?.[0]?.count ?? 0,
   }))
 }
 

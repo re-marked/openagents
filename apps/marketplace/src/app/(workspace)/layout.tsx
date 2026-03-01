@@ -6,7 +6,7 @@ import {
   SidebarProvider,
 } from '@/components/ui/sidebar'
 import { getActiveProjectId, getProjectAgents, toAgentInfoList } from '@/lib/projects/queries'
-import { getProjectChats, ensureDefaultChat } from '@/lib/chats/queries'
+import { getProjectChats } from '@/lib/chats/queries'
 
 export default async function WorkspaceLayout({ children }: { children: React.ReactNode }) {
   const user = await getUser()
@@ -14,13 +14,10 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
 
   const { projects, activeProjectId } = await getActiveProjectId(user.id)
 
-  // Run all project-dependent queries in parallel to avoid sequential waterfall
+  // Run both queries in parallel — each is now a single DB round-trip
   const [instances, chats] = await Promise.all([
     getProjectAgents(user.id, activeProjectId),
-    (async () => {
-      if (activeProjectId) await ensureDefaultChat(user.id, activeProjectId)
-      return getProjectChats(user.id, activeProjectId)
-    })(),
+    getProjectChats(user.id, activeProjectId),
   ])
   const agents = toAgentInfoList(instances)
 
